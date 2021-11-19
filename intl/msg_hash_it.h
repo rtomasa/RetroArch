@@ -9923,11 +9923,11 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_PUBLIC_ADDRESS,
-   "Mappatura Porta Netplay Riuscita"
+   "Mappatura Porta OK"
    )
 MSG_HASH(
    MSG_UPNP_FAILED,
-   "Mappatura Porta UPNP Netplay Non Riuscita"
+   "UPNP Non Riuscita"
    )
 MSG_HASH(
    MSG_NO_ARGUMENTS_SUPPLIED_AND_NO_MENU_BUILTIN,
@@ -9947,7 +9947,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_NETPLAY_YOU_HAVE_JOINED_AS_PLAYER_N,
-   "Sei entrato come giocatore %u"
+   "Entrato come giocatore %u"
    )
 MSG_HASH(
    MSG_NETPLAY_YOU_HAVE_JOINED_WITH_INPUT_DEVICES_S,
@@ -10699,7 +10699,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_LOADED_STATE_FROM_SLOT,
-   "Caricamento del salvataggio dallo slot #%d."
+   "Gioco caricato"
    )
 MSG_HASH(
    MSG_LOADED_STATE_FROM_SLOT_AUTO,
@@ -10867,7 +10867,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_SAVED_STATE_TO_SLOT,
-   "Stato salvato nello slot #%d."
+   "Gioco salvato"
    )
 MSG_HASH(
    MSG_SAVED_STATE_TO_SLOT_AUTO,

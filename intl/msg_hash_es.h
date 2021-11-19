@@ -10031,11 +10031,11 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_PUBLIC_ADDRESS,
-   "Asignación de puertos para juego en red completada"
+   "Asignación de puertos OK"
    )
 MSG_HASH(
    MSG_UPNP_FAILED,
-   "Error al asignar puertos UPNP para juego en red"
+   "Falló UPNP"
    )
 MSG_HASH(
    MSG_NO_ARGUMENTS_SUPPLIED_AND_NO_MENU_BUILTIN,
@@ -10055,7 +10055,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_NETPLAY_YOU_HAVE_JOINED_AS_PLAYER_N,
-   "Has accedido como el jugador %u"
+   "Has accedido como jugador %u"
    )
 MSG_HASH(
    MSG_NETPLAY_YOU_HAVE_JOINED_WITH_INPUT_DEVICES_S,
@@ -10799,7 +10799,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_LOADED_STATE_FROM_SLOT,
-   "Carga del guardado rápido n.º %d terminada."
+   "Juego cargado"
    )
 MSG_HASH(
    MSG_LOADED_STATE_FROM_SLOT_AUTO,
@@ -10967,7 +10967,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_SAVED_STATE_TO_SLOT,
-   "Guardado rápido n.º %d terminado."
+   "Juego guardado"
    )
 MSG_HASH(
    MSG_SAVED_STATE_TO_SLOT_AUTO,
@@ -11071,7 +11071,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_PRESS_AGAIN_TO_QUIT,
-   "Vuelve a pulsar la tecla para cerrar RetroArch..."
+   "Pulsa de nuevo para salir..."
    )
 MSG_HASH(
    MSG_TO,

@@ -5508,9 +5508,8 @@ void netplay_announce_nat_traversal(netplay_t *netplay)
                host, sizeof(host), port, sizeof(port),
                NI_NUMERICHOST | NI_NUMERICSERV))
       {
-         snprintf(msg, sizeof(msg), "%s: %s:%s",
-               msg_hash_to_str(MSG_PUBLIC_ADDRESS),
-               host, port);
+         snprintf(msg, sizeof(msg), "%s",
+               msg_hash_to_str(MSG_PUBLIC_ADDRESS));
          dmsg = msg;
       }
 
@@ -5526,9 +5525,8 @@ void netplay_announce_nat_traversal(netplay_t *netplay)
                host, sizeof(host), port, sizeof(port),
                NI_NUMERICHOST | NI_NUMERICSERV))
       {
-         snprintf(msg, sizeof(msg), "%s: %s|%s",
-               msg_hash_to_str(MSG_PUBLIC_ADDRESS),
-               host, port);
+         snprintf(msg, sizeof(msg), "%s",
+               msg_hash_to_str(MSG_PUBLIC_ADDRESS));
          dmsg = msg;
       }
    }

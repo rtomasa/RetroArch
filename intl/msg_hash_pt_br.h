@@ -9991,11 +9991,11 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_PUBLIC_ADDRESS,
-   "Atribuição de portas para jogo em rede concluída"
+   "Atribuição de portas OK"
    )
 MSG_HASH(
    MSG_UPNP_FAILED,
-   "Erro ao atribuir as portas UPNP para o jogo em rede"
+   "Erro UPNP"
    )
 MSG_HASH(
    MSG_NO_ARGUMENTS_SUPPLIED_AND_NO_MENU_BUILTIN,
@@ -10015,7 +10015,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_NETPLAY_YOU_HAVE_JOINED_AS_PLAYER_N,
-   "Você se juntou como jogador %u"
+   "Entrou como jogador %u"
    )
 MSG_HASH(
    MSG_NETPLAY_YOU_HAVE_JOINED_WITH_INPUT_DEVICES_S,
@@ -10759,7 +10759,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_LOADED_STATE_FROM_SLOT,
-   "Jogo salvo carregado do compartimento #%d."
+   "Jogo carregado"
    )
 MSG_HASH(
    MSG_LOADED_STATE_FROM_SLOT_AUTO,
@@ -10927,7 +10927,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_SAVED_STATE_TO_SLOT,
-   "Jogo salvo no compartimento #%d."
+   "Jogo salvo"
    )
 MSG_HASH(
    MSG_SAVED_STATE_TO_SLOT_AUTO,

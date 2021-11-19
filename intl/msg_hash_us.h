@@ -10747,11 +10747,11 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_PUBLIC_ADDRESS,
-   "Netplay Port Mapping Successful"
+   "Port Mapping OK"
    )
 MSG_HASH(
    MSG_UPNP_FAILED,
-   "Netplay UPNP Port Mapping Failed"
+   "UPNP Failed"
    )
 MSG_HASH(
    MSG_NO_ARGUMENTS_SUPPLIED_AND_NO_MENU_BUILTIN,
@@ -10771,7 +10771,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_NETPLAY_YOU_HAVE_JOINED_AS_PLAYER_N,
-   "You have joined as player %u"
+   "Joined as player %u"
    )
 MSG_HASH(
    MSG_NETPLAY_YOU_HAVE_JOINED_WITH_INPUT_DEVICES_S,
@@ -11523,7 +11523,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_LOADED_STATE_FROM_SLOT,
-   "Loaded state from slot #%d."
+   "Game loaded"
    )
 MSG_HASH(
    MSG_LOADED_STATE_FROM_SLOT_AUTO,
@@ -11695,7 +11695,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_SAVED_STATE_TO_SLOT,
-   "Saved state to slot #%d."
+   "Game saved"
    )
 MSG_HASH(
    MSG_SAVED_STATE_TO_SLOT_AUTO,

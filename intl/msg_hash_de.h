@@ -9723,11 +9723,11 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_PUBLIC_ADDRESS,
-   "Netplay Port-Zuordnung erfolgreich"
+   "Port-Zuordnung OK"
    )
 MSG_HASH(
    MSG_UPNP_FAILED,
-   "Netplay UPNP-Port-Zuordnung fehlgeschlagen"
+   "UPNP fehlgeschlagen"
    )
 MSG_HASH(
    MSG_NO_ARGUMENTS_SUPPLIED_AND_NO_MENU_BUILTIN,
@@ -9747,7 +9747,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_NETPLAY_YOU_HAVE_JOINED_AS_PLAYER_N,
-   "Du bist als Spieler %u beigetreten"
+   "Als Spieler %u beigetreten"
    )
 MSG_HASH(
    MSG_NETPLAY_YOU_HAVE_JOINED_WITH_INPUT_DEVICES_S,
@@ -10499,7 +10499,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_LOADED_STATE_FROM_SLOT,
-   "Spielstand aus Speicherplatz #%d geladen."
+   "Spiel geladen"
    )
 MSG_HASH(
    MSG_LOADED_STATE_FROM_SLOT_AUTO,
@@ -10667,7 +10667,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_SAVED_STATE_TO_SLOT,
-   "Spielstand in Speicherplatz #%d gespeichert."
+   "Spiel gespeichert"
    )
 MSG_HASH(
    MSG_SAVED_STATE_TO_SLOT_AUTO,
