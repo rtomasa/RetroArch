@@ -285,11 +285,11 @@ The links below belong to our official channels. Links other than this may have 
 
 Install dependencies:
 
-`sudo apt install build-essential git libasound2-dev libavcodec-dev libavdevice-dev libavformat-dev libavresample-dev libdrm-common libdrm-dev libdrm2 libegl1-mesa-dev libfreetype6-dev libgbm-dev libgbm-dev libgbm1 libgles2 libgles2-mesa libgles2-mesa-dev libsdl-image1.2-dev libsdl2-dev libswresample-dev libswscale-dev libudev-dev libv4l-dev libxkbcommon-dev libxml2-dev yasm zlib1g-dev`
+`sudo apt install build-essential git libasound2-dev libavcodec-dev libavdevice-dev libavformat-dev libavresample-dev libdrm-common libdrm-dev libdrm2 libegl1-mesa-dev libfreetype6-dev libgbm-dev libgbm-dev libgbm1 libgles2 libgles2-mesa libgles2-mesa-dev libsdl-image1.2-dev libsdl2-dev libswresample-dev libswscale-dev libudev-dev libv4l-dev libxkbcommon-dev libxml2-dev yasm zlib1g-dev ffmpeg`
 
 Configure and build:
 
-`CFLAGS='-march=armv8-a+crc+simd -mcpu=cortex-a72 -mtune=cortex-a72 -mfloat-abi=hard -mfpu=neon-fp-armv8' CXXFLAGS="${CFLAGS}" ./configure  --disable-caca --disable-jack --disable-opengl1 --disable-oss --disable-sdl --enable-sdl2 --disable-videocore --disable-vulkan --disable-wayland --disable-x11 --enable-alsa --enable-egl --enable-floathard --enable-kms --enable-neon --enable-opengles --enable-opengles3 --disable-pulse --enable-udev`
+`CFLAGS='-march=armv8-a+crc+simd -mcpu=cortex-a72 -mtune=cortex-a72 -mfloat-abi=hard -mfpu=neon-fp-armv8' CXXFLAGS="${CFLAGS}" ./configure  --disable-caca --disable-jack --disable-opengl1 --disable-oss --disable-sdl --enable-sdl2 --disable-videocore --disable-vulkan --disable-wayland --disable-x11 --enable-alsa --enable-egl --enable-floathard --enable-kms --enable-neon --enable-opengles --enable-opengles3 --disable-pulse --enable-udev --enable-ffmpeg`
 
 Then make and install:
 
