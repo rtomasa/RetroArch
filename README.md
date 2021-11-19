@@ -280,3 +280,29 @@ The links below belong to our official channels. Links other than this may have 
 - [Teespring](https://teespring.com/stores/retroarch)
 - [Documentation](https://docs.libretro.com/)
 - [Forum](https://forums.libretro.com/)
+
+## Build on Pi4 (32-bit)
+
+Install dependencies:
+
+`sudo apt install build-essential git libasound2-dev libavcodec-dev libavdevice-dev libavformat-dev libavresample-dev libdrm-common libdrm-dev libdrm2 libegl1-mesa-dev libfreetype6-dev libgbm-dev libgbm-dev libgbm1 libgles2 libgles2-mesa libgles2-mesa-dev libsdl-image1.2-dev libsdl2-dev libswresample-dev libswscale-dev libudev-dev libv4l-dev libxkbcommon-dev libxml2-dev yasm zlib1g-dev`
+
+Configure and build:
+
+`CFLAGS='-march=armv8-a+crc+simd -mcpu=cortex-a72 -mtune=cortex-a72 -mfloat-abi=hard -mfpu=neon-fp-armv8' CXXFLAGS="${CFLAGS}" ./configure  --disable-caca --disable-jack --disable-opengl1 --disable-oss --disable-sdl --enable-sdl2 --disable-videocore --disable-vulkan --disable-wayland --disable-x11 --enable-alsa --enable-egl --enable-floathard --enable-kms --enable-neon --enable-opengles --enable-opengles3 --disable-pulse --enable-udev`
+
+Then make and install:
+
+`make -j4`
+
+At this point I prefer to use checkinstall instead of simply make install. You'll have a deb package that you can save somewhere for when you reinstall Raspberry OS (change to the correct version in the instructions below):
+
+`sudo apt install checkinstall`
+`sudo checkinstall --pkgname=retroarch-rpi4 --conflicts=retroarch --pkgversion=1.9.0 --install=no`
+`sudo dpkg -i retroarch-rpi4_1.9.0-1_armhf.deb`
+
+Update the core updater list with this command:
+
+`sed -i 's+core_updater_buildbot_cores_url = ""+core_updater_buildbot_cores_url = "http://buildbot.libretro.com/nightly/linux/armv7-neon-hf/latest/"+g' ~/.config/retroarch/retroarch.cfg`
+
+Inside Retroarch change the video output driver from "gl" to "gl_core", the new gl driver which provide full open gl es 3 compatibility.
