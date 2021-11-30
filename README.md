@@ -281,6 +281,14 @@ The links below belong to our official channels. Links other than this may have 
 - [Documentation](https://docs.libretro.com/)
 - [Forum](https://forums.libretro.com/)
 
+## Dynares
+
+This feature will enable dynamic native resolution detection and switch in real time.
+This feature has been tested only with Raspberry Pi4 using KMS/DRM and DPI interface.
+
+Please do note that you need to load every single kms video mode before using this feature.
+As of now, only RGB-Pi OS includes such DB out of the box.
+
 ## Build on Pi4 (32-bit)
 
 Install dependencies:
@@ -298,8 +306,8 @@ Then make and install:
 At this point I prefer to use checkinstall instead of simply make install. You'll have a deb package that you can save somewhere for when you reinstall Raspberry OS (change to the correct version in the instructions below):
 
 `sudo apt install checkinstall`
-`sudo checkinstall --pkgname=retroarch-rpi4 --conflicts=retroarch --pkgversion=1.9.0 --install=no`
-`sudo dpkg -i retroarch-rpi4_1.9.0-1_armhf.deb`
+`sudo checkinstall --pkgname=retroarch-rpi4 --conflicts=retroarch --pkgversion=1.9.13 --install=no`
+`sudo dpkg -i retroarch-rpi4_1.9.13-1_armhf.deb`
 
 Update the core updater list with this command:
 
