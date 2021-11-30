@@ -224,6 +224,8 @@ typedef struct settings
       unsigned video_monitor_index;
       unsigned video_fullscreen_x;
       unsigned video_fullscreen_y;
+      unsigned rgbpi_dynares;
+      unsigned rgbpi_overscan;
       unsigned video_max_swapchain_images;
       unsigned video_swap_interval;
       unsigned video_hard_sync_frames;

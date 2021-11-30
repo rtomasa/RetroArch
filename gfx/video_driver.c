@@ -88,6 +88,10 @@ static const video_display_server_t dispserv_null = {
    "null"
 };
 
+/* RGB-Pi */
+extern bool dynares;
+extern char overscan;
+
 #ifdef HAVE_VULKAN
 static const gfx_ctx_driver_t *gfx_ctx_vk_drivers[] = {
 #if defined(__APPLE__)
@@ -3243,6 +3247,16 @@ bool video_driver_init_internal(bool *video_is_threaded, bool verbosity_enabled)
    {
       width  = settings->uints.video_fullscreen_x;
       height = settings->uints.video_fullscreen_y;
+      dynares  = settings->uints.rgbpi_dynares;
+      overscan = settings->uints.rgbpi_overscan;
+      if(dynares)
+      {
+         width  = geom->base_width + overscan;
+         height = geom->base_height;
+         RARCH_LOG("[RGB-Pi]: DynaRes: Setting BASE native core provided resolution %ux%u\n", width, height);
+      }
+      else
+         RARCH_LOG("[RGB-Pi]: FixedRes: Setting manual provided resolution %ux%u\n", width, height);
    }
    else
    {

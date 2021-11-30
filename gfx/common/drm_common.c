@@ -150,8 +150,8 @@ bool drm_get_encoder(int fd)
       RARCH_WARN("[DRM]: Couldn't find DRM encoder.\n");
       return false;
    }
-
-   for (i = 0; (int)i < g_drm_connector->count_modes; i++)
+   /* RGB-PI commented temporarily for making debug easier */
+   /*for (i = 0; (int)i < g_drm_connector->count_modes; i++)
    {
       RARCH_LOG("[DRM]: Mode %d: (%s) %d x %d, %f Hz\n",
             i,
@@ -159,7 +159,7 @@ bool drm_get_encoder(int fd)
             g_drm_connector->modes[i].hdisplay,
             g_drm_connector->modes[i].vdisplay,
             drm_calc_refresh_rate(&g_drm_connector->modes[i]));
-   }
+   }*/
 
    return true;
 }
