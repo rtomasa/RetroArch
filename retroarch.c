@@ -432,6 +432,7 @@ static const ui_companion_driver_t *ui_companion_drivers[] = {
 
 /* RGB-Pi globals */
 char fst_load = 1;
+char *crt_type;
 bool dynares;
 char overscan;
 int width = 0;
@@ -13693,21 +13694,22 @@ static enum runloop_state_enum runloop_check_state(
 
    if (settings->uints.video_aspect_ratio_idx == ASPECT_RATIO_SQUARE)
    {
-      dynares  = settings->uints.rgbpi_dynares;
-      overscan = settings->uints.rgbpi_overscan;
+      struct retro_system_av_info *av_info     = &video_st->av_info;
+      struct retro_game_geometry  *geom        = (struct retro_game_geometry*)&av_info->geometry;
+      float fps = av_info->timing.fps;
+      int base_width = geom->base_width + overscan;
+      int base_height = geom->base_height;
+      int max_width = geom->max_width + overscan;
+      int max_height = geom->max_height;
+      crt_type = settings->arrays.dynares_crt_type;
+      dynares  = settings->bools.dynares_enable;
+      overscan = settings->uints.dynares_overscan;
+      
       if(dynares)
       {
-         struct retro_system_av_info *av_info     = &video_st->av_info;
-         struct retro_game_geometry  *geom        = (struct retro_game_geometry*)&av_info->geometry;
-         float fps = av_info->timing.fps;
-         int base_width = geom->base_width + overscan;
-         int base_height = geom->base_height;
-         int max_width = geom->max_width + overscan;
-         int max_height = geom->max_height;
-
          if(fst_load)
          {
-            RARCH_LOG("[RGB-Pi]: DynaRes: Resolution MAX=%ux%u BASE=%ux%u\n", max_width, max_height, base_width, base_height);
+            RARCH_LOG("[RGB-Pi]: DynaRes: Resolution MAX=%ux%u BASE=%ux%u FPS=%f\n", max_width, max_height, base_width, base_height, fps);
             fst_load = 0;
             width  = base_width;
             height = base_height;
@@ -13720,10 +13722,16 @@ static enum runloop_state_enum runloop_check_state(
                height = base_height;
                fps    = fps;
                RARCH_LOG("[RGB-Pi]: DynaRes: Resolution changed: %ux%u@%f\n", base_width, base_height, fps);
-               settings->floats.video_refresh_rate = fps;
-               settings->floats.video_scale = 1;
                video_driver_reinit(DRIVERS_CMD_RGB_PI);
             }
+         }
+      }
+      else
+      {
+         if(fst_load)
+         {
+            RARCH_LOG("[RGB-Pi]: FixedRes: Resolution MAX=%ux%u BASE=%ux%u FPS=%f\n", max_width, max_height, base_width, base_height, fps);
+            fst_load = 0;
          }
       }
    }

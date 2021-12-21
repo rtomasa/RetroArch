@@ -91,6 +91,7 @@ static const video_display_server_t dispserv_null = {
 /* RGB-Pi */
 extern bool dynares;
 extern char overscan;
+extern char *crt_type;
 
 #ifdef HAVE_VULKAN
 static const gfx_ctx_driver_t *gfx_ctx_vk_drivers[] = {
@@ -3245,18 +3246,55 @@ bool video_driver_init_internal(bool *video_is_threaded, bool verbosity_enabled)
 
    if (settings->bools.video_fullscreen || video_st->force_fullscreen)
    {
-      width  = settings->uints.video_fullscreen_x;
-      height = settings->uints.video_fullscreen_y;
-      dynares  = settings->uints.rgbpi_dynares;
-      overscan = settings->uints.rgbpi_overscan;
+      crt_type     = settings->arrays.dynares_crt_type;
+      width        = settings->uints.video_fullscreen_x;
+      height       = settings->uints.video_fullscreen_y;
+      dynares      = settings->bools.dynares_enable;
+      overscan     = settings->uints.dynares_overscan;
+      float fps    = video_st->av_info.timing.fps;
+      char cmd[150];
+
       if(dynares)
       {
-         width  = geom->base_width + overscan;
+         width  = geom->base_width;
          height = geom->base_height;
-         RARCH_LOG("[RGB-Pi]: DynaRes: Setting BASE native core provided resolution %ux%u\n", width, height);
+         /* RGB-Pi
+         Support Dynares for DOSBox, GBA, NGP, X68K, GBC on 15KHz TV 
+         Suport for custom fixed resolutions per system
+         */
+         if(string_is_equal(crt_type,  "something")) {
+            // FOR TESTING PURPOSES
+         } else if(width == 640 && height == 400) { // DOS
+            height = 480;
+         } else if(width == 800 && height == 600) { // DOS
+            height = 480;
+         } else if(width == 320 && height == 350) { // X68K
+            width  = 640;
+            height = 480;
+         } else if(width == 240 && height == 160) { // GBA
+            width  = 720;
+            height = 480;
+         } else if(width == 160 && height == 152) { // NGP
+            width  = 480;
+            height = 456;
+         } else if(width == 160 && height == 144) { // GBC
+            width  = 320;
+            height = 288;
+         }
+         width  = width + overscan;
+         settings->floats.video_refresh_rate = fps;
+         sprintf(cmd, "/home/pi/RGB-Pi/switchres.py %u %u %f %s", width, height, fps, crt_type);
+         RARCH_LOG("[RGB-Pi]: DynaRes: Requested modeline %s", cmd);
+         system(cmd);
+         RARCH_LOG("[RGB-Pi]: DynaRes: Setting BASE native core provided resolution %ux%u@%f\n", width, height, fps);
       }
       else
-         RARCH_LOG("[RGB-Pi]: FixedRes: Setting manual provided resolution %ux%u\n", width, height);
+      {
+         sprintf(cmd, "/home/pi/RGB-Pi/switchres.py %u %u %f", width, height, fps);
+         RARCH_LOG("[RGB-Pi]: FixedRes: Requested modeline %s", cmd);
+         system(cmd);
+         RARCH_LOG("[RGB-Pi]: FixedRes: Setting manual provided resolution %ux%u@%f\n", width, height, fps);
+      }
    }
    else
    {

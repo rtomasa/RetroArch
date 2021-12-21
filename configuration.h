@@ -224,8 +224,7 @@ typedef struct settings
       unsigned video_monitor_index;
       unsigned video_fullscreen_x;
       unsigned video_fullscreen_y;
-      unsigned rgbpi_dynares;
-      unsigned rgbpi_overscan;
+      unsigned dynares_overscan;
       unsigned video_max_swapchain_images;
       unsigned video_swap_interval;
       unsigned video_hard_sync_frames;
@@ -399,6 +398,7 @@ typedef struct settings
    {
       char placeholder;
 
+      char dynares_crt_type[32];
       char video_driver[32];
       char record_driver[32];
       char camera_driver[32];
@@ -567,6 +567,7 @@ typedef struct settings
 #endif
       bool video_hdr_enable;
       bool video_hdr_expand_gamut;
+      bool dynares_enable;
 
       /* Accessibility */
       bool accessibility_enable;
