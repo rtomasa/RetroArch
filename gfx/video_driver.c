@@ -3359,6 +3359,18 @@ bool video_driver_init_internal(bool *video_is_threaded, bool verbosity_enabled)
          settings->video_viewport_custom.height = height;
          RARCH_LOG("[DynaRes]: SuperXY: Viewport resolution changed: %ux%u\n", v_width, height);
       }
+      else if(string_is_equal(dynares,  "custom"))
+      {
+         width  = settings->uints.video_fullscreen_x;
+         height = settings->uints.video_fullscreen_y;
+         sprintf(cmd, "python3 /home/pi/RGB-Pi/switchres.pyc %u %u %f %s", width, height, fps, crt_type);
+         RARCH_LOG("[DynaRes]: Custom: Requested modeline %s", cmd);
+         system(cmd);
+         RARCH_LOG("[DynaRes]: Custom: Setting super resolution %ux%u@%f\n", width, height, fps);
+         settings->video_viewport_custom.width = width;
+         settings->video_viewport_custom.height = height;
+         RARCH_LOG("[DynaRes]: Custom: Viewport resolution changed: %ux%u\n", width, height);
+      }
       else
       {
          width  = settings->uints.video_fullscreen_x;
