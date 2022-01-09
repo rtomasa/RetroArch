@@ -8592,6 +8592,8 @@ bool runloop_environment_cb(unsigned cmd, void *data)
                v_height = (settings->uints.video_fullscreen_y / geom->base_height) * geom->base_height;
                settings->video_viewport_custom.width = v_width;
                settings->video_viewport_custom.height = v_height;
+               settings->video_viewport_custom.y = (settings->uints.video_fullscreen_y - v_height) / 2;
+               // custom_viewport_y = "0"
                RARCH_LOG("[DynaRes]: SuperXY: Integer Scale: Viewport resolution changed: %ux%u\n", v_width, v_height);
             }
          }
