@@ -36,7 +36,10 @@
       "xiosbase": "c",
       "xstring": "c",
       "xtree": "c",
-      "xutility": "c"
+      "xutility": "c",
+      "string": "c",
+      "parentbad": "c",
+      "random": "c"
    },
    "C_Cpp.dimInactiveRegions": false,
 }

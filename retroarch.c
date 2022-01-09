@@ -433,11 +433,14 @@ static const ui_companion_driver_t *ui_companion_drivers[] = {
 /* RGB-Pi globals */
 char fst_load = 1;
 char *crt_type;
-bool dynares;
+char *dynares;
+bool handheld_full;
 char overscan;
 int width = 0;
 int height = 0;
 float fps = 0;
+int v_height;
+int v_width;
 
 struct rarch_state
 {
@@ -8564,6 +8567,33 @@ bool runloop_environment_cb(unsigned cmd, void *data)
 
             /* TODO: Figure out what to do, if anything, with 
                recording. */
+
+            /* RGB-Pi DynaRes */
+            if(string_is_equal(dynares,  "superx"))
+            {
+               /* Dinamyc Y Resolution */
+               if(height != geom->base_height)
+               {
+                  height = geom->base_height;
+                  RARCH_LOG("[DynaRes]: SuperX: Resolution changed: %ux%u@%f\n", settings->uints.video_fullscreen_x, geom->base_height, fps);
+                  video_driver_reinit(DRIVERS_CMD_RGB_PI);
+               }
+               /* Custom Super Integer Scale */
+               v_width = (settings->uints.video_fullscreen_x / geom->base_width) * geom->base_width;
+               v_height = (height / geom->base_height) * geom->base_height;
+               settings->video_viewport_custom.width = v_width;
+               settings->video_viewport_custom.height = v_height;
+               RARCH_LOG("[DynaRes]: SuperX: Integer Scale: Viewport resolution changed: %ux%u\n", v_width, v_height);
+            }
+            else if(string_is_equal(dynares,  "superxy"))
+            {
+               /* Custom Super Integer Scale */
+               v_width = (settings->uints.video_fullscreen_x / geom->base_width) * geom->base_width;
+               v_height = (settings->uints.video_fullscreen_y / geom->base_height) * geom->base_height;
+               settings->video_viewport_custom.width = v_width;
+               settings->video_viewport_custom.height = v_height;
+               RARCH_LOG("[DynaRes]: SuperXY: Integer Scale: Viewport resolution changed: %ux%u\n", v_width, v_height);
+            }
          }
          else
          {
@@ -13697,22 +13727,24 @@ static enum runloop_state_enum runloop_check_state(
       struct retro_system_av_info *av_info     = &video_st->av_info;
       struct retro_game_geometry  *geom        = (struct retro_game_geometry*)&av_info->geometry;
       float fps = av_info->timing.fps;
-      int base_width = geom->base_width + overscan;
+      int base_width  = geom->base_width + overscan;
       int base_height = geom->base_height;
-      int max_width = geom->max_width + overscan;
-      int max_height = geom->max_height;
-      crt_type = settings->arrays.dynares_crt_type;
-      dynares  = settings->bools.dynares_enable;
-      overscan = settings->uints.dynares_overscan;
+      int max_width   = geom->max_width + overscan;
+      int max_height  = geom->max_height;
+      dynares       = settings->arrays.dynares_mode;
+      crt_type      = settings->arrays.dynares_crt_type;
+      handheld_full = settings->bools.dynares_handheld_full;
+      overscan      = settings->uints.dynares_overscan;
       
-      if(dynares)
+      if(string_is_equal(dynares,  "native"))
       {
          if(fst_load)
          {
-            RARCH_LOG("[RGB-Pi]: DynaRes: Resolution MAX=%ux%u BASE=%ux%u FPS=%f\n", max_width, max_height, base_width, base_height, fps);
+            RARCH_LOG("[DynaRes]: Native: Resolution MAX=%ux%u BASE=%ux%u FPS=%f\n", max_width, max_height, base_width, base_height, fps);
             fst_load = 0;
             width  = base_width;
             height = base_height;
+            settings->uints.video_aspect_ratio_idx = 21; /* 1:1 (fixed aspect ratio) */
          }
          else
          {
@@ -13720,18 +13752,27 @@ static enum runloop_state_enum runloop_check_state(
             {
                width  = base_width;
                height = base_height;
-               fps    = fps;
-               RARCH_LOG("[RGB-Pi]: DynaRes: Resolution changed: %ux%u@%f\n", base_width, base_height, fps);
+               RARCH_LOG("[DynaRes]: Native: Resolution changed: %ux%u@%f\n", base_width, base_height, fps);
                video_driver_reinit(DRIVERS_CMD_RGB_PI);
             }
          }
       }
-      else
+      else if(string_is_equal(dynares,  "superx"))
       {
          if(fst_load)
          {
-            RARCH_LOG("[RGB-Pi]: FixedRes: Resolution MAX=%ux%u BASE=%ux%u FPS=%f\n", max_width, max_height, base_width, base_height, fps);
+            RARCH_LOG("[DynaRes]: SuperX: Resolution MAX=%ux%u BASE=%ux%u FPS=%f\n", max_width, max_height, base_width, base_height, fps);
             fst_load = 0;
+            settings->uints.video_aspect_ratio_idx = 23; /* Custom (non-fixed aspect ratio) */
+         }
+      }
+      else if(string_is_equal(dynares,  "superxy"))
+      {
+         if(fst_load)
+         {
+            RARCH_LOG("[DynaRes]: SuperXY: Resolution MAX=%ux%u BASE=%ux%u FPS=%f\n", max_width, max_height, base_width, base_height, fps);
+            fst_load = 0;
+            settings->uints.video_aspect_ratio_idx = 23; /* Custom (non-fixed aspect ratio) */
          }
       }
    }

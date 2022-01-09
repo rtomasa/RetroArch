@@ -399,6 +399,7 @@ typedef struct settings
       char placeholder;
 
       char dynares_crt_type[32];
+      char dynares_mode[32];
       char video_driver[32];
       char record_driver[32];
       char camera_driver[32];
@@ -567,7 +568,7 @@ typedef struct settings
 #endif
       bool video_hdr_enable;
       bool video_hdr_expand_gamut;
-      bool dynares_enable;
+      bool dynares_handheld_full;
 
       /* Accessibility */
       bool accessibility_enable;
