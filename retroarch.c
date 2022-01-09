@@ -8568,32 +8568,34 @@ bool runloop_environment_cb(unsigned cmd, void *data)
             /* TODO: Figure out what to do, if anything, with 
                recording. */
 
-            /* RGB-Pi DynaRes */
+            /* DynaRes */
             if(string_is_equal(dynares,  "superx"))
             {
-               /* Dinamyc Y Resolution */
+               /* Dynamic height resolution */
                if(height != geom->base_height)
                {
                   height = geom->base_height;
                   RARCH_LOG("[DynaRes]: SuperX: Resolution changed: %ux%u@%f\n", settings->uints.video_fullscreen_x, geom->base_height, fps);
                   video_driver_reinit(DRIVERS_CMD_RGB_PI);
                }
-               /* Custom Super Integer Scale */
-               v_width = (settings->uints.video_fullscreen_x / geom->base_width) * geom->base_width;
-               v_height = (height / geom->base_height) * geom->base_height;
-               settings->video_viewport_custom.width = v_width;
-               settings->video_viewport_custom.height = v_height;
-               RARCH_LOG("[DynaRes]: SuperX: Integer Scale: Viewport resolution changed: %ux%u\n", v_width, v_height);
-            }
-            else if(string_is_equal(dynares,  "superxy"))
-            {
-               /* Custom Super Integer Scale */
+               /* Dynamic custom viewport super integer scale */
                v_width = (settings->uints.video_fullscreen_x / geom->base_width) * geom->base_width;
                v_height = (settings->uints.video_fullscreen_y / geom->base_height) * geom->base_height;
                settings->video_viewport_custom.width = v_width;
                settings->video_viewport_custom.height = v_height;
+               settings->video_viewport_custom.x = (settings->uints.video_fullscreen_x - v_width) / 2;
                settings->video_viewport_custom.y = (settings->uints.video_fullscreen_y - v_height) / 2;
-               // custom_viewport_y = "0"
+               RARCH_LOG("[DynaRes]: SuperX: Integer Scale: Viewport resolution changed: %ux%u\n", v_width, v_height);
+            }
+            else if(string_is_equal(dynares,  "superxy"))
+            {
+               /* Dynamic custom viewport super integer scale */
+               v_width = (settings->uints.video_fullscreen_x / geom->base_width) * geom->base_width;
+               v_height = (settings->uints.video_fullscreen_y / geom->base_height) * geom->base_height;
+               settings->video_viewport_custom.width = v_width;
+               settings->video_viewport_custom.height = v_height;
+               settings->video_viewport_custom.x = (settings->uints.video_fullscreen_x - v_width) / 2;
+               settings->video_viewport_custom.y = (settings->uints.video_fullscreen_y - v_height) / 2;
                RARCH_LOG("[DynaRes]: SuperXY: Integer Scale: Viewport resolution changed: %ux%u\n", v_width, v_height);
             }
          }

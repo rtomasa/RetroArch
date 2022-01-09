@@ -3255,22 +3255,20 @@ bool video_driver_init_internal(bool *video_is_threaded, bool verbosity_enabled)
       int region    = runloop_st->current_core.retro_get_region();
       char cmd[150];
 
-      if(string_is_equal(dynares,  "native"))
+      if (string_is_equal(dynares, "native"))
       {
+         /* Set screen width and height */
          width  = geom->base_width;
          height = geom->base_height;
-         /* RGB-Pi
-         Support Dynares for DOSBox, GBA, NGP, X68K, GBC on 15KHz TV 
-         Suport for custom fixed resolutions per system
-         */
-         if(width == 640 && height == 400) { // DOS
+         /* Support for DOSBox, GBA, NGP, X68K, GBC on 15KHz TV */
+         if (width == 640 && height == 400) { // DOS
             height = 480;
-         } else if(width == 800 && height == 600) { // DOS
+         } else if (width == 800 && height == 600) { // DOS
             height = 480;
-         } else if(width == 320 && height == 350) { // X68K
+         } else if (width == 320 && height == 350) { // X68K
             width  = 640;
             height = 480;
-         } else if(width == 240 && height == 160) { // GBA
+         } else if (width == 240 && height == 160) { // GBA
             if(handheld_full) {
                RARCH_LOG("[DynaRes]: Handheld Full: TRUE\n");
                width  = 720;
@@ -3280,7 +3278,7 @@ bool video_driver_init_internal(bool *video_is_threaded, bool verbosity_enabled)
                width  = 256;
                height = 224;
             }
-         } else if(width == 160 && height == 152) { // NGP
+         } else if (width == 160 && height == 152) { // NGP
             if(handheld_full) {
                RARCH_LOG("[DynaRes]: Handheld Full: TRUE\n");
                width  = 480;
@@ -3290,76 +3288,112 @@ bool video_driver_init_internal(bool *video_is_threaded, bool verbosity_enabled)
                width  = 256;
                height = 224;
             }
-         } else if(width == 160 && height == 144) { // GBC
+         } else if (width == 160 && height == 144) { // GBC
             /* Cannot make full screen due to impossible refresh rate generation */
             width  = 256;
             height = 224;
          }
-         width  = width + overscan;
+         width = width + overscan;
          settings->floats.video_refresh_rate = fps;
-         /* Font size */
-         if(height <= 300)
-            video.font_size = 6;
-         else if(height > 300)
-            video.font_size = 12;
-         settings->floats.video_font_size = video.font_size;
+         /* Gen timing */
          sprintf(cmd, "python3 /home/pi/RGB-Pi/switchres.pyc %u %u %f %s", width, height, fps, crt_type);
          RARCH_LOG("[DynaRes]: Native: Requested modeline %s", cmd);
          system(cmd);
          RARCH_LOG("[DynaRes]: Native: Setting BASE native core provided resolution %ux%u@%f\n", width, height, fps);
+         /* Set font size */
+         if (height <= 300)
+            video.font_size = 6;
+         else if (height > 300)
+            video.font_size = 12;
+         settings->floats.video_font_size = video.font_size;
       }
-      else if(string_is_equal(dynares,  "superx"))
+      else if(string_is_equal(dynares, "superx"))
       {
-         /* Set X */
+         /* Set screen width */
          if (geom->base_width == 384)
             width = 2744; /* 384(8); (x)=overscan. Intended only for Capcom Arcade games */
+         else if (geom->base_width == 160 || geom->base_width == 240 || geom->base_width == 800)
+            width = 2464; /* 160(8), 240(8), 800(6); (x)=overscan, Intended for all systems except Capcom Arcade games */
          else
             width = 2624; /* 256(8), 320(8), 368(6), 512(8), 640(8); (x)=overscan, Intended for all systems except Capcom Arcade games */
          settings->uints.video_fullscreen_x = width;
-         /* Set Y */
+         /* Set screen height */
          height = geom->base_height;
+         /* Support for DOSBox, GBA, NGP, X68K, GBC on 15KHz TV */
+         if (height == 350 || height == 400 || height == 600) { // DOS & X68K
+            height = 480;
+         } else if (height == 160) { // GBA
+            if (handheld_full) {
+               RARCH_LOG("[DynaRes]: Handheld Full: TRUE\n");
+               height = 480;
+            } else {
+               RARCH_LOG("[DynaRes]: Handheld Full: FALSE\n");
+               height = 224;
+            }
+         } else if (height == 152) { // NGP
+            if(handheld_full) {
+               RARCH_LOG("[DynaRes]: Handheld Full: TRUE\n");
+               height = 456;
+            } else {
+               RARCH_LOG("[DynaRes]: Handheld Full: FALSE\n");
+               height = 224;
+            }
+         } else if (height == 144) { // GBC
+            /* Cannot make full screen due to impossible refresh rate generation */
+            height = 224;
+         }
          settings->uints.video_fullscreen_y = height;
-         /* Font size */
-         video.font_size = 12;
-         settings->floats.video_font_size = video.font_size;
+         /* Gen timing */
          sprintf(cmd, "python3 /home/pi/RGB-Pi/switchres.pyc %u %u %f %s", width, height, fps, crt_type);
          RARCH_LOG("[DynaRes]: SuperX: Requested modeline %s", cmd);
          system(cmd);
          RARCH_LOG("[DynaRes]: SuperX: Setting super resolution %ux%u@%f\n", width, height, fps);
+         /* Set viewport */
          int v_width = (width / geom->base_width) * geom->base_width;
+         int v_height = (height / geom->base_height) * geom->base_height;
          settings->video_viewport_custom.width = v_width;
-         settings->video_viewport_custom.height = height;
-         RARCH_LOG("[DynaRes]: SuperX: Viewport resolution changed: %ux%u\n", v_width, height);
+         settings->video_viewport_custom.height = v_height;
+         settings->video_viewport_custom.x = (settings->uints.video_fullscreen_x - v_width) / 2;
+         settings->video_viewport_custom.y = (settings->uints.video_fullscreen_y - v_height) / 2;
+         RARCH_LOG("[DynaRes]: SuperX: Viewport resolution changed: %ux%u\n", v_width, v_height);
+         /* Set font size */
+         video.font_size = 12;
+         settings->floats.video_font_size = video.font_size;
       }
-      else if(string_is_equal(dynares,  "superxy"))
+      else if (string_is_equal(dynares, "superxy"))
       {
-         /* Set X */
+         /* Set screen width */
          if (geom->base_width == 384)
             width = 2744; /* 384(8); (x)=overscan. Intended only for Capcom Arcade games */
          else
             width = 2624; /* 256(8), 320(8), 368(6), 512(8), 640(8); (x)=overscan, Intended for all systems except Capcom Arcade games */
          settings->uints.video_fullscreen_x = width;
-         /* Set Y --> 0=NTSC, 1=PAL*/
-         if (region == 0)
+         /* Set screen height */
+         if (region == 0) /* NTSC */
             height = 480;
-         else if (region == 1)
+         else if (region == 1) /* PAL */
             height = 512;
          else
             height = geom->base_height;
          settings->uints.video_fullscreen_y = height;
-         /* Font size */
-         video.font_size = 12;
-         settings->floats.video_font_size = video.font_size;
+         /* Gen timing */
          sprintf(cmd, "python3 /home/pi/RGB-Pi/switchres.pyc %u %u %f %s", width, height, fps, crt_type);
          RARCH_LOG("[DynaRes]: SuperXY: Requested modeline %s", cmd);
          system(cmd);
          RARCH_LOG("[DynaRes]: SuperXY: Setting super resolution %ux%u@%f\n", width, height, fps);
+         /* Set viewport */
          int v_width = (width / geom->base_width) * geom->base_width;
+         int v_height = (height / geom->base_height) * geom->base_height;
          settings->video_viewport_custom.width = v_width;
-         settings->video_viewport_custom.height = height;
+         settings->video_viewport_custom.height = v_height;
+         settings->video_viewport_custom.x = (settings->uints.video_fullscreen_x - v_width) / 2;
+         settings->video_viewport_custom.y = (settings->uints.video_fullscreen_y - v_height) / 2;
          RARCH_LOG("[DynaRes]: SuperXY: Viewport resolution changed: %ux%u\n", v_width, height);
+         /* Set font size */
+         video.font_size = 12;
+         settings->floats.video_font_size = video.font_size;
       }
-      else if(string_is_equal(dynares,  "custom"))
+      else if(string_is_equal(dynares, "custom"))
       {
          width  = settings->uints.video_fullscreen_x;
          height = settings->uints.video_fullscreen_y;
