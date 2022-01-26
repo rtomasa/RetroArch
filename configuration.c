@@ -1587,6 +1587,7 @@ static struct config_bool_setting *populate_settings_bool(
    SETTING_BOOL("crt_switch_resolution_use_custom_refresh_rate", &settings->bools.crt_switch_custom_refresh_enable, true, false, false);
    SETTING_BOOL("crt_switch_hires_menu", &settings->bools.crt_switch_hires_menu, true, false, true);
    SETTING_BOOL("dynares_handheld_full",         &settings->bools.dynares_handheld_full,  true, DEFAULT_HANDHELD_FULL, false);
+   SETTING_BOOL("dynares_video_info",            &settings->bools.dynares_video_info,  true, DEFAULT_VIDEO_INFO, false);
    SETTING_BOOL("ui_companion_start_on_boot",    &settings->bools.ui_companion_start_on_boot, true, ui_companion_start_on_boot, false);
    SETTING_BOOL("ui_companion_enable",           &settings->bools.ui_companion_enable, true, ui_companion_enable, false);
    SETTING_BOOL("ui_companion_toggle",           &settings->bools.ui_companion_toggle, false, ui_companion_toggle, false);

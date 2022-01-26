@@ -278,8 +278,8 @@
 #else
 #define DEFAULT_FULLSCREEN_X 0
 #define DEFAULT_FULLSCREEN_Y 0
-#define DEFAULT_DYNARES false
 #define DEFAULT_HANDHELD_FULL false
+#define DEFAULT_VIDEO_INFO false
 #define DEFAULT_OVERSCAN 0
 #endif
 

@@ -435,6 +435,7 @@ char fst_load = 1;
 char *crt_type;
 char *dynares;
 bool handheld_full;
+bool video_info;
 char overscan;
 int width = 0;
 int height = 0;
@@ -8571,32 +8572,43 @@ bool runloop_environment_cb(unsigned cmd, void *data)
             /* DynaRes */
             if(string_is_equal(dynares,  "superx"))
             {
+               int overscan_x = 0;
+               int overscan_y = 0;
                /* Dynamic height resolution */
                if(height != geom->base_height)
                {
                   height = geom->base_height;
-                  RARCH_LOG("[DynaRes]: SuperX: Resolution changed: %ux%u@%f\n", settings->uints.video_fullscreen_x, geom->base_height, fps);
+                  RARCH_LOG("[DynaRes]: %s: Resolution changed: %ux%u@%f\n", dynares, settings->uints.video_fullscreen_x, geom->base_height, fps);
                   video_driver_reinit(DRIVERS_CMD_RGB_PI);
                }
-               /* Dynamic custom viewport super integer scale */
-               v_width = (settings->uints.video_fullscreen_x / geom->base_width) * geom->base_width;
-               v_height = (settings->uints.video_fullscreen_y / geom->base_height) * geom->base_height;
+               /* Dynamic super integer scale (viewport custom) */
+               handheld_full = settings->bools.dynares_handheld_full;
+               if (geom->base_height == 160)
+               {
+                  if (handheld_full)
+                  {
+                     overscan_x = 32;
+                     overscan_y = 40;
+                  }
+                  else
+                     overscan_x = geom->base_width * 2;
+               } 
+               else if (height == 152) // NGP
+                  overscan_x = geom->base_width * 5;
+               else if (height == 144) // GBC
+               { 
+                  if (handheld_full) 
+                     overscan_x = geom->base_width;
+                  else 
+                     overscan_x = geom->base_width * 5;
+               }
+               v_width = (settings->uints.video_fullscreen_x / geom->base_width) * geom->base_width - overscan_x;
+               v_height = (settings->uints.video_fullscreen_y / geom->base_height) * geom->base_height - overscan_y;
                settings->video_viewport_custom.width = v_width;
                settings->video_viewport_custom.height = v_height;
                settings->video_viewport_custom.x = (settings->uints.video_fullscreen_x - v_width) / 2;
                settings->video_viewport_custom.y = (settings->uints.video_fullscreen_y - v_height) / 2;
-               RARCH_LOG("[DynaRes]: SuperX: Integer Scale: Viewport resolution changed: %ux%u\n", v_width, v_height);
-            }
-            else if(string_is_equal(dynares,  "superxy"))
-            {
-               /* Dynamic custom viewport super integer scale */
-               v_width = (settings->uints.video_fullscreen_x / geom->base_width) * geom->base_width;
-               v_height = (settings->uints.video_fullscreen_y / geom->base_height) * geom->base_height;
-               settings->video_viewport_custom.width = v_width;
-               settings->video_viewport_custom.height = v_height;
-               settings->video_viewport_custom.x = (settings->uints.video_fullscreen_x - v_width) / 2;
-               settings->video_viewport_custom.y = (settings->uints.video_fullscreen_y - v_height) / 2;
-               RARCH_LOG("[DynaRes]: SuperXY: Integer Scale: Viewport resolution changed: %ux%u\n", v_width, v_height);
+               RARCH_LOG("[DynaRes]: %s: Integer Scale: Viewport resolution changed: %ux%u\n", dynares, v_width, v_height);
             }
          }
          else
@@ -13730,21 +13742,21 @@ static enum runloop_state_enum runloop_check_state(
    {
       struct retro_system_av_info *av_info     = &video_st->av_info;
       struct retro_game_geometry  *geom        = (struct retro_game_geometry*)&av_info->geometry;
-      float fps = av_info->timing.fps;
-      int base_width  = geom->base_width + overscan;
-      int base_height = geom->base_height;
-      int max_width   = geom->max_width + overscan;
-      int max_height  = geom->max_height;
-      dynares       = settings->arrays.dynares_mode;
-      crt_type      = settings->arrays.dynares_crt_type;
-      handheld_full = settings->bools.dynares_handheld_full;
-      overscan      = settings->uints.dynares_overscan;
+      float fps         = av_info->timing.fps;
+      int base_width    = geom->base_width + overscan;
+      int base_height   = geom->base_height;
+      int max_width     = geom->max_width + overscan;
+      int max_height    = geom->max_height;
+      dynares           = settings->arrays.dynares_mode;
+      crt_type          = settings->arrays.dynares_crt_type;
+      handheld_full     = settings->bools.dynares_handheld_full;
+      overscan          = settings->uints.dynares_overscan;
       
       if(string_is_equal(dynares,  "native"))
       {
          if(fst_load)
          {
-            RARCH_LOG("[DynaRes]: Native: Resolution MAX=%ux%u BASE=%ux%u FPS=%f\n", max_width, max_height, base_width, base_height, fps);
+            RARCH_LOG("[DynaRes]: %s: Resolution MAX=%ux%u BASE=%ux%u FPS=%f\n", dynares, max_width, max_height, base_width, base_height, fps);
             fst_load = 0;
             width  = base_width;
             height = base_height;
@@ -13765,16 +13777,16 @@ static enum runloop_state_enum runloop_check_state(
       {
          if(fst_load)
          {
-            RARCH_LOG("[DynaRes]: SuperX: Resolution MAX=%ux%u BASE=%ux%u FPS=%f\n", max_width, max_height, base_width, base_height, fps);
+            RARCH_LOG("[DynaRes]: %s: Resolution MAX=%ux%u BASE=%ux%u FPS=%f\n", dynares, max_width, max_height, base_width, base_height, fps);
             fst_load = 0;
             settings->uints.video_aspect_ratio_idx = 23; /* Custom (non-fixed aspect ratio) */
          }
       }
-      else if(string_is_equal(dynares,  "superxy"))
+      else if(string_is_equal(dynares,  "fixed"))
       {
          if(fst_load)
          {
-            RARCH_LOG("[DynaRes]: SuperXY: Resolution MAX=%ux%u BASE=%ux%u FPS=%f\n", max_width, max_height, base_width, base_height, fps);
+            RARCH_LOG("[DynaRes]: %s: Resolution MAX=%ux%u BASE=%ux%u FPS=%f\n", dynares, max_width, max_height, base_width, base_height, fps);
             fst_load = 0;
             settings->uints.video_aspect_ratio_idx = 23; /* Custom (non-fixed aspect ratio) */
          }

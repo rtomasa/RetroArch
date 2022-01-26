@@ -1133,6 +1133,7 @@ struct video_viewport *video_viewport_get_custom(void);
  * Sets monitor refresh rate to new value.
  **/
 void video_monitor_set_refresh_rate(float hz);
+void video_show_info(int x, int y, float hz);
 
 /**
  * video_monitor_compute_fps_statistics:
