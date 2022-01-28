@@ -494,6 +494,11 @@ void drivers_init(
 #endif
 
    if (flags & (DRIVER_VIDEO_MASK | DRIVER_AUDIO_MASK))
+   {
+      /* We force refresh rate to the same fps reported by game */
+      settings->floats.video_refresh_rate = video_st->av_info.timing.fps;
+      RARCH_LOG("[DynaRes]: Refresh rate changed: %f\n", video_st->av_info.timing.fps);
+      
       driver_adjust_system_rates(
                                  settings->bools.vrr_runloop_enable,
                                  settings->floats.video_refresh_rate,
@@ -501,6 +506,7 @@ void drivers_init(
                                  settings->bools.video_adaptive_vsync,
                                  settings->uints.video_swap_interval
                                  );
+   }
 
    /* Initialize video driver */
    if (flags & DRIVER_VIDEO_MASK)
