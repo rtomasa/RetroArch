@@ -564,6 +564,7 @@ DEFAULT_TITLE_MACRO(action_get_user_accounts_youtube_list,      MENU_ENUM_LABEL_
 DEFAULT_TITLE_MACRO(action_get_user_accounts_twitch_list,       MENU_ENUM_LABEL_VALUE_ACCOUNTS_TWITCH)
 DEFAULT_TITLE_MACRO(action_get_user_accounts_facebook_list,     MENU_ENUM_LABEL_VALUE_ACCOUNTS_FACEBOOK)
 DEFAULT_TITLE_MACRO(action_get_download_core_content_list,      MENU_ENUM_LABEL_VALUE_DOWNLOAD_CORE_CONTENT)
+DEFAULT_TITLE_MACRO(action_get_download_core_system_files_list, MENU_ENUM_LABEL_VALUE_DOWNLOAD_CORE_SYSTEM_FILES)
 DEFAULT_TITLE_MACRO(action_get_user_accounts_list,              MENU_ENUM_LABEL_VALUE_ACCOUNTS_LIST)
 DEFAULT_TITLE_MACRO(action_get_core_list,                       MENU_ENUM_LABEL_VALUE_CORE_LIST)
 DEFAULT_TITLE_MACRO(action_get_online_updater_list,             MENU_ENUM_LABEL_VALUE_ONLINE_UPDATER)
@@ -602,6 +603,9 @@ DEFAULT_TITLE_MACRO(action_get_crt_switchres_settings_list,     MENU_ENUM_LABEL_
 DEFAULT_TITLE_MACRO(action_get_configuration_settings_list,     MENU_ENUM_LABEL_VALUE_CONFIGURATION_SETTINGS)
 DEFAULT_TITLE_MACRO(action_get_load_disc_list,                  MENU_ENUM_LABEL_VALUE_LOAD_DISC)
 DEFAULT_TITLE_MACRO(action_get_dump_disc_list,                  MENU_ENUM_LABEL_VALUE_DUMP_DISC)
+#ifdef HAVE_LAKKA
+DEFAULT_TITLE_MACRO(action_get_eject_disc,                      MENU_ENUM_LABEL_VALUE_EJECT_DISC)
+#endif
 DEFAULT_TITLE_MACRO(action_get_saving_settings_list,            MENU_ENUM_LABEL_VALUE_SAVING_SETTINGS)
 DEFAULT_TITLE_MACRO(action_get_logging_settings_list,           MENU_ENUM_LABEL_VALUE_LOGGING_SETTINGS)
 DEFAULT_TITLE_MACRO(action_get_frame_throttle_settings_list,    MENU_ENUM_LABEL_VALUE_FRAME_THROTTLE_SETTINGS)
@@ -930,6 +934,9 @@ static int menu_cbs_init_bind_title_compare_label(menu_file_list_cbs_t *cbs,
       {MENU_ENUM_LABEL_DEFERRED_CORE_RESTORE_BACKUP_LIST,             action_get_title_deferred_core_restore_backup_list},
       {MENU_ENUM_LABEL_DEFERRED_CORE_DELETE_BACKUP_LIST,              action_get_title_deferred_core_delete_backup_list},
       {MENU_ENUM_LABEL_DEFERRED_DUMP_DISC_LIST,                       action_get_dump_disc_list},
+#ifdef HAVE_LAKKA
+      {MENU_ENUM_LABEL_DEFERRED_EJECT_DISC,                           action_get_eject_disc},
+#endif
       {MENU_ENUM_LABEL_DEFERRED_LOAD_DISC_LIST,                       action_get_load_disc_list},
       {MENU_ENUM_LABEL_DEFERRED_CONFIGURATION_SETTINGS_LIST,          action_get_configuration_settings_list },
       {MENU_ENUM_LABEL_DEFERRED_SAVING_SETTINGS_LIST,                 action_get_saving_settings_list},
@@ -976,6 +983,7 @@ static int menu_cbs_init_bind_title_compare_label(menu_file_list_cbs_t *cbs,
       {MENU_ENUM_LABEL_DEFERRED_MIDI_SETTINGS_LIST,                   action_get_midi_settings_list},
       {MENU_ENUM_LABEL_DEFERRED_CORE_CONTENT_DIRS_LIST,               action_get_download_core_content_list},
       {MENU_ENUM_LABEL_DEFERRED_CORE_CONTENT_DIRS_SUBDIR_LIST,        action_get_download_core_content_list},
+      {MENU_ENUM_LABEL_DEFERRED_CORE_SYSTEM_FILES_LIST,               action_get_download_core_system_files_list},
       {MENU_ENUM_LABEL_LOAD_CONTENT_HISTORY,                          action_get_title_deferred_history_list},
       {MENU_ENUM_LABEL_DEFERRED_FAVORITES_LIST,                       action_get_title_deferred_favorites_list},
       {MENU_ENUM_LABEL_DEFERRED_IMAGES_LIST,                          action_get_title_deferred_images_list},
@@ -1196,6 +1204,8 @@ static int menu_cbs_init_bind_title_compare_label(menu_file_list_cbs_t *cbs,
          action_get_user_accounts_cheevos_list},
       {MENU_ENUM_LABEL_DEFERRED_CORE_CONTENT_LIST,
          action_get_download_core_content_list},
+      {MENU_ENUM_LABEL_DEFERRED_CORE_SYSTEM_FILES_LIST,
+         action_get_download_core_system_files_list},
       {MENU_ENUM_LABEL_DEFERRED_ACCOUNTS_LIST,
          action_get_user_accounts_list},
       {MENU_ENUM_LABEL_VIDEO_FONT_PATH,
@@ -1590,6 +1600,9 @@ static int menu_cbs_init_bind_title_compare_label(menu_file_list_cbs_t *cbs,
          case MENU_ENUM_LABEL_DEFERRED_CORE_CONTENT_LIST:
          case MENU_ENUM_LABEL_DEFERRED_CORE_CONTENT_DIRS_SUBDIR_LIST:
             BIND_ACTION_GET_TITLE(cbs, action_get_download_core_content_list);
+            break;
+         case MENU_ENUM_LABEL_DEFERRED_CORE_SYSTEM_FILES_LIST:
+            BIND_ACTION_GET_TITLE(cbs, action_get_download_core_system_files_list);
             break;
          case MENU_ENUM_LABEL_DEFERRED_ACCOUNTS_LIST:
             BIND_ACTION_GET_TITLE(cbs, action_get_user_accounts_list);

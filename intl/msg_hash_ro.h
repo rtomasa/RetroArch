@@ -11,6 +11,8 @@
 
 /* Main Menu */
 
+#ifdef HAVE_LAKKA
+#endif
 
 /* Main Menu > Load Core */
 
@@ -161,6 +163,7 @@
 
 /* Settings > On-Screen Display > On-Screen Overlay */
 
+
 #if defined(ANDROID)
 #endif
 
@@ -175,6 +178,8 @@
 
 /* Settings > User Interface > Menu Item Visibility */
 
+#ifdef HAVE_LAKKA
+#endif
 
 /* Settings > User Interface > Menu Item Visibility > Quick Menu */
 

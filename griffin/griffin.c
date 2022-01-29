@@ -212,6 +212,7 @@ ACHIEVEMENTS
 #include "../deps/rcheevos/src/rcheevos/runtime_progress.c"
 #include "../deps/rcheevos/src/rcheevos/trigger.c"
 #include "../deps/rcheevos/src/rcheevos/value.c"
+#include "../deps/rcheevos/src/rhash/cdreader.c"
 #include "../deps/rcheevos/src/rhash/hash.c"
 
 #endif
@@ -1218,10 +1219,12 @@ GIT
 RETROARCH
 ============================================================ */
 #include "../retroarch.c"
+#include "../runloop.c"
 #include "../command.c"
 #include "../driver.c"
 #include "../midi_driver.c"
 #include "../location_driver.c"
+#include "../ui/ui_companion_driver.c"
 #include "../libretro-common/queues/task_queue.c"
 
 #include "../msg_hash.c"
@@ -1249,6 +1252,9 @@ RETROARCH
 #include "../intl/msg_hash_he.c"
 #include "../intl/msg_hash_ast.c"
 #include "../intl/msg_hash_fi.c"
+#include "../intl/msg_hash_id.c"
+#include "../intl/msg_hash_sv.c"
+#include "../intl/msg_hash_uk.c"
 #endif
 
 #include "../intl/msg_hash_us.c"
@@ -1257,6 +1263,7 @@ RETROARCH
 BLUETOOTH
 ============================================================ */
 #ifdef HAVE_BLUETOOTH
+#include "../bluetooth/bluetooth_driver.c"
 #include "../bluetooth/drivers/bluetoothctl.c"
 #ifdef HAVE_DBUS
 #include "../bluetooth/drivers/bluez.c"
@@ -1266,8 +1273,15 @@ BLUETOOTH
 /*============================================================
 WIFI
 ============================================================ */
+#ifdef HAVE_WIFI
+#include "../network/wifi_driver.c"
+
 #ifdef HAVE_LAKKA
-#include "../wifi/drivers/connmanctl.c"
+#include "../network/drivers_wifi/connmanctl.c"
+#endif
+
+#include "../tasks/task_wifi.c"
+
 #endif
 
 /*============================================================
@@ -1311,8 +1325,9 @@ NETPLAY
 #include "../tasks/task_http.c"
 #include "../tasks/task_netplay_lan_scan.c"
 #include "../tasks/task_netplay_nat_traversal.c"
+#ifdef HAVE_BLUETOOTH
 #include "../tasks/task_bluetooth.c"
-#include "../tasks/task_wifi.c"
+#endif
 #include "../tasks/task_netplay_find_content.c"
 #include "../tasks/task_pl_thumbnail_download.c"
 #endif
@@ -1334,6 +1349,9 @@ DATA RUNLOOP
 #include "../tasks/task_playlist_manager.c"
 #include "../tasks/task_manual_content_scan.c"
 #include "../tasks/task_core_backup.c"
+#ifdef HAVE_TRANSLATE
+#include "../tasks/task_translation.c"
+#endif
 #ifdef HAVE_ZLIB
 #include "../tasks/task_decompress.c"
 #endif
@@ -1556,22 +1574,6 @@ XML
 #include "../libretro-db/rmsgpack_dom.c"
 #include "../libretro-db/query.c"
 #include "../database_info.c"
-#endif
-
-#if defined(HAVE_BUILTINMINIUPNPC)
-#include "../deps/miniupnpc/igd_desc_parse.c"
-#include "../deps/miniupnpc/upnpreplyparse.c"
-#include "../deps/miniupnpc/upnpcommands.c"
-#include "../deps/miniupnpc/upnperrors.c"
-#include "../deps/miniupnpc/connecthostport.c"
-#include "../deps/miniupnpc/portlistingparse.c"
-#include "../deps/miniupnpc/receivedata.c"
-#include "../deps/miniupnpc/upnpdev.c"
-#include "../deps/miniupnpc/minissdpc.c"
-#include "../deps/miniupnpc/miniwget.c"
-#include "../deps/miniupnpc/miniupnpc.c"
-#include "../deps/miniupnpc/minixml.c"
-#include "../deps/miniupnpc/minisoap.c"
 #endif
 
 /*============================================================

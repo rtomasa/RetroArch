@@ -91,6 +91,12 @@ MSG_HASH( /* FIXME Is a specific image format used? Is it determined automatical
    MENU_ENUM_SUBLABEL_DUMP_DISC,
    "نسخ محتويات قرص الوسائط المادي إلى مساحة التخزين الداخلية. سيحفظ كملف صورة القرص."
    )
+#ifdef HAVE_LAKKA
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EJECT_DISC,
+   "إخراج القرص"
+   )
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_PLAYLISTS_TAB,
    "قوائم التشغيل"
@@ -3061,6 +3067,7 @@ MSG_HASH(
    MENU_ENUM_SUBLABEL_INPUT_OVERLAY_ENABLE,
    "يتم استخدام التداخلات في الحدود والتحكم على الشاشة."
    )
+
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_OVERLAY_HIDE_IN_MENU,
    "إخفاء التراكب في القائمة"
@@ -3475,6 +3482,8 @@ MSG_HASH(
    MENU_ENUM_LABEL_VALUE_SETTINGS_VIEWS_SETTINGS,
    "الإعدادات"
    )
+#ifdef HAVE_LAKKA
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MENU_ADD_CONTENT_ENTRY_DISPLAY_MAIN_TAB,
    "القائمة الرئيسيه"
@@ -5613,6 +5622,10 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NEAREST,
    "أقرب"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CONTENT,
+   "محتوى"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MANUAL_CONTENT_SCAN_SYSTEM_NAME_USE_CONTENT_DIR,
@@ -8918,18 +8931,6 @@ MSG_HASH(
    "تم تعطيل التشغيل إلى الأمام لأن هذا الأساس لا يدعم حفظ الحالة."
    )
 MSG_HASH(
-   MSG_RUNAHEAD_FAILED_TO_SAVE_STATE,
-   "فشل في حفظ الحالة. تم تعطيل تشغيل الأمام."
-   )
-MSG_HASH(
-   MSG_RUNAHEAD_FAILED_TO_LOAD_STATE,
-   "فشل في تحميل الولاية. تم تعطيل التشغيل إلى الأمام."
-   )
-MSG_HASH(
-   MSG_RUNAHEAD_FAILED_TO_CREATE_SECONDARY_INSTANCE,
-   "فشل في إنشاء نسخة ثانية. سيستخدم Run-Aforward الآن مثيل واحد فقط."
-   )
-MSG_HASH(
    MSG_SCANNING_OF_FILE_FINISHED,
    "انتهى فحص الملف"
    )
@@ -9218,6 +9219,10 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_SUSTAINED_PERFORMANCE_MODE,
    "وضع الأداء المستدام"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CPU_PERF_MODE_MANUAL,
+   "يدوي"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_PAL60_ENABLE,

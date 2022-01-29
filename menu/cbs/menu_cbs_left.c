@@ -678,6 +678,7 @@ static int manual_content_scan_core_name_left(unsigned type, const char *label,
    return 0;
 }
 
+#ifndef HAVE_LAKKA_SWITCH
 #ifdef HAVE_LAKKA
 static int cpu_policy_mode_change(unsigned type, const char *label,
       bool wraparound)
@@ -792,6 +793,7 @@ static int cpu_policy_freq_tweak(unsigned type, const char *label,
    return 0;
 }
 #endif
+#endif /* #ifndef HAVE_LAKKA_SWITCH */
 
 static int core_setting_left(unsigned type, const char *label,
       bool wraparound)
@@ -1208,6 +1210,7 @@ static int menu_cbs_init_bind_left_compare_type(menu_file_list_cbs_t *cbs,
          case FILE_TYPE_IMAGEVIEWER:
          case FILE_TYPE_PLAYLIST_COLLECTION:
          case FILE_TYPE_DOWNLOAD_CORE_CONTENT:
+         case FILE_TYPE_DOWNLOAD_CORE_SYSTEM_FILES:
          case FILE_TYPE_DOWNLOAD_THUMBNAIL_CONTENT:
          case FILE_TYPE_DOWNLOAD_URL:
          case FILE_TYPE_SCAN_DIRECTORY:

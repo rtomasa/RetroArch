@@ -18,11 +18,8 @@
 #define __RARCH_CHEEVOS_LOCALS_H
 
 #include "../deps/rcheevos/include/rc_runtime.h"
-
 #include "../deps/rcheevos/src/rcheevos/rc_libretro.h"
 
-#include <../command.h>
-#include <../verbosity.h>
 #include <boolean.h>
 #include <queues/task_queue.h>
 
@@ -31,6 +28,9 @@
 #endif
 
 #include <retro_common_api.h>
+
+#include "../command.h"
+#include "../verbosity.h"
 
 RETRO_BEGIN_DECLS
 
@@ -120,13 +120,23 @@ typedef struct rcheevos_load_info_t
 #endif
 } rcheevos_load_info_t;
 
+typedef struct rcheevos_hash_entry_t
+{
+   uint32_t                      path_djb2;
+   int                           game_id;
+   struct rcheevos_hash_entry_t* next;
+   char                          hash[33];
+} rcheevos_hash_entry_t;
+
 typedef struct rcheevos_game_info_t
 {
    int   id;
    int   console_id;
    char* title;
    char  badge_name[16];
-   char  hash[33];
+   char* hash;
+
+   rcheevos_hash_entry_t* hashes;
 
    rcheevos_racheevo_t* achievements;
    rcheevos_ralboard_t* leaderboards;

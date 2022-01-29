@@ -80,6 +80,13 @@
 #define UDEV_XKB_HANDLING
 #endif
 
+/* Force UDEV_XKB_HANDLING for Lakka */
+#ifdef HAVE_LAKKA
+#ifndef UDEV_XKB_HANDLING
+#define UDEV_XKB_HANDLING
+#endif
+#endif
+
 #define UDEV_MAX_KEYS (KEY_MAX + 7) / 8
 
 typedef struct udev_input udev_input_t;
@@ -378,19 +385,29 @@ static int16_t udev_mouse_get_pointer_x(const udev_input_mouse_t *mouse, bool sc
 
    if (mouse->abs) /* mouse coords are absolute */
    {
+      /* mouse coordinates are relative to the screen; convert them
+       * to be relative to the viewport */
+      double scaled_x;
       src_min = mouse->x_min;
       src_width = mouse->x_max - mouse->x_min + 1;
+      scaled_x = vp.full_width * (mouse->x_abs - src_min) / src_width;
+      x = -32767.0 + 65535.0 / vp.width * (scaled_x - vp.x);
    }
    else /* mouse coords are viewport relative */
    {
-      src_min = vp.x;
-      if (screen)
+      if (screen) 
+      {
+         src_min = 0.0;
          src_width = vp.full_width;
-      else
+      }
+      else 
+      {
+         src_min = vp.x;
          src_width = vp.width;
+      }
+      x  = -32767.0 + 65535.0 / src_width * (mouse->x_abs - src_min);
    }
 
-   x  = -32767.0 + 65535.0 / src_width * (mouse->x_abs - src_min);
    x += (x < 0 ? -0.5 : 0.5);
 
    if (x < -0x7fff)
@@ -413,16 +430,26 @@ static int16_t udev_mouse_get_pointer_y(const udev_input_mouse_t *mouse, bool sc
 
    if (mouse->abs) /* mouse coords are absolute */
    {
+      double scaled_y;
+      /* mouse coordinates are relative to the screen; convert them
+       * to be relative to the viewport */
       src_min = mouse->y_min;
       src_height = mouse->y_max - mouse->y_min + 1;
+      scaled_y = vp.full_height * (mouse->y_abs - src_min) / src_height;
+      y = -32767.0 + 65535.0 / vp.height * (scaled_y - vp.y);
    }
    else /* mouse coords are viewport relative */
    {
-      src_min = vp.y;
       if (screen)
+      {
+         src_min = 0.0;
          src_height = vp.full_height;
+      }
       else
+      {
+         src_min = vp.y;
          src_height = vp.height;
+      }
    }
 
    y = -32767.0 + 65535.0 / src_height * (mouse->y_abs - src_min);
@@ -1391,7 +1418,12 @@ static void *udev_input_init(const char *joypad_driver)
       goto error;
 
    video_context_driver_get_ident(&ctx_ident);
+#ifdef HAVE_LAKKA
+   /* Force xkb_handling on Lakka */
+   udev->xkb_handling = true;
+#else
    udev->xkb_handling = string_is_equal(ctx_ident.ident, "kms");
+#endif /* HAVE_LAKKA */
 #endif
 
 #if defined(HAVE_EPOLL)
@@ -1418,7 +1450,7 @@ static void *udev_input_init(const char *joypad_driver)
    /* If using KMS and we forgot this,
     * we could lock ourselves out completely. */
    if (!udev->num_devices)
-      RARCH_WARN("[udev]: Couldn't open any keyboard, mouse or touchpad. Are permissions set correctly for /dev/input/event*?\n");
+      RARCH_WARN("[udev]: Couldn't open any keyboard, mouse or touchpad. Are permissions set correctly for /dev/input/event* and /run/udev/?\n");
 
    input_keymaps_init_keyboard_lut(rarch_key_map_linux);
 

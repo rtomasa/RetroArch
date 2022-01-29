@@ -200,7 +200,7 @@ typedef struct gl2_renderchain_data
 #define gl2_rb_storage       glRenderbufferStorageOES
 #define gl2_delete_rb        glDeleteRenderbuffersOES
 
-#elif (defined(__MACH__) && (defined(__ppc__) || defined(__ppc64__)))
+#elif (defined(__MACH__) && defined(MAC_OS_X_VERSION_MAX_ALLOWED) && (MAC_OS_X_VERSION_MAX_ALLOWED < 101200))
 #define gl2_fb_texture_2d(a, b, c, d, e) glFramebufferTexture2DEXT(a, b, c, d, e)
 #define gl2_check_fb_status(target) glCheckFramebufferStatusEXT(target)
 #define gl2_gen_fb(n, ids)   glGenFramebuffersEXT(n, ids)
@@ -1132,7 +1132,7 @@ static void gl2_renderchain_init(
    {
       gl->fbo_rect[i].width  = next_pow2(gl->fbo_rect[i].img_width);
       gl->fbo_rect[i].height = next_pow2(gl->fbo_rect[i].img_height);
-      RARCH_LOG("[GL]: Creating FBO %d @ %ux%u\n", i,
+      RARCH_LOG("[GL]: Creating FBO %d @ %ux%u.\n", i,
             gl->fbo_rect[i].width, gl->fbo_rect[i].height);
    }
 
@@ -1142,7 +1142,7 @@ static void gl2_renderchain_init(
    if (gl->fbo_feedback_enable && gl->fbo_feedback_pass
          < (unsigned)chain->fbo_pass)
    {
-      RARCH_LOG("[GL]: Creating feedback FBO %d @ %ux%u\n", i,
+      RARCH_LOG("[GL]: Creating feedback FBO %d @ %ux%u.\n", i,
             gl->fbo_rect[gl->fbo_feedback_pass].width,
             gl->fbo_rect[gl->fbo_feedback_pass].height);
    }
@@ -1182,7 +1182,7 @@ static bool gl2_renderchain_init_hw_render(
     * FBOs are "abstract" objects and are not shared. */
    gl2_context_bind_hw_render(gl, true);
 
-   RARCH_LOG("[GL]: Initializing HW render (%u x %u).\n", width, height);
+   RARCH_LOG("[GL]: Initializing HW render (%ux%u).\n", width, height);
    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_fbo_size);
    glGetIntegerv(RARCH_GL_MAX_RENDERBUFFER_SIZE, &max_renderbuffer_size);
    RARCH_LOG("[GL]: Max texture size: %d px, renderbuffer size: %d px.\n",
@@ -1221,7 +1221,7 @@ static bool gl2_renderchain_init_hw_render(
 
          if (stencil)
          {
-#if defined(HAVE_OPENGLES2) || defined(HAVE_OPENGLES1) || ((defined(__MACH__) && (defined(__ppc__) || defined(__ppc64__))))
+#if defined(HAVE_OPENGLES2) || defined(HAVE_OPENGLES1) || (defined(__MACH__) && defined(MAC_OS_X_VERSION_MAX_ALLOWED) && (MAC_OS_X_VERSION_MAX_ALLOWED < 101200))
             /* GLES2 is a bit weird, as always.
              * There's no GL_DEPTH_STENCIL_ATTACHMENT like in desktop GL. */
             gl2_fb_rb(RARCH_GL_FRAMEBUFFER,
@@ -1742,7 +1742,7 @@ static bool gl2_add_lut(
 
    if (!image_texture_load(&img, lut_path))
    {
-      RARCH_ERR("[GL]: Failed to load texture image from: \"%s\"\n",
+      RARCH_ERR("[GL]: Failed to load texture image from: \"%s\".\n",
             lut_path);
       return false;
    }
@@ -1981,7 +1981,7 @@ static const shader_backend_t *gl_shader_driver_set_backend(
 {
    enum rarch_shader_type fallback = gl2_get_fallback_shader_type(type);
    if (fallback != type)
-      RARCH_ERR("[Shader driver]: Shader backend %d not supported, falling back to %d.", type, fallback);
+      RARCH_ERR("[Shader driver]: Shader backend %d not supported, falling back to %d.\n", type, fallback);
 
    switch (fallback)
    {
@@ -2022,7 +2022,7 @@ static bool gl_shader_driver_init(video_shader_ctx_init_t *init)
    if (string_is_equal(settings->arrays.menu_driver, "xmb")
          && init->shader->init_menu_shaders)
    {
-      RARCH_LOG("Setting up menu pipeline shaders for XMB ... \n");
+      RARCH_LOG("Setting up menu pipeline shaders for XMB ...\n");
       init->shader->init_menu_shaders(tmp);
    }
 
@@ -2527,7 +2527,7 @@ static void gl2_video_layout_fbo_init(gl2_t *gl, unsigned width, unsigned height
 
    if (gl2_check_fb_status(RARCH_GL_FRAMEBUFFER) != 
          RARCH_GL_FRAMEBUFFER_COMPLETE)
-      RARCH_LOG("[GL]: Unable to create FBO for video_layout\n");
+      RARCH_ERR("[GL]: Unable to create FBO for video_layout.\n");
 
    gl2_bind_fb(0);
 }
@@ -2841,6 +2841,7 @@ static bool gl2_frame(void *data, const void *frame,
    bool runloop_is_slowmotion          = video_info->runloop_is_slowmotion;
    bool runloop_is_paused              = video_info->runloop_is_paused;
 #endif
+   bool overlay_behind_menu            = video_info->overlay_behind_menu;
 
    if (!gl)
       return false;
@@ -2921,7 +2922,7 @@ static bool gl2_frame(void *data, const void *frame,
                      }
                   }
 
-                  RARCH_LOG("[GL]: Recreating FBO texture #%d: %ux%u\n",
+                  RARCH_LOG("[GL]: Recreating FBO texture #%d: %ux%u.\n",
                         i, fbo_rect->width, fbo_rect->height);
                }
             }
@@ -3046,6 +3047,12 @@ static bool gl2_frame(void *data, const void *frame,
 #ifdef HAVE_VIDEO_LAYOUT
    gl2_video_layout_render(gl);
 #endif
+
+#ifdef HAVE_OVERLAY
+   if (gl->overlay_enable && overlay_behind_menu)
+      gl2_render_overlay(gl);
+#endif
+
 #if defined(HAVE_MENU)
    if (gl->menu_texture_enable)
    {
@@ -3063,7 +3070,7 @@ static bool gl2_frame(void *data, const void *frame,
 #endif
 
 #ifdef HAVE_OVERLAY
-   if (gl->overlay_enable)
+   if (gl->overlay_enable && !overlay_behind_menu)
       gl2_render_overlay(gl);
 #endif
 
@@ -3135,7 +3142,7 @@ static bool gl2_frame(void *data, const void *frame,
    if (  gl->have_sync
          && hard_sync
          && !input_driver_nonblock_state
-         && !gl->menu_texture_enable)
+         )
    {
       glClear(GL_COLOR_BUFFER_BIT);
 
@@ -3630,7 +3637,7 @@ static void *gl2_init(const video_info_t *video,
    gl->ctx_driver                       = ctx_driver;
    gl->video_info                       = *video;
 
-   RARCH_LOG("[GL]: Found GL context: %s\n", ctx_driver->ident);
+   RARCH_LOG("[GL]: Found GL context: \"%s\".\n", ctx_driver->ident);
 
    if (gl->ctx_driver->get_video_size)
       gl->ctx_driver->get_video_size(gl->ctx_data,
@@ -3644,7 +3651,7 @@ static void *gl2_init(const video_info_t *video,
    full_y      = mode_height;
    interval    = 0;
 
-   RARCH_LOG("[GL]: Detecting screen resolution %ux%u.\n", full_x, full_y);
+   RARCH_LOG("[GL]: Detecting screen resolution: %ux%u.\n", full_x, full_y);
 
    if (video->vsync)
       interval = video->swap_interval;
@@ -3815,7 +3822,7 @@ static void *gl2_init(const video_info_t *video,
    gl->video_width       = temp_width;
    gl->video_height      = temp_height;
 
-   RARCH_LOG("[GL]: Using resolution %ux%u\n", temp_width, temp_height);
+   RARCH_LOG("[GL]: Using resolution %ux%u.\n", temp_width, temp_height);
 
    gl->vertex_ptr        = hwr->bottom_left_origin
       ? vertexes : vertexes_flipped;
@@ -4000,6 +4007,14 @@ static bool gl2_alive(void *data)
    gl->ctx_driver->check_window(gl->ctx_data,
          &quit, &resize, &temp_width, &temp_height);
 
+#ifdef __WINRT__
+   if (is_running_on_xbox())
+   {
+      //we can set it to 1920x1080 as xbox uwp windowsize is guaranteed to be 1920x1080 and currently there is now way to set angle to use a variable resolution swapchain so regardless of the size the window is always 1080p
+      temp_width = 1920;
+      temp_height = 1080;
+   }
+#endif
    if (quit)
       gl->quitting = true;
    else if (resize)
@@ -4565,6 +4580,7 @@ static uint32_t gl2_get_flags(void *data)
    BIT32_SET(flags, GFX_CTX_FLAGS_BLACK_FRAME_INSERTION);
    BIT32_SET(flags, GFX_CTX_FLAGS_MENU_FRAME_FILTERING);
    BIT32_SET(flags, GFX_CTX_FLAGS_SCREENSHOTS_SUPPORTED);
+   BIT32_SET(flags, GFX_CTX_FLAGS_OVERLAY_BEHIND_MENU_SUPPORTED);
 
    return flags;
 }

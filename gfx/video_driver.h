@@ -471,6 +471,7 @@ typedef struct video_frame_info
    char stat_text[512];
 
    bool widgets_active;
+   bool notifications_hidden;
    bool menu_mouse_enable;
    bool widgets_is_paused;
    bool widgets_is_fast_forwarding;
@@ -501,6 +502,7 @@ typedef struct video_frame_info
    bool msg_bgcolor_enable;
    bool crt_switch_hires_menu;
    bool hdr_enable;
+   bool overlay_behind_menu;
 } video_frame_info_t;
 
 typedef void (*update_window_title_cb)(void*);
@@ -958,6 +960,14 @@ typedef struct
 #endif
 } video_driver_state_t;
 
+typedef struct video_frame_delay_auto {
+   float refresh_rate;
+   unsigned frame_time_interval;
+   unsigned decrease;
+   unsigned target;
+   unsigned time;
+} video_frame_delay_auto_t;
+
 extern struct aspect_ratio_elem aspectratio_lut[ASPECT_RATIO_END];
 
 bool video_driver_has_windowed(void);
@@ -1228,6 +1238,8 @@ bool *video_driver_get_threaded(void);
 
 void video_driver_set_threaded(bool val);
 
+void video_frame_delay_auto(video_driver_state_t *video_st, video_frame_delay_auto_t *vfda);
+
 /**
  * video_context_driver_init:
  * @core_set_shared_context : Boolean value that tells us whether shared context
@@ -1414,7 +1426,7 @@ void video_driver_frame(const void *data, unsigned width,
 
 extern const video_driver_t *video_drivers[];
 
-extern video_driver_t video_gl_core;
+extern video_driver_t video_gl3;
 extern video_driver_t video_gl2;
 extern video_driver_t video_gl1;
 extern video_driver_t video_vulkan;

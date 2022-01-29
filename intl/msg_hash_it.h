@@ -87,6 +87,16 @@ MSG_HASH( /* FIXME Is a specific image format used? Is it determined automatical
    MENU_ENUM_SUBLABEL_DUMP_DISC,
    "Effettua il dump del disco fisico multimediale nella memoria interna. Verrà salvato come file immagine."
    )
+#ifdef HAVE_LAKKA
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EJECT_DISC,
+   "Espelli Disco"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_EJECT_DISC,
+   "Eietta il disco dall'unità CD/DVD fisica."
+   )
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_PLAYLISTS_TAB,
    "Playlist"
@@ -310,6 +320,14 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DOWNLOAD_CORE_CONTENT,
    "Scaricatore di contenuti"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_DOWNLOAD_CORE_SYSTEM_FILES,
+   "Download File Di Sistema del Core"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_DOWNLOAD_CORE_SYSTEM_FILES,
+   "Scarica i file ausiliari di sistema necessari per un funzionamento di base del core corretto/ottimale."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_UPDATE_CORE_INFO_FILES,
@@ -2577,6 +2595,22 @@ MSG_HASH(
    "Attiva o disattiva l'indicatore dei fotogrammi al secondo."
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_INPUT_META_STATISTICS_TOGGLE,
+   "Mostra Statistiche Tecniche (Toggle)"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_INPUT_META_STATISTICS_TOGGLE,
+   "Attiva o disattiva la visualizzazione delle statistiche tecniche a schermo."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_INPUT_META_NETPLAY_PING_TOGGLE,
+   "Mostra Ping Di Netplay (Toggle)"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_INPUT_META_NETPLAY_PING_TOGGLE,
+   "Attiva o disattiva il contatore di ping per la stanza di netplay corrente."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_META_SEND_DEBUG_INFO,
    "Invia Informazioni di Debug"
    )
@@ -2599,6 +2633,22 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_INPUT_META_NETPLAY_GAME_WATCH,
    "Cambia la sessione di netplay corrente tra le modalità 'gioca' e 'assisti'."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_INPUT_META_NETPLAY_PLAYER_CHAT,
+   "Chat Giocatore Netplay"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_INPUT_META_NETPLAY_PLAYER_CHAT,
+   "Invia un messaggio di chat alla sessione di rete corrente."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_INPUT_META_NETPLAY_FADE_CHAT_TOGGLE,
+   "Dissolvenza Netplay Chat Attiva/Disattiva"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_INPUT_META_NETPLAY_FADE_CHAT_TOGGLE,
+   "Commuta tra dissolvenza e messaggi statici di chat di netplay."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_META_ENABLE_HOTKEY,
@@ -3327,6 +3377,14 @@ MSG_HASH(
    "La velocità massima in cui il contenuto verrà eseguito quando si utilizza l'avanzamento rapido (ad esempio, 5,0x per 60 fps = 300 fps). Se impostato a 0.0x, il rapporto dell'avanzamento veloce è illimitato (nessun limite di FPS)."
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_FASTFORWARD_FRAMESKIP,
+   "Frameskip Rapido Avanti"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_FASTFORWARD_FRAMESKIP,
+   "Salta i fotogrammi in base al tasso di avanzamento veloce. Questo consente di risparmiare energia e l'utilizzo di fotogrammi di terze parti."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_SLOWMOTION_RATIO,
    "Velocità Rallentatore"
    )
@@ -3504,6 +3562,15 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_INPUT_OVERLAY_ENABLE,
    "Le Coperture sono utilizzate per i bordi e i controlli sullo schermo."
+   )
+
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_INPUT_OVERLAY_BEHIND_MENU,
+   "Mostra Il Menu Overlay posteriore"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_INPUT_OVERLAY_BEHIND_MENU,
+   "Mostra la sovrapposizione posteriore invece che davanti al menu."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_OVERLAY_HIDE_IN_MENU,
@@ -3814,6 +3881,10 @@ MSG_HASH(
    "Il display di utilizzo della memoria verrà aggiornato all'intervallo impostato in fotogrammi."
    )
 MSG_HASH(
+   MENU_ENUM_SUBLABEL_NETPLAY_PING_SHOW,
+   "Mostra il ping per la stanza di rete corrente."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MENU_SHOW_LOAD_CONTENT_ANIMATION,
    "Notifica all'avvio di\"Carica Contenuto\""
    )
@@ -3940,6 +4011,14 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NOTIFICATION_SHOW_NETPLAY_EXTRA,
    "Mostra messaggi non essenziali di netplay sullo schermo."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NOTIFICATION_SHOW_WHEN_MENU_IS_ALIVE,
+   "Notifiche solo per menu"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_NOTIFICATION_SHOW_WHEN_MENU_IS_ALIVE,
+   "Visualizza le notifiche solo quando il menu è aperto."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_VIDEO_FONT_PATH,
@@ -4251,6 +4330,16 @@ MSG_HASH(
    MENU_ENUM_SUBLABEL_MENU_SHOW_DUMP_DISC,
    "Mostra l'opzione 'Dump Disco' nel menu principale."
    )
+#ifdef HAVE_LAKKA
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_MENU_SHOW_EJECT_DISC,
+   "Mostra 'Espelli Disco'"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_MENU_SHOW_EJECT_DISC,
+   "Mostra l'opzione 'Espelli disco' nel menu principale."
+   )
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MENU_SHOW_ONLINE_UPDATER,
    "Show 'Aggiornamenti Online'"
@@ -5111,6 +5200,14 @@ MSG_HASH(
    "Scegli uno specifico relè server da usare. Le posizioni geograficamente più vicine tendono ad avere una latenza inferiore."
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NETPLAY_CUSTOM_MITM_SERVER,
+   "Indirizzo Server Relè Personalizzato"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_NETPLAY_CUSTOM_MITM_SERVER,
+   "Inserisci qui l' indirizzo del tuo relè server personalizzato. Formato: indirizzo o indirizzo<unk> porta"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_IP_ADDRESS,
    "Indirizzo Server"
    )
@@ -5129,6 +5226,18 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_MAX_CONNECTIONS,
    "Connessioni Simultanee Massime"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_NETPLAY_MAX_CONNECTIONS,
+   "Il numero massimo di connessioni attive che l'host accetterà prima di rifiutarne di nuove."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NETPLAY_MAX_PING,
+   "Limitatore Di Ping"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_NETPLAY_MAX_PING,
+   "La latenza massima di connessione (ping) che l'host accetterà. Impostarla a 0 per nessun limite."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_PASSWORD,
@@ -5153,6 +5262,22 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_START_AS_SPECTATOR,
    "Avvia netplay in modalità spettatore."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NETPLAY_FADE_CHAT,
+   "Dissolvenza Chat"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_NETPLAY_FADE_CHAT,
+   "Dissolvenza dei messaggi di chat nel tempo."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NETPLAY_ALLOW_PAUSING,
+   "Consenti Pausa"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_NETPLAY_ALLOW_PAUSING,
+   "Permetti ai giocatori di mettere in pausa durante netplay."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_ALLOW_SLAVES,
@@ -5395,6 +5520,14 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_PLAYLIST_SHOW_SUBLABELS,
    "Mostra informazioni aggiuntive per ogni voce della scaletta, come l'associazione di nuclei corrente e il tempo di gioco (se disponibile). Ha un impatto di prestazioni variabile."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_PLAYLIST_SHOW_HISTORY_ICONS,
+   "Mostra le icone specifiche del contenuto nella cronologia e nei preferiti"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_PLAYLIST_SHOW_HISTORY_ICONS,
+   "Mostra icone specifiche per ogni voce di playlist di cronologia e preferiti. Ha un impatto di prestazioni variabili."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_PLAYLIST_SUBLABEL_RUNTIME,
@@ -5928,12 +6061,24 @@ MSG_HASH(
    "Disconnetti una connessione di rete attiva."
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NETPLAY_SHOW_ONLY_CONNECTABLE,
+   "Solo Camere Connettibili"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_REFRESH_ROOMS,
    "Aggiorna Elenco Host per il Netplay"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_REFRESH_ROOMS,
    "Scansiona per gli host di rete."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NETPLAY_REFRESH_LAN,
+   "Aggiorna Lista LAN Netplay"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_NETPLAY_REFRESH_LAN,
+   "Scansione per gli host di netplay su LAN."
    )
 
 /* Netplay > Host */
@@ -7659,6 +7804,14 @@ MSG_HASH(
    "Più Vicino"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_MAIN,
+   "Principale"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CONTENT,
+   "Contenuto"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MANUAL_CONTENT_SCAN_SYSTEM_NAME_USE_CONTENT_DIR,
    "<Contenuto della cartella>"
    )
@@ -8306,6 +8459,10 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_MENU_XMB_THUMBNAIL_SCALE_FACTOR,
    "Riduce la dimensione del display delle copertine ridimensionando la larghezza massima consentita."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_MENU_XMB_VERTICAL_FADE_FACTOR,
+   "Fattore Di Dissolvenza Verticale"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_XMB_MAIN_MENU_ENABLE_SETTINGS,
@@ -9942,6 +10099,10 @@ MSG_HASH(
    "In attesa di un client ..."
    )
 MSG_HASH(
+   MSG_ROOM_NOT_CONNECTABLE,
+   "La tua stanza non è collegabile da internet."
+   )
+MSG_HASH(
    MSG_NETPLAY_YOU_HAVE_LEFT_THE_GAME,
    "Sei uscito dal gioco"
    )
@@ -9996,6 +10157,10 @@ MSG_HASH(
 MSG_HASH(
    MSG_NETPLAY_ENTER_PASSWORD,
    "Inserisci la password del server netplay:"
+   )
+MSG_HASH(
+   MSG_NETPLAY_ENTER_CHAT,
+   "Inserisci il messaggio di chat di netplay:"
    )
 MSG_HASH(
    MSG_DISCORD_CONNECTION_REQUEST,
@@ -10272,6 +10437,10 @@ MSG_HASH(
 MSG_HASH(
    MSG_CONTENT_CRC32S_DIFFER,
    "Contenuti CRC32 differenti. Non è possibile utilizzare diversi giochi."
+   )
+MSG_HASH(
+   MSG_PING_TOO_HIGH,
+   "Il tuo ping è troppo alto per questo host."
    )
 MSG_HASH(
    MSG_CONTENT_LOADING_SKIPPED_IMPLEMENTATION_WILL_DO_IT,
@@ -10615,11 +10784,11 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_GAME_SPECIFIC_CORE_OPTIONS_FOUND_AT,
-   "[Opzioni Core]: Opzioni core specifiche della cartella trovate in"
+   "Opzioni core specifiche del gioco trovate a"
    )
 MSG_HASH(
    MSG_FOLDER_SPECIFIC_CORE_OPTIONS_FOUND_AT,
-   "[Opzioni Core]: Opzioni core specifiche della cartella trovate in"
+   "Opzioni core specifiche della cartella trovate a"
    )
 MSG_HASH(
    MSG_GOT_INVALID_DISK_INDEX,
@@ -11058,6 +11227,10 @@ MSG_HASH(
    "Scansione Bluetooth completata."
    )
 MSG_HASH(
+   MSG_BLUETOOTH_PAIRING_REMOVED,
+   "Accoppiamento rimosso. Riavvia RetroArch per connettere/accoppiare di nuovo."
+   )
+MSG_HASH(
    MSG_WIFI_SCAN_COMPLETE,
    "Scansione completata delle reti Wi-Fi ."
    )
@@ -11147,15 +11320,15 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_RUNAHEAD_FAILED_TO_SAVE_STATE,
-   "Impossibile salvare l'Istantanea. La funzione di Run-Ahead è stata disabilitata."
+   "Impossibile salvare lo stato. Run-Ahead è stato disabilitato."
    )
 MSG_HASH(
    MSG_RUNAHEAD_FAILED_TO_LOAD_STATE,
-   "Impossibile caricare l'Istantanea. La funzione di Run-Ahead è stata disabilitata."
+   "Impossibile caricare lo stato. Run-Ahead è stato disabilitato."
    )
 MSG_HASH(
    MSG_RUNAHEAD_FAILED_TO_CREATE_SECONDARY_INSTANCE,
-   "Impossibile creare una Seconda Istanza. La funzione di Run-Ahead ora utilizzerà una sola Istanza."
+   "Creazione della seconda istanza non riuscita. Run-Ahead ora userà solo un'istanza."
    )
 MSG_HASH(
    MSG_SCANNING_OF_FILE_FINISHED,
@@ -11260,6 +11433,10 @@ MSG_HASH(
 MSG_HASH(
    MSG_FAILED_TO_RECEIVE_HEADER_FROM_HOST,
    "Ricezione dell'intestazione dall'host non riuscita"
+   )
+MSG_HASH(
+   MSG_CHEEVOS_LOAD_STATE_PREVENTED_BY_HARDCORE_MODE,
+   "È necessario mettere in pausa o disabilitare gli obiettivi Modalità Hardcore per caricare gli stati."
    )
 MSG_HASH(
    MSG_CHEEVOS_HARDCORE_MODE_DISABLED,
@@ -11460,6 +11637,22 @@ MSG_HASH(
 MSG_HASH(
    MSG_CORE_INFO_CACHE_UNSUPPORTED,
    "Impossibile scrivere nella directory delle informazioni del nucleo - la cache delle informazioni del core sarà disabilitata"
+   )
+MSG_HASH(
+   MSG_FOUND_ENTRY_STATE_IN,
+   "Trovato stato di inserimento in"
+   )
+MSG_HASH(
+   MSG_LOADING_ENTRY_STATE_FROM,
+   "Caricamento stato di entrata da"
+   )
+MSG_HASH(
+   MSG_FAILED_TO_ENTER_GAMEMODE,
+   "Impossibile inserire la modalità gioco"
+   )
+MSG_HASH(
+   MSG_FAILED_TO_ENTER_GAMEMODE_LINUX,
+   "Impossibile entrare in GameMode - assicurati che il demone GameMode sia installato/in esecuzione"
    )
 
 /* Lakka */
@@ -11708,6 +11901,14 @@ MSG_HASH(
    "Gestore del menu"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_GAMEMODE_ENABLE,
+   "Modalità Di Gioco"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_GAMEMODE_ENABLE_LINUX,
+   "Puoi migliorare le prestazioni, ridurre la latenza e risolvere problemi di crackling audio. Hai bisogno di https://github.com/FeralInteractive/gamemode per funzionare."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_PAL60_ENABLE,
    "Usa modalità PAL60"
    )
@@ -11764,8 +11965,16 @@ MSG_HASH(
    "Mostra l'opzione 'Spegnimento'."
    )
 MSG_HASH(
+   MSG_ROOM_PASSWORDED,
+   "Con password"
+   )
+MSG_HASH(
    MSG_INTERNET_RELAY,
    "Internet (Relè)"
+   )
+MSG_HASH(
+   MSG_INTERNET_NOT_CONNECTABLE,
+   "Internet (Non Connettibile)"
    )
 MSG_HASH(
    MSG_LOCAL,

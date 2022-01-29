@@ -39,6 +39,8 @@ MSG_HASH(
    MENU_ENUM_LABEL_VALUE_LOAD_CONTENT_LIST,
    "අන්තර්ගතය පූරණය"
    )
+#ifdef HAVE_LAKKA
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_ADD_CONTENT_LIST,
    "අන්තර්ගතය ආයාතකරන්න"
@@ -225,6 +227,7 @@ MSG_HASH(
 
 /* Settings > On-Screen Display > On-Screen Overlay */
 
+
 #if defined(ANDROID)
 #endif
 
@@ -243,6 +246,8 @@ MSG_HASH(
    MENU_ENUM_LABEL_VALUE_SETTINGS_VIEWS_SETTINGS,
    "සැකසුම්"
    )
+#ifdef HAVE_LAKKA
+#endif
 
 /* Settings > User Interface > Menu Item Visibility > Quick Menu */
 
