@@ -2,6 +2,7 @@
  *  RetroArch - A frontend for libretro.
  *  Copyright (C) 2010-2014 - Hans-Kristian Arntzen
  *  Copyright (C) 2011-2017 - Daniel De Matteis
+ *  Copyright (C) 2016-2019 - Andr�s Su�rez (input mapper code)
  *
  *  RetroArch is free software: you can redistribute it and/or modify it under
  *  the terms of the GNU General Public License as published by the Free
@@ -87,6 +88,8 @@
 
 /**************************************/
 /* TODO/FIXME - turn these into static global variable */
+retro_keybind_set input_config_binds[MAX_USERS];
+retro_keybind_set input_autoconf_binds[MAX_USERS];
 uint64_t lifecycle_state                                        = 0;
 
 static void *input_null_init(const char *joypad_driver) { return (void*)-1; }
@@ -353,6 +356,30 @@ static input_driver_state_t input_driver_st = {0}; /* double alignment */
 input_driver_state_t *input_state_get_ptr(void)
 {
    return &input_driver_st;
+}
+
+/**
+ * config_get_input_driver_options:
+ *
+ * Get an enumerated list of all input driver names, separated by '|'.
+ *
+ * Returns: string listing of all input driver names, separated by '|'.
+ **/
+const char* config_get_input_driver_options(void)
+{
+   return char_list_new_special(STRING_LIST_INPUT_DRIVERS, NULL);
+}
+
+/**
+ * config_get_joypad_driver_options:
+ *
+ * Get an enumerated list of all joypad driver names, separated by '|'.
+ *
+ * Returns: string listing of all joypad driver names, separated by '|'.
+ **/
+const char* config_get_joypad_driver_options(void)
+{
+   return char_list_new_special(STRING_LIST_INPUT_JOYPAD_DRIVERS, NULL);
 }
 
 /**
@@ -3494,9 +3521,8 @@ void input_keys_pressed(
    unsigned i;
    input_driver_state_t *input_st = &input_driver_st;
 
-   if(!binds || !binds[port]) {
+   if(!binds || !binds[port])
       return;
-   }
 
    if (CHECK_INPUT_DRIVER_BLOCK_HOTKEY(binds_norm, binds_auto))
    {
@@ -3758,18 +3784,17 @@ int16_t input_state_device(
                            input_st->turbo_btns.enable[port] = enable_new;
                      }
                   }
-                  else if (turbo_mode == INPUT_TURBO_MODE_SINGLEBUTTON_HOLD &&
-                        input_st->turbo_btns.enable[port] &&
-                        input_st->turbo_btns.mode1_enable[port])
-                  {
-                     /* Hold mode stops turbo on release */
+                  /* Hold mode stops turbo on release */
+                  else if (
+                           turbo_mode == INPUT_TURBO_MODE_SINGLEBUTTON_HOLD
+                        && input_st->turbo_btns.enable[port]
+                        && input_st->turbo_btns.mode1_enable[port])
                      input_st->turbo_btns.mode1_enable[port] = 0;
-                  }
 
                   if (!res && input_st->turbo_btns.mode1_enable[port] &&
                         input_st->turbo_btns.enable[port] & (1 << id))
                   {
-                     /* if turbo button is enabled for this key ID */
+                     /* If turbo button is enabled for this key ID */
                      res = ((   input_st->turbo_btns.count
                               % settings->uints.input_turbo_period)
                            < settings->uints.input_turbo_duty_cycle);
@@ -5345,7 +5370,11 @@ void input_driver_collect_system_input(input_driver_state_t *input_st,
 #endif /* HAVE_MENU */
 
       input_keys_pressed(port,
+#ifdef HAVE_MENU
             menu_input_active,
+#else
+            false,
+#endif
             block_delay,
             loop_bits,
             (const retro_keybind_set *)input_config_binds,
@@ -5555,8 +5584,8 @@ void input_keyboard_event(bool down, unsigned code,
 	   *key_event            = &runloop_st->key_event;
    input_driver_state_t 
       *input_st                  = &input_driver_st;
-   access_state_t *access_st     = access_state_get_ptr();
 #ifdef HAVE_ACCESSIBILITY
+   access_state_t *access_st     = access_state_get_ptr();
    settings_t *settings          = config_get_ptr();
    bool accessibility_enable     = settings->bools.accessibility_enable;
    unsigned accessibility_narrator_speech_speed = settings->uints.accessibility_narrator_speech_speed;

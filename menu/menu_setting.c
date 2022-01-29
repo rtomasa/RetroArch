@@ -81,8 +81,9 @@
 #include "../dynamic.h"
 #include "../list_special.h"
 #include "../audio/audio_driver.h"
+#ifdef HAVE_BLUETOOTH
 #include "../bluetooth/bluetooth_driver.h"
-#include "../wifi/wifi_driver.h"
+#endif
 #include "../midi_driver.h"
 #include "../location_driver.h"
 #include "../record/record_driver.h"
@@ -106,6 +107,9 @@
 
 #ifdef HAVE_NETWORKING
 #include "../network/netplay/netplay.h"
+#ifdef HAVE_WIFI
+#include "../network/wifi_driver.h"
+#endif
 #endif
 
 #ifdef HAVE_VIDEO_LAYOUT
@@ -2715,7 +2719,9 @@ static int setting_action_ok_bind_all_save_autoconfig(
       rarch_setting_t *setting, size_t idx, bool wraparound)
 {
    unsigned index_offset     = 0;
+   unsigned map              = 0;
    const char *name          = NULL;
+   settings_t      *settings = config_get_ptr();
 
    (void)wraparound;
 
@@ -2723,7 +2729,8 @@ static int setting_action_ok_bind_all_save_autoconfig(
       return -1;
 
    index_offset = setting->index_offset;
-   name         = input_config_get_device_name(index_offset);
+   map          = settings->uints.input_joypad_index[index_offset];
+   name         = input_config_get_device_name(map);
 
    if (!string_is_empty(name) &&
          config_save_autoconf_profile(name, index_offset))
@@ -2850,7 +2857,7 @@ static int setting_action_ok_uint(
          enum_idx, /* we will pass the enumeration index of the string as a path */
          NULL, NULL, 0, idx, 0,
          ACTION_OK_DL_DROPDOWN_BOX_LIST);
-   return 0;
+   return 1;
 }
 
 static int setting_action_ok_libretro_device_type(
@@ -6658,6 +6665,9 @@ static void setting_get_string_representation_uint_user_language(
    modes[RETRO_LANGUAGE_HEBREW]                 = msg_hash_to_str(MENU_ENUM_LABEL_VALUE_LANG_HEBREW);
    modes[RETRO_LANGUAGE_ASTURIAN]               = msg_hash_to_str(MENU_ENUM_LABEL_VALUE_LANG_ASTURIAN);
    modes[RETRO_LANGUAGE_FINNISH]                = msg_hash_to_str(MENU_ENUM_LABEL_VALUE_LANG_FINNISH);
+   modes[RETRO_LANGUAGE_INDONESIAN]             = msg_hash_to_str(MENU_ENUM_LABEL_VALUE_LANG_INDONESIAN);
+   modes[RETRO_LANGUAGE_SWEDISH]                = msg_hash_to_str(MENU_ENUM_LABEL_VALUE_LANG_SWEDISH);
+   modes[RETRO_LANGUAGE_UKRAINIAN]              = msg_hash_to_str(MENU_ENUM_LABEL_VALUE_LANG_UKRAINIAN);
    strlcpy(s, modes[*msg_hash_get_uint(MSG_HASH_USER_LANGUAGE)], len);
 }
 #endif
@@ -6696,6 +6706,27 @@ static void setting_get_string_representation_uint_quit_on_close_content(
          break;
       case QUIT_ON_CLOSE_CONTENT_CLI:
          strlcpy(s, "CLI", len);
+         break;
+   }
+}
+
+static void setting_get_string_representation_uint_playlist_show_history_icons(
+      rarch_setting_t *setting,
+      char *s, size_t len)
+{
+   if (!setting)
+      return;
+
+   switch (*setting->value.target.unsigned_integer)
+   {
+      case PLAYLIST_SHOW_HISTORY_ICONS_DEFAULT:
+         strlcpy(s, msg_hash_to_str(MENU_ENUM_LABEL_VALUE_DONT_CARE), len);
+         break;
+      case PLAYLIST_SHOW_HISTORY_ICONS_MAIN:
+         strlcpy(s, msg_hash_to_str(MENU_ENUM_LABEL_VALUE_MAIN), len);
+         break;
+      case PLAYLIST_SHOW_HISTORY_ICONS_CONTENT:
+         strlcpy(s, msg_hash_to_str(MENU_ENUM_LABEL_VALUE_CONTENT), len);
          break;
    }
 }
@@ -7590,6 +7621,30 @@ static void general_write_handler(rarch_setting_t *setting)
                task_queue_unset_threaded();
          }
          break;
+      case MENU_ENUM_LABEL_GAMEMODE_ENABLE:
+         if (frontend_driver_has_gamemode())
+         {
+            bool on = *setting->value.target.boolean;
+
+            if (!frontend_driver_set_gamemode(on) && on)
+            {
+               settings_t *settings = config_get_ptr();
+
+               /* If we failed to enable game mode, display
+                * a notification and force disable the feature */
+               runloop_msg_queue_push(
+#ifdef __linux__
+                     msg_hash_to_str(MSG_FAILED_TO_ENTER_GAMEMODE_LINUX),
+#else
+                     msg_hash_to_str(MSG_FAILED_TO_ENTER_GAMEMODE),
+#endif
+                     1, 180, true,
+                     NULL, MESSAGE_QUEUE_ICON_DEFAULT, MESSAGE_QUEUE_CATEGORY_INFO);
+               configuration_set_bool(settings,
+                     settings->bools.gamemode_enable, false);
+            }
+         }
+         break;
       case MENU_ENUM_LABEL_INPUT_POLL_TYPE_BEHAVIOR:
          core_set_poll_type(*setting->value.target.integer);
          break;
@@ -8155,10 +8210,12 @@ static void general_write_handler(rarch_setting_t *setting)
          break;
       case MENU_ENUM_LABEL_WIFI_ENABLED:
 #ifdef HAVE_NETWORKING
+#ifdef HAVE_WIFI
          if (*setting->value.target.boolean)
             task_push_wifi_enable(NULL);
          else
             task_push_wifi_disable(NULL);
+#endif
 #endif
          break;
       case MENU_ENUM_LABEL_CORE_INFO_CACHE_ENABLE:
@@ -8420,17 +8477,23 @@ static void samba_enable_toggle_change_handler(rarch_setting_t *setting)
          *setting->value.target.boolean);
 }
 
-static void bluetooth_enable_toggle_change_handler(rarch_setting_t *setting)
+#ifdef HAVE_BLUETOOTH
+static void bluetooth_enable_toggle_change_handler(
+      rarch_setting_t *setting)
 {
-   systemd_service_toggle(LAKKA_BLUETOOTH_PATH, (char*)"bluetooth.service",
+   systemd_service_toggle(LAKKA_BLUETOOTH_PATH,
+         (char*)"bluetooth.service",
          *setting->value.target.boolean);
 }
+#endif
 
+#ifdef HAVE_WIFI
 static void localap_enable_toggle_change_handler(rarch_setting_t *setting)
 {
    driver_wifi_tether_start_stop(*setting->value.target.boolean,
          LAKKA_LOCALAP_PATH);
 }
+#endif
 
 static void timezone_change_handler(rarch_setting_t *setting)
 {
@@ -9044,6 +9107,16 @@ static bool setting_append_list(
                         &group_info,
                         &subgroup_info,
                         parent_group);
+
+#ifdef HAVE_LAKKA
+                  CONFIG_ACTION(
+                        list, list_info,
+                        MENU_ENUM_LABEL_EJECT_DISC,
+                        MENU_ENUM_LABEL_VALUE_EJECT_DISC,
+                        &group_info,
+                        &subgroup_info,
+                        parent_group);
+#endif
                }
 
                string_list_free(drive_list);
@@ -9582,7 +9655,8 @@ static bool setting_append_list(
 #endif
 
 #ifdef HAVE_BLUETOOTH
-         if (string_is_not_equal(settings->arrays.bluetooth_driver, "null"))
+         if (string_is_not_equal(
+                  settings->arrays.bluetooth_driver, "null"))
          {
             CONFIG_ACTION(
                   list, list_info,
@@ -9705,8 +9779,8 @@ static bool setting_append_list(
          break;
       case SETTINGS_LIST_DRIVERS:
          {
-            unsigned i;
-            struct string_options_entry string_options_entries[12];
+            unsigned i, j = 0;
+            struct string_options_entry string_options_entries[12] = {0};
 
             START_GROUP(list, list_info, &group_info, msg_hash_to_str(MENU_ENUM_LABEL_VALUE_DRIVER_SETTINGS), parent_group);
             MENU_SETTINGS_LIST_CURRENT_ADD_ENUM_IDX_PTR(list, list_info, MENU_ENUM_LABEL_DRIVER_SETTINGS);
@@ -9716,91 +9790,119 @@ static bool setting_append_list(
             START_SUB_GROUP(list, list_info, "State", &group_info,
                   &subgroup_info, parent_group);
 
-            string_options_entries[0].target         = settings->arrays.input_driver;
-            string_options_entries[0].len            = sizeof(settings->arrays.input_driver);
-            string_options_entries[0].name_enum_idx  = MENU_ENUM_LABEL_INPUT_DRIVER;
-            string_options_entries[0].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_INPUT_DRIVER;
-            string_options_entries[0].default_value  = config_get_default_input();
-            string_options_entries[0].values         = config_get_input_driver_options();
+            string_options_entries[j].target         = settings->arrays.input_driver;
+            string_options_entries[j].len            = sizeof(settings->arrays.input_driver);
+            string_options_entries[j].name_enum_idx  = MENU_ENUM_LABEL_INPUT_DRIVER;
+            string_options_entries[j].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_INPUT_DRIVER;
+            string_options_entries[j].default_value  = config_get_default_input();
+            string_options_entries[j].values         = config_get_input_driver_options();
 
-            string_options_entries[1].target         = settings->arrays.input_joypad_driver;
-            string_options_entries[1].len            = sizeof(settings->arrays.input_joypad_driver);
-            string_options_entries[1].name_enum_idx  = MENU_ENUM_LABEL_JOYPAD_DRIVER;
-            string_options_entries[1].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_JOYPAD_DRIVER;
-            string_options_entries[1].default_value  = config_get_default_joypad();
-            string_options_entries[1].values         = config_get_joypad_driver_options();
+            j++;
 
-            string_options_entries[2].target         = settings->arrays.video_driver;
-            string_options_entries[2].len            = sizeof(settings->arrays.video_driver);
-            string_options_entries[2].name_enum_idx  = MENU_ENUM_LABEL_VIDEO_DRIVER;
-            string_options_entries[2].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_VIDEO_DRIVER;
-            string_options_entries[2].default_value  = config_get_default_video();
-            string_options_entries[2].values         = config_get_video_driver_options();
+            string_options_entries[j].target         = settings->arrays.input_joypad_driver;
+            string_options_entries[j].len            = sizeof(settings->arrays.input_joypad_driver);
+            string_options_entries[j].name_enum_idx  = MENU_ENUM_LABEL_JOYPAD_DRIVER;
+            string_options_entries[j].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_JOYPAD_DRIVER;
+            string_options_entries[j].default_value  = config_get_default_joypad();
+            string_options_entries[j].values         = config_get_joypad_driver_options();
 
-            string_options_entries[3].target         = settings->arrays.audio_driver;
-            string_options_entries[3].len            = sizeof(settings->arrays.audio_driver);
-            string_options_entries[3].name_enum_idx  = MENU_ENUM_LABEL_AUDIO_DRIVER;
-            string_options_entries[3].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_AUDIO_DRIVER;
-            string_options_entries[3].default_value  = config_get_default_audio();
-            string_options_entries[3].values         = config_get_audio_driver_options();
+            j++;
 
-            string_options_entries[4].target         = settings->arrays.audio_resampler;
-            string_options_entries[4].len            = sizeof(settings->arrays.audio_resampler);
-            string_options_entries[4].name_enum_idx  = MENU_ENUM_LABEL_AUDIO_RESAMPLER_DRIVER;
-            string_options_entries[4].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_AUDIO_RESAMPLER_DRIVER;
-            string_options_entries[4].default_value  = config_get_default_audio_resampler();
-            string_options_entries[4].values         = config_get_audio_resampler_driver_options();
+            string_options_entries[j].target         = settings->arrays.video_driver;
+            string_options_entries[j].len            = sizeof(settings->arrays.video_driver);
+            string_options_entries[j].name_enum_idx  = MENU_ENUM_LABEL_VIDEO_DRIVER;
+            string_options_entries[j].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_VIDEO_DRIVER;
+            string_options_entries[j].default_value  = config_get_default_video();
+            string_options_entries[j].values         = config_get_video_driver_options();
 
-            string_options_entries[5].target         = settings->arrays.camera_driver;
-            string_options_entries[5].len            = sizeof(settings->arrays.camera_driver);
-            string_options_entries[5].name_enum_idx  = MENU_ENUM_LABEL_CAMERA_DRIVER;
-            string_options_entries[5].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_CAMERA_DRIVER;
-            string_options_entries[5].default_value  = config_get_default_camera();
-            string_options_entries[5].values         = config_get_camera_driver_options();
+            j++;
 
-            string_options_entries[6].target         = settings->arrays.bluetooth_driver;
-            string_options_entries[6].len            = sizeof(settings->arrays.bluetooth_driver);
-            string_options_entries[6].name_enum_idx  = MENU_ENUM_LABEL_BLUETOOTH_DRIVER;
-            string_options_entries[6].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_BLUETOOTH_DRIVER;
-            string_options_entries[6].default_value  = config_get_default_bluetooth();
-            string_options_entries[6].values         = config_get_bluetooth_driver_options();
+            string_options_entries[j].target         = settings->arrays.audio_driver;
+            string_options_entries[j].len            = sizeof(settings->arrays.audio_driver);
+            string_options_entries[j].name_enum_idx  = MENU_ENUM_LABEL_AUDIO_DRIVER;
+            string_options_entries[j].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_AUDIO_DRIVER;
+            string_options_entries[j].default_value  = config_get_default_audio();
+            string_options_entries[j].values         = config_get_audio_driver_options();
 
-            string_options_entries[7].target         = settings->arrays.wifi_driver;
-            string_options_entries[7].len            = sizeof(settings->arrays.wifi_driver);
-            string_options_entries[7].name_enum_idx  = MENU_ENUM_LABEL_WIFI_DRIVER;
-            string_options_entries[7].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_WIFI_DRIVER;
-            string_options_entries[7].default_value  = config_get_default_wifi();
-            string_options_entries[7].values         = config_get_wifi_driver_options();
+            j++;
 
-            string_options_entries[8].target         = settings->arrays.location_driver;
-            string_options_entries[8].len            = sizeof(settings->arrays.location_driver);
-            string_options_entries[8].name_enum_idx  = MENU_ENUM_LABEL_LOCATION_DRIVER;
-            string_options_entries[8].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_LOCATION_DRIVER;
-            string_options_entries[8].default_value  = config_get_default_location();
-            string_options_entries[8].values         = config_get_location_driver_options();
+            string_options_entries[j].target         = settings->arrays.audio_resampler;
+            string_options_entries[j].len            = sizeof(settings->arrays.audio_resampler);
+            string_options_entries[j].name_enum_idx  = MENU_ENUM_LABEL_AUDIO_RESAMPLER_DRIVER;
+            string_options_entries[j].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_AUDIO_RESAMPLER_DRIVER;
+            string_options_entries[j].default_value  = config_get_default_audio_resampler();
+            string_options_entries[j].values         = config_get_audio_resampler_driver_options();
 
-            string_options_entries[9].target         = settings->arrays.menu_driver;
-            string_options_entries[9].len            = sizeof(settings->arrays.menu_driver);
-            string_options_entries[9].name_enum_idx  = MENU_ENUM_LABEL_MENU_DRIVER;
-            string_options_entries[9].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_MENU_DRIVER;
-            string_options_entries[9].default_value  = config_get_default_menu();
-            string_options_entries[9].values         = config_get_menu_driver_options();
+            j++;
 
-            string_options_entries[10].target         = settings->arrays.record_driver;
-            string_options_entries[10].len            = sizeof(settings->arrays.record_driver);
-            string_options_entries[10].name_enum_idx  = MENU_ENUM_LABEL_RECORD_DRIVER;
-            string_options_entries[10].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_RECORD_DRIVER;
-            string_options_entries[10].default_value  = config_get_default_record();
-            string_options_entries[10].values         = config_get_record_driver_options();
+            string_options_entries[j].target         = settings->arrays.camera_driver;
+            string_options_entries[j].len            = sizeof(settings->arrays.camera_driver);
+            string_options_entries[j].name_enum_idx  = MENU_ENUM_LABEL_CAMERA_DRIVER;
+            string_options_entries[j].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_CAMERA_DRIVER;
+            string_options_entries[j].default_value  = config_get_default_camera();
+            string_options_entries[j].values         = config_get_camera_driver_options();
 
-            string_options_entries[11].target         = settings->arrays.midi_driver;
-            string_options_entries[11].len            = sizeof(settings->arrays.midi_driver);
-            string_options_entries[11].name_enum_idx  = MENU_ENUM_LABEL_MIDI_DRIVER;
-            string_options_entries[11].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_MIDI_DRIVER;
-            string_options_entries[11].default_value  = config_get_default_midi();
-            string_options_entries[11].values         = config_get_midi_driver_options();
+            j++;
 
-            for (i = 0; i < ARRAY_SIZE(string_options_entries); i++)
+#ifdef HAVE_BLUETOOTH
+            string_options_entries[j].target         = settings->arrays.bluetooth_driver;
+            string_options_entries[j].len            = sizeof(settings->arrays.bluetooth_driver);
+            string_options_entries[j].name_enum_idx  = MENU_ENUM_LABEL_BLUETOOTH_DRIVER;
+            string_options_entries[j].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_BLUETOOTH_DRIVER;
+            string_options_entries[j].default_value  = config_get_default_bluetooth();
+            string_options_entries[j].values         = config_get_bluetooth_driver_options();
+
+            j++;
+#endif
+
+#ifdef HAVE_WIFI
+            string_options_entries[j].target         = settings->arrays.wifi_driver;
+            string_options_entries[j].len            = sizeof(settings->arrays.wifi_driver);
+            string_options_entries[j].name_enum_idx  = MENU_ENUM_LABEL_WIFI_DRIVER;
+            string_options_entries[j].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_WIFI_DRIVER;
+            string_options_entries[j].default_value  = config_get_default_wifi();
+            string_options_entries[j].values         = config_get_wifi_driver_options();
+
+            j++;
+#endif
+
+            string_options_entries[j].target         = settings->arrays.location_driver;
+            string_options_entries[j].len            = sizeof(settings->arrays.location_driver);
+            string_options_entries[j].name_enum_idx  = MENU_ENUM_LABEL_LOCATION_DRIVER;
+            string_options_entries[j].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_LOCATION_DRIVER;
+            string_options_entries[j].default_value  = config_get_default_location();
+            string_options_entries[j].values         = config_get_location_driver_options();
+
+            j++;
+
+            string_options_entries[j].target         = settings->arrays.menu_driver;
+            string_options_entries[j].len            = sizeof(settings->arrays.menu_driver);
+            string_options_entries[j].name_enum_idx  = MENU_ENUM_LABEL_MENU_DRIVER;
+            string_options_entries[j].SHORT_enum_idx = MENU_ENUM_LABEL_VALUE_MENU_DRIVER;
+            string_options_entries[j].default_value  = config_get_default_menu();
+            string_options_entries[j].values         = config_get_menu_driver_options();
+
+            j++;
+
+            string_options_entries[j].target          = settings->arrays.record_driver;
+            string_options_entries[j].len             = sizeof(settings->arrays.record_driver);
+            string_options_entries[j].name_enum_idx   = MENU_ENUM_LABEL_RECORD_DRIVER;
+            string_options_entries[j].SHORT_enum_idx  = MENU_ENUM_LABEL_VALUE_RECORD_DRIVER;
+            string_options_entries[j].default_value   = config_get_default_record();
+            string_options_entries[j].values          = config_get_record_driver_options();
+
+            j++;
+
+            string_options_entries[j].target          = settings->arrays.midi_driver;
+            string_options_entries[j].len             = sizeof(settings->arrays.midi_driver);
+            string_options_entries[j].name_enum_idx   = MENU_ENUM_LABEL_MIDI_DRIVER;
+            string_options_entries[j].SHORT_enum_idx  = MENU_ENUM_LABEL_VALUE_MIDI_DRIVER;
+            string_options_entries[j].default_value   = config_get_default_midi();
+            string_options_entries[j].values          = config_get_midi_driver_options();
+
+            j++;
+
+            for (i = 0; i < j; i++)
             {
                CONFIG_STRING_OPTIONS(
                      list, list_info,
@@ -9910,7 +10012,7 @@ static bool setting_append_list(
 #endif
             for (i = 0; i < ARRAY_SIZE(bool_entries); i++)
             {
-#if defined(HAVE_CORE_INFO_CACHE)
+#if !defined(HAVE_CORE_INFO_CACHE)
                if (bool_entries[i].name_enum_idx ==
                      MENU_ENUM_LABEL_CORE_INFO_CACHE_ENABLE)
                   continue;
@@ -12105,9 +12207,10 @@ static bool setting_append_list(
                   general_write_handler,
                   general_read_handler);
             (*list)[list_info->index - 1].action_ok = &setting_action_ok_uint;
-            (*list)[list_info->index - 1].offset_by = 1;
-            menu_settings_list_current_add_range(list, list_info, 1, 4, 1, true, true);
+            (*list)[list_info->index - 1].offset_by = 2;
+            menu_settings_list_current_add_range(list, list_info, (*list)[list_info->index - 1].offset_by, 4, 1, true, true);
             SETTINGS_DATA_LIST_CURRENT_ADD_FLAGS(list, list_info, SD_FLAG_CMD_APPLY_AUTO);
+            MENU_SETTINGS_LIST_CURRENT_ADD_CMD(list, list_info, CMD_EVENT_REINIT);
 
             CONFIG_BOOL(
                   list, list_info,
@@ -13845,7 +13948,23 @@ static bool setting_append_list(
                general_read_handler);
          (*list)[list_info->index - 1].action_ok = &setting_action_ok_uint;
          MENU_SETTINGS_LIST_CURRENT_ADD_CMD(list, list_info, CMD_EVENT_SET_FRAME_LIMIT);
-         menu_settings_list_current_add_range(list, list_info, 0, 10, 1.0, true, true);
+         menu_settings_list_current_add_range(list, list_info, 0, MAXIMUM_FASTFORWARD_RATIO, 1.0, true, true);
+
+         CONFIG_BOOL(
+               list, list_info,
+               &settings->bools.fastforward_frameskip,
+               MENU_ENUM_LABEL_FASTFORWARD_FRAMESKIP,
+               MENU_ENUM_LABEL_VALUE_FASTFORWARD_FRAMESKIP,
+               DEFAULT_FASTFORWARD_FRAMESKIP,
+               MENU_ENUM_LABEL_VALUE_OFF,
+               MENU_ENUM_LABEL_VALUE_ON,
+               &group_info,
+               &subgroup_info,
+               parent_group,
+               general_write_handler,
+               general_read_handler,
+               SD_FLAG_NONE
+               );
 
          CONFIG_BOOL(
                list, list_info,
@@ -14386,6 +14505,26 @@ static bool setting_append_list(
                SD_FLAG_NONE);
 
 #ifdef HAVE_GFX_WIDGETS
+#ifdef HAVE_NETWORKING
+         CONFIG_BOOL(
+               list, list_info,
+               &settings->bools.netplay_ping_show,
+               MENU_ENUM_LABEL_NETPLAY_PING_SHOW,
+               MENU_ENUM_LABEL_VALUE_NETPLAY_PING_SHOW,
+               DEFAULT_NETPLAY_PING_SHOW,
+               MENU_ENUM_LABEL_VALUE_OFF,
+               MENU_ENUM_LABEL_VALUE_ON,
+               &group_info,
+               &subgroup_info,
+               parent_group,
+               general_write_handler,
+               general_read_handler,
+               SD_FLAG_NONE);
+         (*list)[list_info->index - 1].action_ok    = &setting_bool_action_left_with_refresh;
+         (*list)[list_info->index - 1].action_left  = &setting_bool_action_left_with_refresh;
+         (*list)[list_info->index - 1].action_right = &setting_bool_action_right_with_refresh;
+#endif
+
          CONFIG_BOOL(
                list, list_info,
                &settings->bools.menu_show_load_content_animation,
@@ -14596,6 +14735,21 @@ static bool setting_append_list(
                SD_FLAG_NONE);
 #endif
 
+         CONFIG_BOOL(
+               list, list_info,
+               &settings->bools.notification_show_when_menu_is_alive,
+               MENU_ENUM_LABEL_NOTIFICATION_SHOW_WHEN_MENU_IS_ALIVE,
+               MENU_ENUM_LABEL_VALUE_NOTIFICATION_SHOW_WHEN_MENU_IS_ALIVE,
+               DEFAULT_NOTIFICATION_SHOW_WHEN_MENU_IS_ALIVE,
+               MENU_ENUM_LABEL_VALUE_OFF,
+               MENU_ENUM_LABEL_VALUE_ON,
+               &group_info,
+               &subgroup_info,
+               parent_group,
+               general_write_handler,
+               general_read_handler,
+               SD_FLAG_NONE);
+
          END_SUB_GROUP(list, list_info, parent_group);
          END_GROUP(list, list_info, parent_group);
          break;
@@ -14646,6 +14800,24 @@ static bool setting_append_list(
                );
          (*list)[list_info->index - 1].change_handler = overlay_enable_toggle_change_handler;
 
+         if (video_driver_test_all_flags(GFX_CTX_FLAGS_OVERLAY_BEHIND_MENU_SUPPORTED))
+         {
+            CONFIG_BOOL(
+               list, list_info,
+               &settings->bools.input_overlay_behind_menu,
+               MENU_ENUM_LABEL_INPUT_OVERLAY_BEHIND_MENU,
+               MENU_ENUM_LABEL_VALUE_INPUT_OVERLAY_BEHIND_MENU,
+               DEFAULT_OVERLAY_BEHIND_MENU,
+               MENU_ENUM_LABEL_VALUE_OFF,
+               MENU_ENUM_LABEL_VALUE_ON,
+               &group_info,
+               &subgroup_info,
+               parent_group,
+               general_write_handler,
+               general_read_handler,
+               SD_FLAG_NONE
+               );
+         }
          CONFIG_BOOL(
                list, list_info,
                &settings->bools.input_overlay_hide_in_menu,
@@ -15868,6 +16040,23 @@ static bool setting_append_list(
             menu_settings_list_current_add_range(list, list_info, 0, 100, 1, true, true);
             SETTINGS_DATA_LIST_CURRENT_ADD_FLAGS(list, list_info, SD_FLAG_LAKKA_ADVANCED);
 
+            CONFIG_UINT(
+                  list, list_info,
+                  &settings->uints.menu_xmb_vertical_fade_factor,
+                  MENU_ENUM_LABEL_MENU_XMB_VERTICAL_FADE_FACTOR,
+                  MENU_ENUM_LABEL_VALUE_MENU_XMB_VERTICAL_FADE_FACTOR,
+                  DEFAULT_XMB_VERTICAL_FADE_FACTOR,
+                  &group_info,
+                  &subgroup_info,
+                  parent_group,
+                  general_write_handler,
+                  general_read_handler);
+            (*list)[list_info->index - 1].action_ok    = &setting_action_ok_uint;
+            (*list)[list_info->index - 1].action_left  = &setting_uint_action_left_with_refresh;
+            (*list)[list_info->index - 1].action_right = &setting_uint_action_right_with_refresh;
+            menu_settings_list_current_add_range(list, list_info, 0, 300, 1, true, true);
+            SETTINGS_DATA_LIST_CURRENT_ADD_FLAGS(list, list_info, SD_FLAG_LAKKA_ADVANCED);
+
             CONFIG_PATH(
                   list, list_info,
                   settings->paths.path_menu_xmb_font,
@@ -16102,6 +16291,23 @@ static bool setting_append_list(
                   general_write_handler,
                   general_read_handler,
                   SD_FLAG_NONE);
+
+#ifdef HAVE_LAKKA
+            CONFIG_BOOL(
+                  list, list_info,
+                  &settings->bools.menu_show_eject_disc,
+                  MENU_ENUM_LABEL_MENU_SHOW_EJECT_DISC,
+                  MENU_ENUM_LABEL_VALUE_MENU_SHOW_EJECT_DISC,
+                  menu_show_eject_disc,
+                  MENU_ENUM_LABEL_VALUE_OFF,
+                  MENU_ENUM_LABEL_VALUE_ON,
+                  &group_info,
+                  &subgroup_info,
+                  parent_group,
+                  general_write_handler,
+                  general_read_handler,
+                  SD_FLAG_NONE);
+#endif /* HAVE_LAKKA */
 #endif
 
             CONFIG_BOOL(
@@ -17204,6 +17410,22 @@ static bool setting_append_list(
                parent_group);
 #endif
 #endif
+
+         if (frontend_driver_has_gamemode())
+            CONFIG_BOOL(
+                  list, list_info,
+                  &settings->bools.gamemode_enable,
+                  MENU_ENUM_LABEL_GAMEMODE_ENABLE,
+                  MENU_ENUM_LABEL_VALUE_GAMEMODE_ENABLE,
+                  DEFAULT_GAMEMODE_ENABLE,
+                  MENU_ENUM_LABEL_VALUE_OFF,
+                  MENU_ENUM_LABEL_VALUE_ON,
+                  &group_info,
+                  &subgroup_info,
+                  parent_group,
+                  general_write_handler,
+                  general_read_handler,
+                  SD_FLAG_NONE);
 
          END_SUB_GROUP(list, list_info, parent_group);
          END_GROUP(list, list_info, parent_group);
@@ -18497,11 +18719,27 @@ static bool setting_append_list(
          (*list)[list_info->index - 1].action_left   = setting_bool_action_left_with_refresh;
          (*list)[list_info->index - 1].action_right  = setting_bool_action_right_with_refresh;
 
-         /* Playlist entry index display is currently
-          * supported only by Ozone & XMB */
+         /* Playlist entry index display and content specific history icon
+          * are currently supported only by Ozone & XMB */
          if (string_is_equal(settings->arrays.menu_driver, "xmb") ||
              string_is_equal(settings->arrays.menu_driver, "ozone"))
          {
+            CONFIG_UINT(
+                  list, list_info,
+                  &settings->uints.playlist_show_history_icons,
+                  MENU_ENUM_LABEL_PLAYLIST_SHOW_HISTORY_ICONS,
+                  MENU_ENUM_LABEL_VALUE_PLAYLIST_SHOW_HISTORY_ICONS,
+                  DEFAULT_PLAYLIST_SHOW_HISTORY_ICONS,
+                  &group_info,
+                  &subgroup_info,
+                  parent_group,
+                  general_write_handler,
+                  general_read_handler);
+            (*list)[list_info->index - 1].action_ok = &setting_action_ok_uint;
+            (*list)[list_info->index - 1].get_string_representation =
+                  &setting_get_string_representation_uint_playlist_show_history_icons;
+            menu_settings_list_current_add_range(list, list_info, 0, PLAYLIST_SHOW_HISTORY_ICONS_LAST-1, 1, true, true);
+
             CONFIG_BOOL(
                   list, list_info,
                   &settings->bools.playlist_show_entry_idx,
@@ -18983,6 +19221,21 @@ static bool setting_append_list(
 
             CONFIG_BOOL(
                   list, list_info,
+                  &settings->bools.netplay_show_only_connectable,
+                  MENU_ENUM_LABEL_NETPLAY_SHOW_ONLY_CONNECTABLE,
+                  MENU_ENUM_LABEL_VALUE_NETPLAY_SHOW_ONLY_CONNECTABLE,
+                  DEFAULT_NETPLAY_SHOW_ONLY_CONNECTABLE,
+                  MENU_ENUM_LABEL_VALUE_OFF,
+                  MENU_ENUM_LABEL_VALUE_ON,
+                  &group_info,
+                  &subgroup_info,
+                  parent_group,
+                  general_write_handler,
+                  general_read_handler,
+                  SD_FLAG_NONE);
+
+            CONFIG_BOOL(
+                  list, list_info,
                   &settings->bools.netplay_public_announce,
                   MENU_ENUM_LABEL_NETPLAY_PUBLIC_ANNOUNCE,
                   MENU_ENUM_LABEL_VALUE_NETPLAY_PUBLIC_ANNOUNCE,
@@ -19034,6 +19287,22 @@ static bool setting_append_list(
 
             CONFIG_STRING(
                   list, list_info,
+                  settings->paths.netplay_custom_mitm_server,
+                  sizeof(settings->paths.netplay_custom_mitm_server),
+                  MENU_ENUM_LABEL_NETPLAY_CUSTOM_MITM_SERVER,
+                  MENU_ENUM_LABEL_VALUE_NETPLAY_CUSTOM_MITM_SERVER,
+                  "",
+                  &group_info,
+                  &subgroup_info,
+                  parent_group,
+                  general_write_handler,
+                  general_read_handler);
+            SETTINGS_DATA_LIST_CURRENT_ADD_FLAGS(list, list_info, SD_FLAG_ALLOW_INPUT);
+            (*list)[list_info->index - 1].ui_type       = ST_UI_TYPE_STRING_LINE_EDIT;
+            (*list)[list_info->index - 1].action_start  = setting_generic_action_start_default;
+
+            CONFIG_STRING(
+                  list, list_info,
                   settings->paths.netplay_server,
                   sizeof(settings->paths.netplay_server),
                   MENU_ENUM_LABEL_NETPLAY_IP_ADDRESS,
@@ -19078,7 +19347,22 @@ static bool setting_append_list(
                   general_read_handler);
             (*list)[list_info->index - 1].ui_type   = ST_UI_TYPE_UINT_SPINBOX;
             (*list)[list_info->index - 1].action_ok = &setting_action_ok_uint;
+            (*list)[list_info->index - 1].offset_by = 1;
             menu_settings_list_current_add_range(list, list_info, 1, 31, 1, true, true);
+
+            CONFIG_UINT(
+                  list, list_info,
+                  &settings->uints.netplay_max_ping,
+                  MENU_ENUM_LABEL_NETPLAY_MAX_PING,
+                  MENU_ENUM_LABEL_VALUE_NETPLAY_MAX_PING,
+                  netplay_max_ping,
+                  &group_info,
+                  &subgroup_info,
+                  parent_group,
+                  general_write_handler,
+                  general_read_handler);
+            (*list)[list_info->index - 1].ui_type = ST_UI_TYPE_UINT_SPINBOX;
+            menu_settings_list_current_add_range(list, list_info, 0, 500, 10, true, true);
 
             CONFIG_STRING(
                   list, list_info,
@@ -19118,6 +19402,36 @@ static bool setting_append_list(
                   MENU_ENUM_LABEL_NETPLAY_START_AS_SPECTATOR,
                   MENU_ENUM_LABEL_VALUE_NETPLAY_START_AS_SPECTATOR,
                   false,
+                  MENU_ENUM_LABEL_VALUE_OFF,
+                  MENU_ENUM_LABEL_VALUE_ON,
+                  &group_info,
+                  &subgroup_info,
+                  parent_group,
+                  general_write_handler,
+                  general_read_handler,
+                  SD_FLAG_NONE);
+
+            CONFIG_BOOL(
+                  list, list_info,
+                  &settings->bools.netplay_fade_chat,
+                  MENU_ENUM_LABEL_NETPLAY_FADE_CHAT,
+                  MENU_ENUM_LABEL_VALUE_NETPLAY_FADE_CHAT,
+                  netplay_fade_chat,
+                  MENU_ENUM_LABEL_VALUE_OFF,
+                  MENU_ENUM_LABEL_VALUE_ON,
+                  &group_info,
+                  &subgroup_info,
+                  parent_group,
+                  general_write_handler,
+                  general_read_handler,
+                  SD_FLAG_NONE);
+
+            CONFIG_BOOL(
+                  list, list_info,
+                  &settings->bools.netplay_allow_pausing,
+                  MENU_ENUM_LABEL_NETPLAY_ALLOW_PAUSING,
+                  MENU_ENUM_LABEL_VALUE_NETPLAY_ALLOW_PAUSING,
+                  netplay_allow_pausing,
                   MENU_ENUM_LABEL_VALUE_OFF,
                   MENU_ENUM_LABEL_VALUE_ON,
                   &group_info,
@@ -19498,6 +19812,7 @@ static bool setting_append_list(
                   SD_FLAG_NONE);
             (*list)[list_info->index - 1].change_handler = bluetooth_enable_toggle_change_handler;
 
+#ifdef HAVE_WIFI
             CONFIG_BOOL(
                   list, list_info,
                   &settings->bools.localap_enable,
@@ -19513,6 +19828,7 @@ static bool setting_append_list(
                   general_read_handler,
                   SD_FLAG_NONE);
             (*list)[list_info->index - 1].change_handler = localap_enable_toggle_change_handler;
+#endif
 
             CONFIG_STRING_OPTIONS(
                   list, list_info,

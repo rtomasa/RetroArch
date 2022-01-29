@@ -245,6 +245,14 @@ MSG_HASH(
    "cb_core_content_list"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_CB_CORE_SYSTEM_FILES_DOWNLOAD,
+   "cb_core_system_files_download"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_CB_CORE_SYSTEM_FILES_LIST,
+   "cb_core_system_files_list"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_CB_CORE_THUMBNAILS_DOWNLOAD,
    "cb_core_thumbnails_download"
    )
@@ -829,6 +837,10 @@ MSG_HASH(
    "deferred_core_content_list"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_DEFERRED_CORE_SYSTEM_FILES_LIST,
+   "deferred_core_system_files_list"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_DEFERRED_CORE_LIST,
    "deferred_core_list"
    )
@@ -1153,6 +1165,10 @@ MSG_HASH(
    "download_core_content_dirs"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_DOWNLOAD_CORE_SYSTEM_FILES,
+   "download_core_system_files"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_UPDATE_INSTALLED_CORES,
    "update_installed_cores"
    )
@@ -1219,6 +1235,10 @@ MSG_HASH(
    "fastforward_ratio"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_FASTFORWARD_FRAMESKIP,
+   "fastforward_frameskip"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_FILE_BROWSER_CORE,
    "file_browser_core"
    )
@@ -1281,6 +1301,10 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_STATISTICS_SHOW,
    "statistics_show"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_NETPLAY_PING_SHOW,
+   "netplay_ping_show"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_FRAME_THROTTLE_ENABLE,
@@ -1551,6 +1575,10 @@ MSG_HASH(
    "input_overlay_enable"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_INPUT_OVERLAY_BEHIND_MENU,
+   "overlay_behind_menu"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_INPUT_OVERLAY_HIDE_IN_MENU,
    "overlay_hide_in_menu"
    )
@@ -1730,6 +1758,12 @@ MSG_HASH(
    MENU_ENUM_LABEL_DUMP_DISC,
    "dump_disc"
    )
+#ifdef HAVE_LAKKA
+MSG_HASH(
+   MENU_ENUM_LABEL_EJECT_DISC,
+   "eject_disc"
+   )
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_LOAD_CONTENT_SPECIAL,
    "load_special"
@@ -1967,6 +2001,14 @@ MSG_HASH(
    "netplay_start_as_spectator"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_NETPLAY_FADE_CHAT,
+   "netplay_fade_chat"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_NETPLAY_ALLOW_PAUSING,
+   "netplay_allow_pausing"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_NETPLAY_STATELESS_MODE,
    "netplay_stateless_mode"
    )
@@ -1977,6 +2019,10 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_NETPLAY_MAX_CONNECTIONS,
    "netplay_max_connections"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_NETPLAY_MAX_PING,
+   "netplay_max_ping"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_NETPLAY_LAN_SCAN_SETTINGS,
@@ -2386,6 +2432,12 @@ MSG_HASH(
    MENU_ENUM_LABEL_DEFERRED_LOAD_DISC_LIST,
    "deferred_load_disc_list"
    )
+#ifdef HAVE_LAKKA
+MSG_HASH(
+   MENU_ENUM_LABEL_DEFERRED_EJECT_DISC,
+   "deferred_eject_disc"
+   )
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_DEFERRED_CURSOR_MANAGER_LIST_RDB_ENTRY_DEVELOPER,
    "deferred_cursor_manager_list_rdb_entry_developer"
@@ -2817,8 +2869,16 @@ MSG_HASH(
    "scan_file"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_NETPLAY_SHOW_ONLY_CONNECTABLE,
+   "netplay_show_only_connectable"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_NETPLAY_REFRESH_ROOMS,
    "refresh_rooms"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_NETPLAY_REFRESH_LAN,
+   "refresh_lan"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_SCAN_THIS_DIRECTORY,
@@ -3005,6 +3065,10 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_MENU_XMB_THUMBNAIL_SCALE_FACTOR,
    "menu_xmb_thumbnail_scale_factor"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_MENU_XMB_VERTICAL_FADE_FACTOR,
+   "menu_xmb_vertical_fade_factor"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_MENU_THUMBNAIL_UPSCALE_THRESHOLD,
@@ -3899,6 +3963,10 @@ MSG_HASH(
    "netplay_mitm_server"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_NETPLAY_CUSTOM_MITM_SERVER,
+   "netplay_custom_mitm_server"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_ADD_TO_MIXER,
    "audio_add_to_mixer"
    )
@@ -4030,6 +4098,12 @@ MSG_HASH(
    MENU_ENUM_LABEL_MENU_SHOW_DUMP_DISC,
    "menu_show_dump_disc"
    )
+#ifdef HAVE_LAKKA
+MSG_HASH(
+   MENU_ENUM_LABEL_MENU_SHOW_EJECT_DISC,
+   "menu_show_eject_disc"
+   )
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_MENU_SHOW_INFORMATION,
    "menu_show_information"
@@ -4689,6 +4763,10 @@ MSG_HASH(
    "playlist_show_sublabels"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_PLAYLIST_SHOW_HISTORY_ICONS,
+   "playlist_show_history_icons"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_PLAYLIST_SHOW_ENTRY_IDX,
    "playlist_show_entry_idx"
    )
@@ -4779,6 +4857,10 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_NOTIFICATION_SHOW_NETPLAY_EXTRA,
    "notification_show_netplay_extra"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_NOTIFICATION_SHOW_WHEN_MENU_IS_ALIVE,
+   "notification_show_when_menu_is_alive"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VIDEO_SHADERS_ENABLE,
@@ -5121,4 +5203,8 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_MIXER_ACTION_VOLUME,
    "mixer_action_volume"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_GAMEMODE_ENABLE,
+   "game_mode_enable"
    )

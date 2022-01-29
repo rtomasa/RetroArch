@@ -91,6 +91,12 @@ MSG_HASH( /* FIXME Is a specific image format used? Is it determined automatical
    MENU_ENUM_SUBLABEL_DUMP_DISC,
    "物理メディア(ディスク)を内部ストレージにダンプします. イメージファイルとして保存されます."
    )
+#ifdef HAVE_LAKKA
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EJECT_DISC,
+   "ディスクの取り出し"
+   )
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_PLAYLISTS_TAB,
    "プレイリスト"
@@ -3401,6 +3407,7 @@ MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_OVERLAY_ENABLE,
    "オーバーレイを表示"
    )
+
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_OVERLAY_HIDE_IN_MENU,
    "メニュー表示中にオーバーレイを隠す"
@@ -4095,6 +4102,8 @@ MSG_HASH(
    MENU_ENUM_SUBLABEL_MENU_SHOW_DUMP_DISC,
    "メインメニューに'ディスクをダンプ'オプションを表示します."
    )
+#ifdef HAVE_LAKKA
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MENU_SHOW_ONLINE_UPDATER,
    "'オンラインアップデータ'を表示"
@@ -7391,6 +7400,10 @@ MSG_HASH(
    "ニアレスト"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CONTENT,
+   "コンテンツ"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MANUAL_CONTENT_SCAN_SYSTEM_NAME_USE_CONTENT_DIR,
    "<コンテンツディレクトリ>"
    )
@@ -10006,14 +10019,6 @@ MSG_HASH(
    "フレーム"
    )
 MSG_HASH(
-   MSG_GAME_SPECIFIC_CORE_OPTIONS_FOUND_AT,
-   "[コアオプション]: ゲーム固有のコアオプション"
-   )
-MSG_HASH(
-   MSG_FOLDER_SPECIFIC_CORE_OPTIONS_FOUND_AT,
-   "[コアオプション]: フォルダ固有のコアオプション"
-   )
-MSG_HASH(
    MSG_GOT_INVALID_DISK_INDEX,
    "無効なディスクインデックスです"
    )
@@ -10500,18 +10505,6 @@ MSG_HASH(
 MSG_HASH(
    MSG_RUNAHEAD_CORE_DOES_NOT_SUPPORT_SAVESTATES,
    "このコアはステートセーブに対応していないために先行実行が無効になりました."
-   )
-MSG_HASH(
-   MSG_RUNAHEAD_FAILED_TO_SAVE_STATE,
-   "ステートセーブに失敗しました. 先行実行が無効になりました."
-   )
-MSG_HASH(
-   MSG_RUNAHEAD_FAILED_TO_LOAD_STATE,
-   "ステートロードに失敗しました. 先行実行が無効になりました."
-   )
-MSG_HASH(
-   MSG_RUNAHEAD_FAILED_TO_CREATE_SECONDARY_INSTANCE,
-   "2番目のコア生成に失敗しました. 先行実行はひとつのコアのみで行われます."
    )
 MSG_HASH(
    MSG_SCANNING_OF_FILE_FINISHED,

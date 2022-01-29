@@ -38,6 +38,10 @@
 #include "../accessibility.h"
 #endif
 
+#ifdef HAVE_NETWORKING
+#include "../network/netplay/netplay.h"
+#endif
+
 #include "../audio/audio_driver.h"
 
 #include "menu_driver.h"
@@ -6690,7 +6694,12 @@ void menu_driver_toggle(
 
    if (settings)
    {
+#ifdef HAVE_NETWORKING
+      pause_libretro                  = settings->bools.menu_pause_libretro &&
+         netplay_driver_ctl(RARCH_NETPLAY_CTL_ALLOW_PAUSE, NULL);
+#else
       pause_libretro                  = settings->bools.menu_pause_libretro;
+#endif
 #ifdef HAVE_AUDIOMIXER
       audio_enable_menu               = settings->bools.audio_enable_menu;
 #endif
@@ -6704,9 +6713,11 @@ void menu_driver_toggle(
 
    if (on) 
    {
+#ifndef HAVE_LAKKA_SWITCH
 #ifdef HAVE_LAKKA
       set_cpu_scaling_signal(CPUSCALING_EVENT_FOCUS_MENU);
 #endif
+#endif /* #ifndef HAVE_LAKKA_SWITCH */
 #ifdef HAVE_OVERLAY
       /* If an overlay was displayed before the toggle
        * and overlays are disabled in menu, need to
@@ -6725,9 +6736,11 @@ void menu_driver_toggle(
    }
    else
    {
+#ifndef HAVE_LAKKA_SWITCH
 #ifdef HAVE_LAKKA
       set_cpu_scaling_signal(CPUSCALING_EVENT_FOCUS_CORE);
 #endif
+#endif /* #ifndef HAVE_LAKKA_SWITCH */
 #ifdef HAVE_OVERLAY
       /* Inhibits pointer 'select' and 'cancel' actions
        * (until the next time 'select'/'cancel' are released) */
@@ -7335,7 +7348,7 @@ bool menu_shader_manager_set_preset(struct video_shader *shader,
          !(video_shader_load_preset_into_shader(preset_path, shader)))
       goto end;
 
-   RARCH_LOG("Menu shader set to: %s.\n", preset_path);
+   RARCH_LOG("[Shaders]: Menu shader set to: %s.\n", preset_path);
 
    ret = true;
 
