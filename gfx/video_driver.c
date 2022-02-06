@@ -3400,8 +3400,8 @@ bool video_driver_init_internal(bool *video_is_threaded, bool verbosity_enabled)
                width = 2744; /* 384(8) (Capcom arcade games) */
             else if (geom->base_width == 292)
                width = 2400; /* 292(8) (Williams arcade games) */
-            else if (geom->base_width == 160 || geom->base_width == 240 || geom->base_width == 304 || geom->base_width == 800)
-               width = 2464; /* 160(8), 240(8), 304(4), 800(6) */
+            else if (geom->base_width == 160 || geom->base_width == 240 || geom->base_width == 304 || geom->base_width == 400 || geom->base_width == 800)
+               width = 2464; /* 160(8), 240(8), 304(4), 400(6), 800(6) */
             else if (geom->base_width == 720)
                width = 2880; /* 720(0) (Amiga) */
             else
