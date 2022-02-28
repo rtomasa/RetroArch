@@ -1387,7 +1387,7 @@ static struct config_array_setting *populate_settings_array(settings_t *settings
 
    /* Arrays */
    SETTING_ARRAY("dynares_crt_type",         settings->arrays.dynares_crt_type,   false, NULL, true);
-   SETTING_ARRAY("dynares_mode",           settings->arrays.dynares_mode,  false, NULL, true);
+   SETTING_ARRAY("dynares_mode",             settings->arrays.dynares_mode,  false, NULL, true);
    SETTING_ARRAY("video_driver",             settings->arrays.video_driver,   false, NULL, true);
    SETTING_ARRAY("record_driver",            settings->arrays.record_driver,  false, NULL, true);
    SETTING_ARRAY("camera_driver",            settings->arrays.camera_driver,  false, NULL, true);
@@ -2140,7 +2140,6 @@ static struct config_uint_setting *populate_settings_uint(
 #else
    SETTING_UINT("video_fullscreen_x", &settings->uints.video_fullscreen_x, true, DEFAULT_FULLSCREEN_X, false);
    SETTING_UINT("video_fullscreen_y", &settings->uints.video_fullscreen_y, true, DEFAULT_FULLSCREEN_Y, false);
-   SETTING_UINT("dynares_overscan",   &settings->uints.dynares_overscan,  true, DEFAULT_OVERSCAN, false);
 #endif
    SETTING_UINT("video_window_opacity",         &settings->uints.video_window_opacity, true, DEFAULT_WINDOW_OPACITY, false);
 #ifdef HAVE_VIDEO_LAYOUT

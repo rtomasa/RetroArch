@@ -86,6 +86,26 @@ typedef struct MODULE_API {
 	unsigned char interlace;
 } sr_mode;
 
+typedef struct timing
+{
+	int hhh;
+	int hsync;
+	int h_f_porch;
+	int h_b_porch;
+	int h_total;
+	int vvv;
+	int vsync;
+	int v_f_porch;
+	int v_b_porch;
+	int v_total;
+	int vsync_offset_a;
+	int vsync_offset_b;
+	int pixel_rep;
+	double fps;
+	int interlaced;
+	long pixel_freq;
+	int aspect;
+} timing;
 
 /* Declaration of the wrapper functions */
 MODULE_API void sr_init();
@@ -93,8 +113,10 @@ MODULE_API void sr_load_ini(char* config);
 MODULE_API void sr_deinit();
 MODULE_API unsigned char sr_init_disp(const char* src);
 MODULE_API unsigned char sr_add_mode(int, int, double, unsigned char, sr_mode*);
+MODULE_API unsigned char sr_get_timing(int, int, double, unsigned char, timing*);
 MODULE_API unsigned char sr_switch_to_mode(int, int, double, unsigned char, sr_mode*);
 MODULE_API void sr_set_monitor(const char*);
+MODULE_API void sr_set_interlace_force_even(int);
 MODULE_API void sr_set_rotation(unsigned char);
 MODULE_API void sr_set_user_mode(int, int, int);
 
@@ -112,8 +134,10 @@ typedef struct MODULE_API {
     void (*deinit)(void);
     unsigned char (*sr_init_disp)(const char*);
     unsigned char (*sr_add_mode)(int, int, double, unsigned char, sr_mode*);
+    unsigned char (*sr_get_timing)(int, int, double, unsigned char, timing*);
     unsigned char (*sr_switch_to_mode)(int, int, double, unsigned char, sr_mode*);
     void (*sr_set_monitor)(const char*);
+    void (*sr_set_interlace_force_even)(int);
     void (*sr_set_rotation)(unsigned char);
     void (*sr_set_user_mode)(int, int, int);
     void (*sr_set_log_level) (int);

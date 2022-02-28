@@ -458,7 +458,7 @@ void drivers_init(
    {
       /* We force refresh rate to the same fps reported by game */
       settings->floats.video_refresh_rate = video_st->av_info.timing.fps;
-      RARCH_LOG("[DynaRes]: Refresh rate changed: %f\n", video_st->av_info.timing.fps);
+      RARCH_LOG("[DynaRes]: Driver: Refresh rate changed: %f\n", video_st->av_info.timing.fps);
       
       driver_adjust_system_rates(
                                  settings->bools.vrr_runloop_enable,

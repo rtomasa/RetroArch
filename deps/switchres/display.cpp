@@ -340,7 +340,8 @@ modeline *display_manager::get_mode(int width, int height, float refresh, bool i
 	if (rotation()) std::swap(s_mode.hactive, s_mode.vactive);
 
 	// Create a dummy mode entry if allowed
-	if (caps() & CUSTOM_VIDEO_CAPS_ADD && m_ds.modeline_generation)
+	//if (caps() & CUSTOM_VIDEO_CAPS_ADD && m_ds.modeline_generation)
+   if (m_ds.modeline_generation)
 	{
 		modeline new_mode = {};
 		new_mode.type = XYV_EDITABLE | V_FREQ_EDITABLE | SCAN_EDITABLE | MODE_ADD | (desktop_is_rotated()? MODE_ROTATED : MODE_OK);
@@ -402,7 +403,8 @@ modeline *display_manager::get_mode(int width, int height, float refresh, bool i
 	}
 
 	// If we didn't need to create a new mode, remove our dummy entry
-	if (caps() & CUSTOM_VIDEO_CAPS_ADD && m_ds.modeline_generation && m_best_mode != &video_modes.back())
+   //if (caps() & CUSTOM_VIDEO_CAPS_ADD && m_ds.modeline_generation && m_best_mode != &video_modes.back())
+	if (m_ds.modeline_generation && m_best_mode != &video_modes.back())
 		video_modes.pop_back();
 
 	// If we didn't find a suitable mode, exit now

@@ -282,7 +282,6 @@
 #define DEFAULT_FULLSCREEN_Y 0
 #define DEFAULT_HANDHELD_FULL false
 #define DEFAULT_VIDEO_INFO false
-#define DEFAULT_OVERSCAN 0
 #endif
 
 #if defined(HAVE_WINDOW_OFFSET)

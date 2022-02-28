@@ -2303,6 +2303,11 @@ ifeq ($(HAVE_FFMPEG), 1)
    INCLUDE_DIRS += -Iffmpeg
 endif
 
+# DynaRes
+ifeq ($(HAVE_DYNARES), 1)
+   OBJ += gfx/video_dynares.o
+endif
+
 # CRT mode switching
 ifeq ($(HAVE_CRTSWITCHRES), 1)
    INCLUDE_DIRS += -I$(DEPS_DIR)/switchres

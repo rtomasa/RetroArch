@@ -261,6 +261,11 @@ Some arcade resolutions can be very different from consumer CRTs. There is resol
 
 MAME ROMs that run in a vertical aspect like DoDonPachi need to be rotated within MAME before resolution switching and aspect correction will work. Do this before enabling CRT SwitchRes so that RetroArch will run in your desktop resolution. Once you have rotated any games that may need it turn CRT SwitchRes on.
 
+## CRT SR2
+crt_switch_resolution = 1              // 0=off, 1=arcade_15, 2=arcade_31, 3=pc_31_120, 4=switchres.ini
+crt_switch_resolution_super = "native" // 3840, 2560, 1920, native
+crt_video_refresh_rate = 60
+
 ## Socials
 
 The links below belong to our official channels. Links other than this may have been created by fans, independent members or followers. We seriously recommend using our original resources.
