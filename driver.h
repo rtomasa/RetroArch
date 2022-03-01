@@ -114,6 +114,9 @@ void driver_set_nonblock_state(void);
 void drivers_init(settings_t *settings, int flags,
       bool verbosity_enabled);
 
+void dynares_drivers_init(settings_t *settings,
+      bool verbosity_enabled);
+
 /**
  * Driver ownership - set this to true if the platform in
  * question needs to 'own'
@@ -130,6 +133,8 @@ void drivers_init(settings_t *settings, int flags,
  * set this to true at the end of its 'init' function.
  **/
 void driver_uninit(int flags);
+
+void dynares_driver_uninit(void);
 
 void retro_input_poll_null(void);
 

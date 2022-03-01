@@ -672,6 +672,108 @@ void drivers_init(
 #endif /* #ifndef HAVE_LAKKA_SWITCH */
 }
 
+void dynares_drivers_init(
+      settings_t *settings,
+      bool verbosity_enabled)
+{
+   runloop_state_t *runloop_st = runloop_state_get_ptr();
+   /*audio_driver_state_t 
+      *audio_st                = audio_state_get_ptr();*/
+   input_driver_state_t 
+      *input_st                = input_state_get_ptr();
+   video_driver_state_t 
+      *video_st                = video_state_get_ptr();
+   bool video_is_threaded      = VIDEO_DRIVER_IS_THREADED_INTERNAL(video_st);
+   gfx_display_t *p_disp       = disp_get_ptr();
+
+   /* DRIVER_VIDEO_MASK | DRIVER_AUDIO_MASK */
+   /* We force refresh rate to the same fps reported by game */
+   settings->floats.video_refresh_rate = video_st->av_info.timing.fps;
+   RARCH_LOG("[DynaRes]: Driver: Refresh rate changed: %f\n", video_st->av_info.timing.fps);
+   driver_adjust_system_rates(
+                              settings->bools.vrr_runloop_enable,
+                              settings->floats.video_refresh_rate,
+                              settings->floats.audio_max_timing_skew,
+                              settings->bools.video_adaptive_vsync,
+                              settings->uints.video_swap_interval
+                              );
+
+   /* Initialize video driver */
+   /* DRIVER_VIDEO_MASK */
+   struct retro_hw_render_callback *hwr   =
+      VIDEO_DRIVER_GET_HW_CONTEXT_INTERNAL(video_st);
+
+   video_st->frame_time_count = 0;
+
+   video_driver_lock_new();
+   video_driver_set_cached_frame_ptr(NULL);
+   
+   if (!dynares_video_driver_init_internal(verbosity_enabled))
+      retroarch_fail(1, "dynares_video_driver_init_internal()");
+
+   if (!video_st->cache_context_ack
+         && hwr->context_reset)
+      hwr->context_reset();
+   video_st->cache_context_ack = false;
+   runloop_st->frame_time_last = 0;
+
+   /* Initialize audio driver */
+   /* DRIVER_AUDIO_MASK
+   audio_driver_init_internal(
+         settings,
+         audio_st->callback.callback != NULL);
+   if (  audio_st->current_audio &&
+         audio_st->current_audio->device_list_new &&
+         audio_st->context_audio_data)
+      audio_st->devices_list = (struct string_list*)
+         audio_st->current_audio->device_list_new(
+               audio_st->context_audio_data);*/
+
+   /* Regular display refresh rate startup autoswitch based on content av_info */
+   /* DRIVER_VIDEO_MASK | DRIVER_AUDIO_MASK */
+   struct retro_system_av_info *av_info = &video_st->av_info;
+   float refresh_rate                   = av_info->timing.fps;
+
+   if (  refresh_rate > 0.0 &&
+         !settings->uints.crt_switch_resolution &&
+         !settings->bools.vrr_runloop_enable &&
+         !settings->bools.video_windowed_fullscreen &&
+         settings->bools.video_fullscreen &&
+         fabs(settings->floats.video_refresh_rate - refresh_rate) > 1)
+   {
+      bool video_switch_refresh_rate = false;
+
+      video_switch_refresh_rate_maybe(&refresh_rate, &video_switch_refresh_rate);
+
+      if (video_switch_refresh_rate && video_display_server_set_refresh_rate(refresh_rate))
+      {
+         int reinit_flags = DRIVER_AUDIO_MASK;
+         video_monitor_set_refresh_rate(refresh_rate);
+         /* Audio must reinit after successful rate switch */
+         command_event(CMD_EVENT_REINIT, &reinit_flags);
+      }
+   }
+
+   core_info_init_current_core();
+
+   gfx_display_init_first_driver(p_disp, video_is_threaded);
+
+   /* Initialising the menu driver will also initialise
+    * core info - if we are not initialising the menu
+    * driver, must initialise core info 'by hand' */
+   command_event(CMD_EVENT_CORE_INFO_INIT, NULL);
+   command_event(CMD_EVENT_LOAD_CORE_PERSIST, NULL);
+
+   /* Keep non-throttled state as good as possible. */
+   /* DRIVER_VIDEO_MASK | DRIVER_AUDIO_MASK */
+   if (input_st && input_st->nonblocking_flag)
+      driver_set_nonblock_state();
+
+   /* Initialize MIDI  driver 
+   if (flags & DRIVER_MIDI_MASK)
+      midi_driver_init(settings);*/
+}
+
 void driver_uninit(int flags)
 {
    runloop_state_t *runloop_st  = runloop_state_get_ptr();
@@ -762,6 +864,36 @@ void driver_uninit(int flags)
    cpu_scaling_driver_free();
 #endif
 #endif /* #ifndef HAVE_LAKKA_SWITCH */
+}
+
+void dynares_driver_uninit(void)
+{
+   runloop_state_t *runloop_st  = runloop_state_get_ptr();
+   video_driver_state_t 
+      *video_st                 = video_state_get_ptr();
+
+   core_info_deinit_list();
+   core_info_free_current_core();
+
+   /* DRIVERS_VIDEO_INPUT */
+   {
+      dynares_video_driver_free_internal();
+      VIDEO_DRIVER_LOCK_FREE(video_st);
+      video_st->data = NULL;
+      video_driver_set_cached_frame_ptr(NULL);
+   }
+
+   /* DRIVER_AUDIO_MASK
+   audio_driver_deinit();*/
+
+   /* DRIVER_VIDEO_MASK */
+   video_st->data = NULL;
+
+   /* DRIVER_AUDIO_MASK
+   audio_state_get_ptr()->context_audio_data = NULL;*/
+
+   /* DRIVER_MIDI_MASK
+      midi_driver_free();*/
 }
 
 void retroarch_deinit_drivers(struct retro_callbacks *cbs)

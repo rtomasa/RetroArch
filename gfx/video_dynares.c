@@ -71,7 +71,7 @@ int dynares_check_res(char *sys_name, int width, int height)
 
    if (string_is_equal(sys_name, "PCSX-ReARMed"))
    {
-      int is_not_v_valid = (height > 230 && height < 240) || height == 478;
+      int is_not_v_valid = (height >= 230 && height < 240) || height == 478;
       if(!is_not_v_valid)
       {
          return 1;
@@ -362,9 +362,7 @@ void dynares_loop_check(char *sys_name, unsigned base_width, unsigned base_heigh
                width  = base_width;
                height = base_height;
                RARCH_LOG("[DynaRes]: Loop: %s: Resolution changed: %dx%d@%f\n", dynares, base_width, base_height, fps);
-               dynares_print_time();
-               video_driver_reinit(DRIVERS_CMD_RGB_PI);
-               dynares_print_time();
+               dynares_video_driver_reinit();
             }
          }
       }
@@ -407,9 +405,7 @@ void dynares_set_geometry(char *sys_name, unsigned base_width, unsigned base_hei
          {
             height = base_height;
             RARCH_LOG("[DynaRes]: Geom: %s: Resolution changed: %dx%d\n", dynares, settings->uints.video_fullscreen_x, base_height);
-            dynares_print_time();
-            video_driver_reinit(DRIVERS_CMD_RGB_PI);
-            dynares_print_time();
+            dynares_video_driver_reinit();
          }
          /* Dynamic super integer scale (viewport custom) */
          handheld_full = settings->bools.dynares_handheld_full;

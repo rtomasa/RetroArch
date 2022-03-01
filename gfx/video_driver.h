@@ -1233,6 +1233,8 @@ void video_driver_build_info(video_frame_info_t *video_info);
 
 void video_driver_reinit(int flags);
 
+void dynares_video_driver_reinit(void);
+
 void video_driver_get_window_title(char *buf, unsigned len);
 
 bool *video_driver_get_threaded(void);
@@ -1362,6 +1364,7 @@ void video_driver_init_filter(enum retro_pixel_format colfmt_int,
 void video_context_driver_reset(void);
 
 void video_driver_free_internal(void);
+void dynares_video_driver_free_internal(void);
 
 /**
  * video_driver_get_current_framebuffer:
@@ -1412,6 +1415,7 @@ void video_driver_set_viewport_config(
 void video_driver_set_viewport_square_pixel(struct retro_game_geometry *geom);
 
 bool video_driver_init_internal(bool *video_is_threaded, bool verbosity_enabled);
+bool dynares_video_driver_init_internal(bool verbosity_enabled);
 
 /**
  * video_driver_frame:

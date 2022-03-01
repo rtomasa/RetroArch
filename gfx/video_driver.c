@@ -1532,6 +1532,46 @@ VIDEO_DRIVER_IS_THREADED_INTERNAL(video_st);
       video_monitor_compute_fps_statistics(video_st->frame_time_count);
 }
 
+void dynares_video_driver_free_internal(void)
+{
+   input_driver_state_t *input_st    = input_state_get_ptr();
+   video_driver_state_t *video_st    = &video_driver_st;
+
+   command_event(CMD_EVENT_OVERLAY_DEINIT, NULL);
+
+   if (!video_driver_is_video_cache_context())
+      video_driver_free_hw_context();
+
+   /*if (!(input_st->current_data == video_st->data))
+   {
+      if (input_st->current_driver)
+         if (input_st->current_driver->free)
+            input_st->current_driver->free(input_st->current_data); // ~165ms
+      if (input_st->primary_joypad)
+      {
+         const input_device_driver_t *tmp   = input_st->primary_joypad;
+         input_st->primary_joypad    = NULL;
+         tmp->destroy(); // ~40ms
+      }
+      input_st->keyboard_mapping_blocked    = false;
+      input_st->current_data                = NULL;
+   }*/
+   if (     video_st->data
+         && video_st->current_video
+         && video_st->current_video->free)
+      video_st->current_video->free(video_st->data); // ~55ms
+   if (video_st->scaler_ptr)
+      video_driver_pixel_converter_free(video_st->scaler_ptr);
+   video_st->scaler_ptr = NULL;
+#if defined(HAVE_CG) || defined(HAVE_GLSL) || defined(HAVE_SLANG) || defined(HAVE_HLSL)
+   dir_free_shader(
+         (struct rarch_dir_shader_list*)&video_st->dir_shader_list,
+         config_get_ptr()->bools.video_shader_remember_last_dir);
+#endif
+   if (video_st->data)
+      video_monitor_compute_fps_statistics(video_st->frame_time_count);
+}
+
 void video_driver_set_viewport_config(
       struct retro_game_geometry *geom,
       float video_aspect_ratio,
@@ -3577,6 +3617,174 @@ VIDEO_DRIVER_IS_THREADED_INTERNAL(video_st);
    return true;
 }
 
+bool dynares_video_driver_init_internal(bool verbosity_enabled)
+{
+   video_info_t video;
+   unsigned max_dim, scale, width, height;
+   video_viewport_t *custom_vp            = NULL;
+   input_driver_t *tmp                    = NULL;
+   static uint16_t dummy_pixels[32]       = {0};
+   runloop_state_t *runloop_st            = runloop_state_get_ptr();
+   settings_t       *settings             = config_get_ptr();
+   input_driver_state_t *input_st         = input_state_get_ptr();
+   video_driver_state_t *video_st         = &video_driver_st;
+   struct retro_game_geometry *geom       = &video_st->av_info.geometry;
+   const enum retro_pixel_format
+      video_driver_pix_fmt                = video_st->pix_fmt;
+
+   max_dim   = MAX(geom->max_width, geom->max_height);
+   scale     = next_pow2(max_dim) / RARCH_SCALE_BASE;
+   scale     = MAX(scale, 1);
+
+   /* Update core-dependent aspect ratio values. */
+   video_driver_set_viewport_square_pixel(geom);
+   video_driver_set_viewport_core();
+   video_driver_set_viewport_config(geom,
+         settings->floats.video_aspect_ratio,
+         settings->bools.video_aspect_ratio_auto);
+
+   /* Update CUSTOM viewport. */
+   custom_vp = &settings->video_viewport_custom;
+
+   if (settings->uints.video_aspect_ratio_idx == ASPECT_RATIO_CUSTOM)
+   {
+      float default_aspect = aspectratio_lut[ASPECT_RATIO_CORE].value;
+      aspectratio_lut[ASPECT_RATIO_CUSTOM].value =
+         (custom_vp->width && custom_vp->height) ?
+         (float)custom_vp->width / custom_vp->height : default_aspect;
+   }
+
+   {
+      /* Guard against aspect ratio index possibly being out of bounds */
+      unsigned new_aspect_idx = settings->uints.video_aspect_ratio_idx;
+      if (new_aspect_idx > ASPECT_RATIO_END)
+         new_aspect_idx = settings->uints.video_aspect_ratio_idx = 0;
+
+      video_driver_set_aspect_ratio_value(
+            aspectratio_lut[new_aspect_idx].value);
+   }
+
+   if (settings->bools.video_fullscreen || video_st->force_fullscreen)
+   {
+      dynares_init(
+         &width,
+         &height,
+         geom->base_width,
+         geom->base_height,
+         video_st->av_info.timing.fps,
+         runloop_st->current_core.retro_get_region(),
+         &video.font_size);
+   }
+
+   if (width && height)
+      RARCH_LOG("[Video]: Set video size to: %ux%u.\n", width, height);
+   else
+      RARCH_LOG("[Video]: Set video size to: fullscreen.\n");
+
+   video_st->display_type     = RARCH_DISPLAY_NONE;
+   video_st->display          = 0;
+   video_st->display_userdata = 0;
+   video_st->window           = 0;
+
+   video_st->scaler_ptr       = video_driver_pixel_converter_init(
+         video_st->pix_fmt,
+         VIDEO_DRIVER_GET_HW_CONTEXT_INTERNAL(video_st),
+         RARCH_SCALE_BASE * scale);
+
+   video.width                       = width;
+   video.height                      = height;
+   video.fullscreen                  = settings->bools.video_fullscreen ||
+                                       video_st->force_fullscreen;
+   video.vsync                       = settings->bools.video_vsync &&
+      !runloop_st->force_nonblock;
+   video.force_aspect                = settings->bools.video_force_aspect;
+   video.font_enable                 = settings->bools.video_font_enable;
+   video.swap_interval               = settings->uints.video_swap_interval;
+   video.adaptive_vsync              = settings->bools.video_adaptive_vsync;
+   video.smooth                      = settings->bools.video_smooth;
+   video.ctx_scaling                 = settings->bools.video_ctx_scaling;
+   video.input_scale                 = scale;
+   video.font_size                   = settings->floats.video_font_size;
+   video.path_font                   = settings->paths.path_font;
+   video.rgb32                       =
+      (video_driver_pix_fmt == RETRO_PIXEL_FORMAT_XRGB8888);
+   video.parent                      = 0;
+
+   video_st->started_fullscreen      = video.fullscreen;
+
+   /* Reset video frame count */
+   video_st->frame_count             = 0;
+
+   // tmp                               = input_state_get_ptr()->current_driver;
+
+   /* Need to grab the "real" video driver interface on a reinit. */
+   video_driver_find_driver(settings,
+         "video driver", verbosity_enabled);
+   dynares_print_time();
+   video_st->data = video_st->current_video->init(
+         &video,
+         &input_state_get_ptr()->current_driver,
+         (void**)&input_state_get_ptr()->current_data);
+   dynares_print_time();
+   if (!video_st->data)
+   {
+      RARCH_ERR("[Video]: Cannot open video driver ... Exiting ...\n");
+      return false;
+   }
+
+   video_st->poke = NULL;
+   if (video_st->current_video->poke_interface)
+      video_st->current_video->poke_interface(
+            video_st->data, &video_st->poke);
+
+   if (video_st->current_video->viewport_info &&
+         (!custom_vp->width  ||
+          !custom_vp->height))
+   {
+      /* Force custom viewport to have sane parameters. */
+      custom_vp->width = width;
+      custom_vp->height = height;
+
+      video_driver_get_viewport_info(custom_vp);
+   }
+
+   video_driver_set_rotation(retroarch_get_rotation() % 4);
+   
+   video_st->current_video->suppress_screensaver(video_st->data,
+         settings->bools.ui_suspend_screensaver_enable);
+
+   /*if (!video_driver_init_input(tmp, settings, verbosity_enabled)) // ~200ms
+         return false;*/
+
+   if (!runloop_st->current_core.game_loaded)
+      video_driver_cached_frame_set(&dummy_pixels, 4, 4, 8);
+
+   video_context_driver_reset();
+
+   video_display_server_init(video_st->display_type);
+
+   if ((enum rotation)settings->uints.screen_orientation != ORIENTATION_NORMAL)
+      video_display_server_set_screen_orientation((enum rotation)settings->uints.screen_orientation);
+
+   /* Ensure that we preserve the 'grab mouse'
+    * state if it was enabled prior to driver
+    * (re-)initialisation */
+   if (input_st->grab_mouse_state)
+   {
+      video_driver_hide_mouse();
+      if (input_driver_grab_mouse())
+         input_st->grab_mouse_state = true;
+   }
+   else if (video.fullscreen)
+   {
+      video_driver_hide_mouse();
+      if (!settings->bools.video_windowed_fullscreen)
+         if (input_driver_grab_mouse())
+            input_st->grab_mouse_state = true;
+   }
+   return true;
+}
+
 void video_driver_frame(const void *data, unsigned width,
       unsigned height, size_t pitch)
 {
@@ -4046,6 +4254,26 @@ static void video_driver_reinit_context(settings_t *settings, int flags)
    drivers_init(settings, flags, verbosity_is_enabled());
 }
 
+static void dynares_video_driver_reinit_context(settings_t *settings)
+{
+   /* RARCH_DRIVER_CTL_UNINIT clears the callback struct so we
+    * need to make sure to keep a copy */
+   struct retro_hw_render_callback hwr_copy;
+   video_driver_state_t *video_st       = &video_driver_st;
+   struct retro_hw_render_callback *hwr =
+      VIDEO_DRIVER_GET_HW_CONTEXT_INTERNAL(video_st);
+   const struct retro_hw_render_context_negotiation_interface *iface =
+      video_st->hw_render_context_negotiation;
+   memcpy(&hwr_copy, hwr, sizeof(hwr_copy));
+   
+   dynares_driver_uninit(); // ~244ms > ~60ms. Saved 11.5fps
+   
+   memcpy(hwr, &hwr_copy, sizeof(*hwr));
+   video_st->hw_render_context_negotiation = iface;
+
+   dynares_drivers_init(settings, verbosity_is_enabled()); // ~893ms
+}
+
 void video_driver_reinit(int flags)
 {
    settings_t *settings                    = config_get_ptr();
@@ -4056,6 +4284,19 @@ void video_driver_reinit(int flags)
    video_st->cache_context     = (hwr->cache_context != false);
    video_st->cache_context_ack = false;
    video_driver_reinit_context(settings, flags);
+   video_st->cache_context     = false;
+}
+
+void dynares_video_driver_reinit(void)
+{
+   settings_t *settings                    = config_get_ptr();
+   video_driver_state_t *video_st          = &video_driver_st;
+   struct retro_hw_render_callback *hwr    =
+      VIDEO_DRIVER_GET_HW_CONTEXT_INTERNAL(video_st);
+
+   video_st->cache_context     = (hwr->cache_context != false);
+   video_st->cache_context_ack = false;
+   dynares_video_driver_reinit_context(settings);
    video_st->cache_context     = false;
 }
 
