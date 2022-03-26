@@ -574,6 +574,7 @@ typedef struct settings
       bool video_hdr_expand_gamut;
       bool dynares_handheld_full;
       bool dynares_video_info;
+      bool dynares_fast_mode;
 
       /* Accessibility */
       bool accessibility_enable;

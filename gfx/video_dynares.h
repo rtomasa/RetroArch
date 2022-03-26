@@ -39,6 +39,7 @@ int dynares_check_res(
 void dynares_video_show_info(
    int width,
    int height,
+   int interlaced,
    float hz);
 
 void dynares_init(

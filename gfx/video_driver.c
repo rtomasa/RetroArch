@@ -3720,12 +3720,10 @@ bool dynares_video_driver_init_internal(bool verbosity_enabled)
    /* Need to grab the "real" video driver interface on a reinit. */
    video_driver_find_driver(settings,
          "video driver", verbosity_enabled);
-   dynares_print_time();
    video_st->data = video_st->current_video->init(
          &video,
          &input_state_get_ptr()->current_driver,
          (void**)&input_state_get_ptr()->current_data);
-   dynares_print_time();
    if (!video_st->data)
    {
       RARCH_ERR("[Video]: Cannot open video driver ... Exiting ...\n");
