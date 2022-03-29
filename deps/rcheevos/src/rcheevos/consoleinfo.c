@@ -21,6 +21,9 @@ const char* rc_console_name(int console_id)
     case RC_CONSOLE_ARCADE:
       return "Arcade";
 
+    case RC_CONSOLE_ARDUBOY:
+      return "Arduboy";
+
     case RC_CONSOLE_ATARI_2600:
       return "Atari 2600";
 
@@ -239,12 +242,41 @@ static const rc_memory_region_t _rc_memory_regions_3do[] = {
 };
 static const rc_memory_regions_t rc_memory_regions_3do = { _rc_memory_regions_3do, 1 };
 
+/* ===== Amstrad CPC ===== */
+/* http://www.cpcalive.com/docs/amstrad_cpc_6128_memory_map.html */
+/* https://www.cpcwiki.eu/index.php/File:AWMG_page151.jpg */
+/* The original CPC only had 64KB of memory, but the newer model has 128KB (expandable to 576KB) */
+/* https://www.grimware.org/doku.php/documentations/devices/gatearraydo=export_xhtml#mmr */
+static const rc_memory_region_t _rc_memory_regions_amstrad_pc[] = {
+    { 0x000000U, 0x00003FU, 0x000000U, RC_MEMORY_TYPE_SYSTEM_RAM, "Firmware" },
+    { 0x000040U, 0x00B0FFU, 0x000040U, RC_MEMORY_TYPE_SYSTEM_RAM, "System RAM" },
+    { 0x00B100U, 0x00BFFFU, 0x00B100U, RC_MEMORY_TYPE_SYSTEM_RAM, "Stack and Firmware Data" },
+    { 0x00C000U, 0x00FFFFU, 0x00C000U, RC_MEMORY_TYPE_SYSTEM_RAM, "Screen Memory" },
+    { 0x010000U, 0x08FFFFU, 0x010000U, RC_MEMORY_TYPE_SYSTEM_RAM, "Extended RAM" },
+};
+static const rc_memory_regions_t rc_memory_regions_amstrad_pc = { _rc_memory_regions_amstrad_pc, 5 };
+
 /* ===== Apple II ===== */
 static const rc_memory_region_t _rc_memory_regions_appleii[] = {
     { 0x000000U, 0x00FFFFU, 0x000000U, RC_MEMORY_TYPE_SYSTEM_RAM, "Main RAM" },
     { 0x010000U, 0x01FFFFU, 0x010000U, RC_MEMORY_TYPE_SYSTEM_RAM, "Auxillary RAM" }
 };
 static const rc_memory_regions_t rc_memory_regions_appleii = { _rc_memory_regions_appleii, 2 };
+
+/* ===== Arduboy ===== */
+/* https://scienceprog.com/avr-microcontroller-memory-map/ (Atmega32) */
+static const rc_memory_region_t _rc_memory_regions_arduboy[] = {
+    { 0x000000U, 0x0000FFU, 0x00000000U, RC_MEMORY_TYPE_SYSTEM_RAM, "Registers" },
+    /* https://www.dailydot.com/debug/arduboy-kickstarter/ 2.5KB of RAM */
+    /* https://github.com/buserror/simavr/blob/1d227277b3d0039f9faef9ea62880ca3051b14f8/simavr/cores/avr/iom32u4.h#L1444-L1445 */
+    { 0x000100U, 0x000AFFU, 0x00000100U, RC_MEMORY_TYPE_SYSTEM_RAM, "System RAM" },
+    /* 1KB of EEPROM https://github.com/libretro/arduous/blob/93e1a6289b42ef48de1fcfb96443981725955ad0/src/arduous/arduous.cpp#L453-L455
+     * https://github.com/buserror/simavr/blob/1d227277b3d0039f9faef9ea62880ca3051b14f8/simavr/cores/avr/iom32u4.h#L1450 */
+    /* EEPROM has it's own addressing scheme starting at $0000. I've chosen to virtualize the address
+     * at $80000000 to avoid a conflict */
+    { 0x000B00U, 0x000EFFU, 0x80000000U, RC_MEMORY_TYPE_SAVE_RAM, "EEPROM" }
+};
+static const rc_memory_regions_t rc_memory_regions_arduboy = { _rc_memory_regions_arduboy, 3 };
 
 /* ===== Atari 2600 ===== */
 static const rc_memory_region_t _rc_memory_regions_atari2600[] = {
@@ -665,8 +697,14 @@ const rc_memory_regions_t* rc_console_memory_regions(int console_id)
     case RC_CONSOLE_3DO:
       return &rc_memory_regions_3do;
 
+    case RC_CONSOLE_AMSTRAD_PC:
+      return &rc_memory_regions_amstrad_pc;
+
     case RC_CONSOLE_APPLE_II:
       return &rc_memory_regions_appleii;
+
+    case RC_CONSOLE_ARDUBOY:
+      return &rc_memory_regions_arduboy;
 
     case RC_CONSOLE_ATARI_2600:
       return &rc_memory_regions_atari2600;
@@ -686,6 +724,7 @@ const rc_memory_regions_t* rc_console_memory_regions(int console_id)
     case RC_CONSOLE_DREAMCAST:
       return &rc_memory_regions_dreamcast;
 
+    case RC_CONSOLE_MEGADUCK:
     case RC_CONSOLE_GAMEBOY:
       return &rc_memory_regions_gameboy;
 

@@ -41,6 +41,10 @@ MSG_HASH(
    "Esplora"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CONTENTLESS_CORES_TAB,
+   "Nuclei standalone"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_ADD_TAB,
    "Importa Contenuto"
    )
@@ -278,6 +282,14 @@ MSG_HASH(
    MENU_ENUM_SUBLABEL_GOTO_EXPLORE,
    "Sfoglia tutti i contenuti corrispondenti al database tramite un'interfaccia di ricerca categorizzata."
    )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_GOTO_CONTENTLESS_CORES,
+   "Nuclei standalone"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_GOTO_CONTENTLESS_CORES,
+   "I nuclei installati che possono funzionare senza caricare il contenuto appariranno qui."
+   )
 
 /* Main Menu > Online Updater */
 
@@ -428,6 +440,10 @@ MSG_HASH(
    "Etichetta Core"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_CORE_VERSION,
+   "Versione Core"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_INFO_SYSTEM_NAME,
    "Nome del Sistema"
    )
@@ -460,6 +476,26 @@ MSG_HASH(
    "Grafica API richiesta"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_SUPPORT_LEVEL,
+   "Supporto Salvataggio di Stato"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_DISABLED,
+   "Nessuno"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_BASIC,
+   "Base (Salva/Carica)"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_SERIALIZED,
+   "Serializzato (Salva/Carica, Riavvolgi)"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_DETERMINISTIC,
+   "Deterministico (Salva/Carica, Riavvolgi, Run-Ahead, Netplay)"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MISSING_REQUIRED,
    "Mancante, Richiesto:"
    )
@@ -482,6 +518,14 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_CORE_LOCK,
    "Impedisci la modifica del core attualmente installato. Può essere usato per evitare aggiornamenti indesiderati quando il contenuto richiede una specifica versione del core (ad es. i ROM set degli Arcade)."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_SET_STANDALONE_EXEMPT,
+   "Escludi Dal Menu 'Core Autonomi'"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_CORE_SET_STANDALONE_EXEMPT,
+   "Impedisci che questo core venga visualizzato nella scheda/menu Core Autonomo. Si applica solo quando la modalità di visualizzazione è impostata su 'Personalizza'."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_DELETE,
@@ -787,10 +831,6 @@ MSG_HASH(
    "Supporto Netplay (peer-to-peer)"
    )
 MSG_HASH(
-   MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_PYTHON_SUPPORT,
-   "Supporto Python (supporto script nelle shaders)"
-   )
-MSG_HASH(
    MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_V4L2_SUPPORT,
    "Supporto Video4Linux2"
    )
@@ -819,6 +859,66 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RDB_ENTRY_GENRE,
    "Genere"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_ACHIEVEMENTS,
+   "Lista Trofei"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_CATEGORY,
+   "Categoria"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_LANGUAGE,
+   "Lingua"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_REGION,
+   "Regione"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_CONSOLE_EXCLUSIVE,
+   "Esclusiva console"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_PLATFORM_EXCLUSIVE,
+   "Esclusiva piattaforma"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_SCORE,
+   "Punteggio"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_CONTROLS,
+   "Controlli"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_ARTSTYLE,
+   "Stile artistico"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_NARRATIVE,
+   "Narrativa"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_PACING,
+   "Ritmo"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_PERSPECTIVE,
+   "Prospettiva"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_SETTING,
+   "Impostazione"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_VISUAL,
+   "Visuale"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_VEHICULAR,
+   "Veicolo"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RDB_ENTRY_PUBLISHER,
@@ -1448,6 +1548,16 @@ MSG_HASH(
    MENU_ENUM_SUBLABEL_VIDEO_MONITOR_INDEX,
    "Seleziona quale schermo visualizzare da usare."
    )
+#if defined (WIIU)
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_WIIU_PREFER_DRC,
+   "Ottimizza per Wii U GamePad (Riavvio richiesto)"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_WIIU_PREFER_DRC,
+   "Usa una scala esatta 2x del GamePad come porta di visualizzazione. Disabilita la visualizzazione alla risoluzione nativa della TV."
+   )
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_VIDEO_ROTATION,
    "Rotazione Video"
@@ -2427,6 +2537,14 @@ MSG_HASH(
    "Attiva la riproduzione al rallentatore quando si tiene premuto il tasto. Il contenuto è riprodotto a velocità normale quando il tasto viene rilasciato."
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_INPUT_META_VRR_RUNLOOP_TOGGLE,
+   "Sincronizza il framerate esatto del contenuto (Abilità)"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_INPUT_META_VRR_RUNLOOP_TOGGLE,
+   "Attiva/disattiva la sincronizzazione con il contenuto esatto del fotogramma on/off."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_META_LOAD_STATE_KEY,
    "Carica Stato di Salvataggio"
    )
@@ -2957,6 +3075,14 @@ MSG_HASH(
 /* Settings > Latency */
 
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RUN_AHEAD_UNSUPPORTED,
+   "[Run-Ahead Non Disponibile]"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_RUN_AHEAD_UNSUPPORTED,
+   "Il nucleo attuale è incompatibile con il run-ahead a causa della mancanza del salvataggio di stato deterministico."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RUN_AHEAD_ENABLED,
    "Run-Ahead - Riduzione della Latenza"
    )
@@ -3069,7 +3195,51 @@ MSG_HASH(
    MENU_ENUM_SUBLABEL_CORE_MANAGER_LIST,
    "Esegui attività di manutenzione offline su core installati (backup, ripristino, eliminazione, ecc.) e visualizza le informazioni dei core."
    )
+#ifdef HAVE_MIST
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_MANAGER_STEAM_LIST,
+   "Gestisci Core"
+   )
 
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_CORE_MANAGER_STEAM_LIST,
+   "Installare o disinstallare core distribuiti tramite Steam."
+   )
+
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_STEAM_INSTALL,
+   "Installa core"
+)
+
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_STEAM_UNINSTALL,
+   "Disinstalla core"
+)
+
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_MENU_SHOW_CORE_MANAGER_STEAM,
+   "Mostra 'Gestisci core'"
+)
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_MENU_SHOW_CORE_MANAGER_STEAM,
+   "Mostra l'opzione 'Gestisci core' nel menu principale."
+)
+
+MSG_HASH(
+   MSG_CORE_STEAM_INSTALLING,
+   "Installazione del core: "
+)
+
+MSG_HASH(
+   MSG_CORE_STEAM_UNINSTALLED,
+   "Il core disinstallerà quando esce da RetroArch."
+)
+
+MSG_HASH(
+   MSG_CORE_STEAM_CURRENTLY_DOWNLOADING,
+   "Il core sta attualmente scaricando"
+)
+#endif
 /* Settings > Configuration */
 
 MSG_HASH(
@@ -4509,6 +4679,26 @@ MSG_HASH(
    "Mostra l'opzione Esplora contenuti. (Riavvio richiesto su Ozone/XMB)"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CONTENT_SHOW_CONTENTLESS_CORES,
+   "Mostra 'Nuclei standalone'"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_CONTENT_SHOW_CONTENTLESS_CORES,
+   "Specifica il tipo di nucleo (se presente) da mostrare nel menu Core autonomo. Quando impostato su 'Personalizzato', la visibilità individuale del core può essere attivata tramite il menu 'Gestisci Core' (Riavvio richiesto su Ozone/XMB)"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_SHOW_CONTENTLESS_CORES_ALL,
+   "Tutti"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_SHOW_CONTENTLESS_CORES_SINGLE_PURPOSE,
+   "Uso Singolo"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_SHOW_CONTENTLESS_CORES_CUSTOM,
+   "Personalizzato"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_TIMEDATE_ENABLE,
    "Visualizza data / ora"
    )
@@ -5205,7 +5395,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_CUSTOM_MITM_SERVER,
-   "Inserisci qui l' indirizzo del tuo relè server personalizzato. Formato: indirizzo o indirizzo<unk> porta"
+   "Inserisci qui l' indirizzo del tuo relè server personalizzato. Formato: indirizzo o porta."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_IP_ADDRESS,
@@ -6303,12 +6493,80 @@ MSG_HASH(
    "Per Genere"
    )
 MSG_HASH(
-   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_ORIGIN,
-   "Per Origine"
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_ACHIEVEMENTS,
+   "Per Obiettivi"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_CATEGORY,
+   "Per Categoria"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_LANGUAGE,
+   "Per Lingua"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_EXPLORE_BY_REGION,
    "Per Regione"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_CONSOLE_EXCLUSIVE,
+   "Per Esclusiva console"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_PLATFORM_EXCLUSIVE,
+   "Per Esclusiva piattaforma"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_RUMBLE,
+   "Per Rumble"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_SCORE,
+   "Per Punteggio"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_MEDIA,
+   "Per Media"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_CONTROLS,
+   "Per Controlli"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_ARTSTYLE,
+   "Per Stile artistico"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_GAMEPLAY,
+   "Per Gameplay"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_NARRATIVE,
+   "Per Narrativa"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_PACING,
+   "Per Ritmo"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_PERSPECTIVE,
+   "Per Prospettiva"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_SETTING,
+   "Per Impostazione"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_VISUAL,
+   "Per Visuale"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_VEHICULAR,
+   "Per Veicolo"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_ORIGIN,
+   "Per Origine"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_EXPLORE_BY_FRANCHISE,
@@ -6642,6 +6900,21 @@ MSG_HASH(
 /* Quick Menu > Controls */
 
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_REMAP_FILE_MANAGER_LIST,
+   "Gestisci File Remap"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_REMAP_FILE_MANAGER_LIST,
+   "Caricare, salvare o rimuovere i file di remap di input per il contenuto corrente."
+   )
+
+/* Quick Menu > Controls > Manage Remap Files */
+
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_REMAP_FILE_INFO,
+   "File Remap Attivo:"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_REMAP_FILE_LOAD,
    "Carica File Remap"
    )
@@ -6669,8 +6942,16 @@ MSG_HASH(
    MENU_ENUM_LABEL_VALUE_REMAP_FILE_REMOVE_GAME,
    "Cancella il file di Remap del gioco"
    )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_REMAP_FILE_RESET,
+   "Riavvio Input Mapping"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_REMAP_FILE_RESET,
+   "Imposta tutte le opzioni di remapping di input ai valori predefiniti."
+   )
 
-/* Quick Menu > Controls > Load Remap File */
+/* Quick Menu > Controls > Manage Remap Files > Load Remap File */
 
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_REMAP_FILE,
@@ -8306,6 +8587,18 @@ MSG_HASH(
    "Flusso"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RGUI_MENU_COLOR_THEME_DYNAMIC,
+   "Dinamico"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RGUI_MENU_COLOR_THEME_GRAY_DARK,
+   "Grigio Scuro"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RGUI_MENU_COLOR_THEME_GRAY_LIGHT,
+   "Grigio Chiaro"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RGUI_PARTICLE_EFFECT_NONE,
    "Disattivato"
    )
@@ -8463,6 +8756,10 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MENU_XMB_VERTICAL_FADE_FACTOR,
    "Fattore Di Dissolvenza Verticale"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_MENU_XMB_TITLE_MARGIN,
+   "Margine Titolo"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_XMB_MAIN_MENU_ENABLE_SETTINGS,
@@ -8671,6 +8968,14 @@ MSG_HASH(
    "Luce Solarizzata"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_OZONE_COLOR_THEME_GRAY_DARK,
+   "Grigio Scuro"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_OZONE_COLOR_THEME_GRAY_LIGHT,
+   "Grigio Chiaro"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_LEFT_THUMBNAILS_OZONE,
    "Seconda Copertina"
    )
@@ -8685,6 +8990,14 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_OZONE_SCROLL_CONTENT_METADATA,
    "Se abilitata, ogni elemento di metadati di contenuto mostrato nella barra laterale destra delle playlist (nucleo associato, tempo di riproduzione) occuperà una singola riga; le stringhe che superano la larghezza della barra laterale saranno visualizzate come testo dell'animazione di scorrimento. Quando disabilitato, ogni elemento di metadati di contenuto verrà visualizzato staticamente, confezionato per occupare quante righe richieste."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_OZONE_THUMBNAIL_SCALE_FACTOR,
+   "Fattore scala delle copertine"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_OZONE_THUMBNAIL_SCALE_FACTOR,
+   "Scala la dimensione della barra delle miniature."
    )
 
 /* MaterialUI: Settings > User Interface > Appearance */
@@ -8871,6 +9184,14 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MATERIALUI_MENU_COLOR_THEME_HACKING_THE_KERNEL,
    "Hackerare il Kernel"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_MATERIALUI_MENU_COLOR_THEME_GRAY_DARK,
+   "Grigio Scuro"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_MATERIALUI_MENU_COLOR_THEME_GRAY_LIGHT,
+   "Grigio Chiaro"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MATERIALUI_MENU_TRANSITION_ANIM_FADE,
@@ -9846,59 +10167,59 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_DEVELOPER,
-   "Database - Filtro : Sviluppatore"
+   "Database - Filtro: Sviluppatore"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_PUBLISHER,
-   "Database - Filtro : Editore"
+   "Database - Filtro: Editore"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_ORIGIN,
-   "Database - Filtro : Origin"
+   "Database - Filtro: Origine"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_FRANCHISE,
-   "Database - Filtro : Franchise"
+   "Database - Filtro: Franchise"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_ESRB_RATING,
-   "Database - Filtro : Valutazione ESRB"
+   "Database - Filtro: Valutazione ESRB"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_ELSPA_RATING,
-   "Database - Filtro : Valutazione ELSPA"
+   "Database - Filtro: Valutazione ELSPA"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_PEGI_RATING,
-   "Database - Filtro : Valutazione PEGI"
+   "Database - Filtro: Valutazione PEGI"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_CERO_RATING,
-   "Database - Filtro : Valutazione CERO"
+   "Database - Filtro: Rating CERO"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_BBFC_RATING,
-   "Database - Filtro : Valutazione BBFC"
+   "Database - Filtro: BBFC Rating"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_MAX_USERS,
-   "Database - Filtro : Massimo numero di utenti"
+   "Database - Filtro: Utenti Massimi"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_RELEASEDATE_BY_MONTH,
-   "Database - Filtra: Data di rilascio per mese"
+   "Database - Filtro: data di uscita per mese"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_RELEASEDATE_BY_YEAR,
-   "Database - Filtra: data di uscita per anno"
+   "Database - Filtro: data di uscita per anno"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_EDGE_MAGAZINE_ISSUE,
-   "Database - Filtro : Edge Magazine Issue"
+   "Database - Filtro: Numero Edge Magazine"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_EDGE_MAGAZINE_RATING,
-   "Database - Filtro : Valutazione Edge Magazine"
+   "Database - Filtro: Valutazione Edge Magazine"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_DATABASE_INFO,
@@ -10979,6 +11300,10 @@ MSG_HASH(
    "Il file Remap è stato rimosso con successo"
    )
 MSG_HASH(
+   MSG_REMAP_FILE_RESET,
+   "Tutte le opzioni di remapping di input resettate al predefinito."
+   )
+MSG_HASH(
    MSG_REMOVED_DISK_FROM_TRAY,
    "Rimosso il disco dal vassoio."
    )
@@ -11013,6 +11338,10 @@ MSG_HASH(
 MSG_HASH(
    MSG_REWINDING,
    "Riavvolgimento in corso."
+   )
+MSG_HASH(
+   MSG_REWIND_UNSUPPORTED,
+   "Rewind non disponibile perché questo nucleo manca il salvataggio di stato serializzato."
    )
 MSG_HASH(
    MSG_REWIND_INIT,
@@ -11319,6 +11648,10 @@ MSG_HASH(
    "La funzione di Run-Ahead è stata disattivata perché questo core non supporta le Istantanee."
    )
 MSG_HASH(
+   MSG_RUNAHEAD_CORE_DOES_NOT_SUPPORT_RUNAHEAD,
+   "Run-Ahead non disponibile perché questo nucleo manca il salvataggio di stato deterministico."
+   )
+MSG_HASH(
    MSG_RUNAHEAD_FAILED_TO_SAVE_STATE,
    "Impossibile salvare lo stato. Run-Ahead è stato disabilitato."
    )
@@ -11445,6 +11778,14 @@ MSG_HASH(
 MSG_HASH(
    MSG_CHEEVOS_HARDCORE_MODE_DISABLED_CHEAT,
    "Un trucco è stato attivato. Trofei della modalità Hardcore disabilitati per la sessione attuale."
+   )
+MSG_HASH(
+   MSG_CHEEVOS_MASTERED_GAME,
+   "Padroneggiato %s"
+   )
+MSG_HASH(
+   MSG_CHEEVOS_COMPLETED_GAME,
+   "Completato %s"
    )
 MSG_HASH(
    MSG_RESAMPLER_QUALITY_LOWEST,
@@ -11627,6 +11968,14 @@ MSG_HASH(
    "Sblocco del core non riuscito: "
    )
 MSG_HASH(
+   MSG_CORE_SET_STANDALONE_EXEMPT_FAILED,
+   "Impossibile rimuovere il core dalla lista 'Core autonomi': "
+   )
+MSG_HASH(
+   MSG_CORE_UNSET_STANDALONE_EXEMPT_FAILED,
+   "Aggiunta del core alla lista 'Core autonomi ' non riuscita: "
+   )
+MSG_HASH(
    MSG_CORE_DELETE_DISABLED,
    "Eliminazione core disabilitata - core è bloccato: "
    )
@@ -11653,6 +12002,14 @@ MSG_HASH(
 MSG_HASH(
    MSG_FAILED_TO_ENTER_GAMEMODE_LINUX,
    "Impossibile entrare in GameMode - assicurati che il demone GameMode sia installato/in esecuzione"
+   )
+MSG_HASH(
+   MSG_VRR_RUNLOOP_ENABLED,
+   "Sincronizzazione esatta framerate del contenuto abilitata."
+   )
+MSG_HASH(
+   MSG_VRR_RUNLOOP_DISABLED,
+   "Sincronizzazione con il framerate esatto del contenuto disabilitata."
    )
 
 /* Lakka */
@@ -12138,6 +12495,14 @@ MSG_HASH(
 #endif
 #if defined(_3DS)
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NEW3DS_SPEEDUP_ENABLE,
+   "Abilita New3DS Clock / L2 Cache"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_NEW3DS_SPEEDUP_ENABLE,
+   "Abilita la velocità di clock New3DS (804MHz) e la cache L2."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_VIDEO_3DS_LCD_BOTTOM,
    "Schermo Inf. 3DS"
    )
@@ -12196,3 +12561,11 @@ MSG_HASH(
    "Scansione Finita.<br><br>\nAffinché i contenuti siano scansionati correttamente, devi\n<ul><li>avere un core compatibile già scaricato</li>\n<li>avere \"Core Info Files\" aggiornato tramite Online Updater</li>\n<li>avere \"Databases\" aggiornato tramite Online Updater</li>\n<li>riavviare RetroArch se uno qualsiasi dei precedenti è stato appena fatto</li></ul>\nInfine, il contenuto deve corrispondere ai database esistenti da <a href=\"https://docs.libretro.com/guides/roms-playlists-thumbnails/#sources\">qui</a>. Se ancora non funziona, considera <a href=\"https://www.github.com/libretro/RetroArch/issues\">di inviare una segnalazione di bug</a>."
    )
 #endif
+MSG_HASH(
+   MSG_IOS_TOUCH_MOUSE_ENABLED,
+   "Touch mouse è abilitato"
+   )
+MSG_HASH(
+   MSG_IOS_TOUCH_MOUSE_DISABLED,
+   "Touch mouse è disabilitato"
+   )

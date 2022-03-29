@@ -54,6 +54,7 @@
 
 /* Forward declarations */
 int action_ok_core_lock(const char *path, const char *label, unsigned type, size_t idx, size_t entry_idx);
+int action_ok_core_set_standalone_exempt(const char *path, const char *label, unsigned type, size_t idx, size_t entry_idx);
 
 extern struct key_desc key_descriptors[RARCH_MAX_KEYS];
 
@@ -811,6 +812,12 @@ static int action_left_core_lock(unsigned type, const char *label,
    return action_ok_core_lock(label, label, type, 0, 0);
 }
 
+static int action_left_core_set_standalone_exempt(unsigned type, const char *label,
+      bool wraparound)
+{
+   return action_ok_core_set_standalone_exempt(label, label, type, 0, 0);
+}
+
 static int disk_options_disk_idx_left(unsigned type, const char *label,
       bool wraparound)
 {
@@ -1006,6 +1013,7 @@ static int menu_cbs_init_bind_left_compare_label(menu_file_list_cbs_t *cbs,
             case MENU_ENUM_LABEL_SUBSYSTEM_LOAD:
             case MENU_ENUM_LABEL_CONNECT_NETPLAY_ROOM:
             case MENU_ENUM_LABEL_EXPLORE_ITEM:
+            case MENU_ENUM_LABEL_CONTENTLESS_CORE:
             case MENU_ENUM_LABEL_NO_SETTINGS_FOUND:
                BIND_ACTION_LEFT(cbs, action_left_mainmenu);
                break;
@@ -1043,6 +1051,7 @@ static int menu_cbs_init_bind_left_compare_label(menu_file_list_cbs_t *cbs,
                break;
             case MENU_ENUM_LABEL_NO_ITEMS:
             case MENU_ENUM_LABEL_NO_PLAYLIST_ENTRIES_AVAILABLE:
+            case MENU_ENUM_LABEL_NO_CORES_AVAILABLE:
             case MENU_ENUM_LABEL_EXPLORE_INITIALISING_LIST:
                if (
                         string_ends_with_size(menu_label, "_tab",
@@ -1238,6 +1247,9 @@ static int menu_cbs_init_bind_left_compare_type(menu_file_list_cbs_t *cbs,
             break;
          case MENU_SETTING_ACTION_CORE_LOCK:
             BIND_ACTION_LEFT(cbs, action_left_core_lock);
+            break;
+         case MENU_SETTING_ACTION_CORE_SET_STANDALONE_EXEMPT:
+            BIND_ACTION_LEFT(cbs, action_left_core_set_standalone_exempt);
             break;
          case MENU_SETTING_DROPDOWN_ITEM_INPUT_DESCRIPTION:
          case MENU_SETTING_DROPDOWN_ITEM_INPUT_DESCRIPTION_KBD:

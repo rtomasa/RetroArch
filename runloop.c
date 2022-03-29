@@ -280,10 +280,6 @@
 #define SYMBOL_VIDEOPROCESSOR(x) current_core->x = libretro_videoprocessor_##x
 #endif
 
-#ifdef HAVE_GONG
-#define SYMBOL_GONG(x) current_core->x = libretro_gong_##x
-#endif
-
 #define CORE_SYMBOLS(x) \
             x(retro_init); \
             x(retro_deinit); \
@@ -962,6 +958,7 @@ static bool mmap_preprocess_descriptors(
    size_t                      top_addr = 1;
    rarch_memory_descriptor_t *desc      = NULL;
    const rarch_memory_descriptor_t *end = first + count;
+   size_t             highest_reachable = 0;
 
    for (desc = first; desc < end; desc++)
    {
@@ -994,17 +991,14 @@ static bool mmap_preprocess_descriptors(
       if (desc->core.start & ~desc->core.select)
          return false;
 
-      while (mmap_reduce(top_addr & ~desc->core.select, desc->core.disconnect) >> 1 > desc->core.len - 1)
+      highest_reachable = mmap_inflate(desc->core.len - 1, desc->core.disconnect);
+
+      /* Disconnect unselected bits that are too high to ever
+       * index into the core's buffer. Higher addresses will
+       * repeat / mirror the buffer as long as they match select */
+      while (mmap_highest_bit(top_addr & ~desc->core.select & ~desc->core.disconnect) >
+                mmap_highest_bit(highest_reachable))
          desc->core.disconnect |= mmap_highest_bit(top_addr & ~desc->core.select & ~desc->core.disconnect);
-
-      desc->disconnect_mask = mmap_add_bits_down(desc->core.len - 1);
-      desc->core.disconnect &= desc->disconnect_mask;
-
-      while ((~desc->disconnect_mask) >> 1 & desc->core.disconnect)
-      {
-         desc->disconnect_mask >>= 1;
-         desc->core.disconnect &= desc->disconnect_mask;
-      }
    }
 
    return true;
@@ -1477,7 +1471,7 @@ bool runloop_environment_cb(unsigned cmd, void *data)
                snprintf(s, sizeof(s), "[Environ]: GET_VARIABLE: %s = \"%s\"\n",
                      var->key, var->value ? var->value :
                            msg_hash_to_str(MENU_ENUM_LABEL_VALUE_NOT_AVAILABLE));
-               RARCH_LOG(s);
+               RARCH_LOG("%s", s);
             }
          }
 
@@ -1905,47 +1899,34 @@ bool runloop_environment_cb(unsigned cmd, void *data)
       }
 
       case RETRO_ENVIRONMENT_SHUTDOWN:
-         RARCH_LOG("[Environ]: SHUTDOWN.\n");
-
-         /* This case occurs when a core (internally) requests
-          * a shutdown event. Must save runtime log file here,
-          * since normal command.c CMD_EVENT_CORE_DEINIT event
-          * will not occur until after the current content has
-          * been cleared (causing log to be skipped) */
-         runloop_runtime_log_deinit(runloop_st,
-               settings->bools.content_runtime_log,
-               settings->bools.content_runtime_log_aggregate,
-               settings->paths.directory_runtime_log,
-               settings->paths.directory_playlist);
-
-         /* Similarly, since the CMD_EVENT_CORE_DEINIT will
-          * be called *after* the runloop state has been
-          * cleared, must also perform the following actions
-          * here:
-          * - Disable any active config overrides
-          * - Unload any active input remaps */
-#ifdef HAVE_CONFIGFILE
-         if (runloop_st->overrides_active)
-         {
-            /* Reload the original config */
-            config_unload_override();
-            runloop_st->overrides_active = false;
-         }
+      {
+#ifdef HAVE_MENU
+         struct menu_state *menu_st = menu_state_get_ptr();
 #endif
-         if (     runloop_st->remaps_core_active
-               || runloop_st->remaps_content_dir_active
-               || runloop_st->remaps_game_active
-            )
-         {
-            input_remapping_deinit();
-            input_remapping_set_defaults(true);
-         }
-         else
-            input_remapping_restore_global_config(true);
+         /* This case occurs when a core (internally)
+          * requests a shutdown event */
+         RARCH_LOG("[Environ]: SHUTDOWN.\n");
 
          runloop_st->shutdown_initiated      = true;
          runloop_st->core_shutdown_initiated = true;
+#ifdef HAVE_MENU
+         /* Ensure that menu stack is flushed appropriately
+          * after the core has stopped running */
+         if (menu_st)
+         {
+            const char *content_path = path_get(RARCH_PATH_CONTENT);
+
+            menu_st->pending_env_shutdown_flush = true;
+            if (!string_is_empty(content_path))
+               strlcpy(menu_st->pending_env_shutdown_content_path,
+                     content_path,
+                     sizeof(menu_st->pending_env_shutdown_content_path));
+            else
+               menu_st->pending_env_shutdown_content_path[0] = '\0';
+         }
+#endif
          break;
+      }
 
       case RETRO_ENVIRONMENT_SET_PERFORMANCE_LEVEL:
          if (system)
@@ -2629,6 +2610,10 @@ bool runloop_environment_cb(unsigned cmd, void *data)
                   (*info)->timing.sample_rate);
 
             memcpy(av_info, *info, sizeof(*av_info));
+            video_st->core_frame_time = 1000000 /
+                  ((video_st->av_info.timing.fps > 0.0) ?
+                        video_st->av_info.timing.fps : 60.0);
+
             command_event(CMD_EVENT_REINIT, &reinit_flags);
             if (no_video_reinit)
                video_driver_set_aspect_ratio();
@@ -3462,11 +3447,6 @@ static bool init_libretro_symbols_custom(
       case CORE_TYPE_VIDEO_PROCESSOR:
 #if defined(HAVE_VIDEOPROCESSOR)
          CORE_SYMBOLS(SYMBOL_VIDEOPROCESSOR);
-#endif
-         break;
-      case CORE_TYPE_GONG:
-#ifdef HAVE_GONG
-         CORE_SYMBOLS(SYMBOL_GONG);
 #endif
          break;
    }
@@ -4726,6 +4706,26 @@ static void do_runahead(
 
    if (!runloop_st->runahead_save_state_size_known)
    {
+      /* Disable runahead if current core reports
+       * that it has an insufficient savestate
+       * support level */
+      if (!core_info_current_supports_runahead())
+      {
+         runahead_error(runloop_st);
+         /* If core is incompatible with runahead,
+          * log a warning but do not spam OSD messages.
+          * Runahead menu entries are hidden when using
+          * incompatible cores, so there is no mechanism
+          * for users to respond to notifications. In
+          * addition, auto-disabling runahead is a feature,
+          * not a cause for 'concern'; OSD warnings should
+          * be reserved for when a core reports that it is
+          * runahead-compatible but subsequently fails in
+          * execution */
+         RARCH_WARN("[Run-Ahead]: %s\n", msg_hash_to_str(MSG_RUNAHEAD_CORE_DOES_NOT_SUPPORT_RUNAHEAD));
+         goto force_input_dirty;
+      }
+
       if (!runahead_create(runloop_st))
       {
          if (!runahead_hide_warnings)
@@ -4913,22 +4913,6 @@ static bool core_unload_game(void)
    return true;
 }
 
-static void runloop_apply_fastmotion_frameskip(runloop_state_t *runloop_st, settings_t *settings)
-{
-   unsigned frames = 0;
-
-   if (runloop_st->fastmotion && settings->bools.fastforward_frameskip)
-   {
-      frames = (unsigned)settings->floats.fastforward_ratio;
-      /* Pick refresh rate as unlimited throttle rate */
-      frames = (!frames) ? (unsigned)roundf(settings->floats.video_refresh_rate) : frames;
-      /* Decrease one to represent skipped frames */
-      frames--;
-   }
-
-   runloop_st->fastforward_frameskip_frames_current = runloop_st->fastforward_frameskip_frames = frames;
-}
-
 static void runloop_apply_fastmotion_override(runloop_state_t *runloop_st, settings_t *settings)
 {
    video_driver_state_t *video_st                     = video_state_get_ptr();
@@ -4966,7 +4950,6 @@ static void runloop_apply_fastmotion_override(runloop_state_t *runloop_st, setti
       if (!runloop_st->fastmotion)
          runloop_st->fastforward_after_frames = 1;
 
-      runloop_apply_fastmotion_frameskip(runloop_st, settings);
       driver_set_nonblock_state();
 
       /* Reset frame time counter when toggling
@@ -5027,6 +5010,18 @@ void runloop_event_deinit_core(void)
       runloop_st->fastmotion_override.pending = false;
    }
 
+   if (     runloop_st->remaps_core_active
+         || runloop_st->remaps_content_dir_active
+         || runloop_st->remaps_game_active
+         || !string_is_empty(runloop_st->name.remapfile)
+      )
+   {
+      input_remapping_deinit(true);
+      input_remapping_set_defaults(true);
+   }
+   else
+      input_remapping_restore_global_config(true);
+
    RARCH_LOG("[Core]: Unloading core symbols..\n");
    uninit_libretro_symbols(&runloop_st->current_core);
    runloop_st->current_core.symbols_inited = false;
@@ -5053,17 +5048,6 @@ void runloop_event_deinit_core(void)
 #if defined(HAVE_CG) || defined(HAVE_GLSL) || defined(HAVE_SLANG) || defined(HAVE_HLSL)
    runloop_st->runtime_shader_preset_path[0] = '\0';
 #endif
-
-   if (     runloop_st->remaps_core_active
-         || runloop_st->remaps_content_dir_active
-         || runloop_st->remaps_game_active
-      )
-   {
-      input_remapping_deinit();
-      input_remapping_set_defaults(true);
-   }
-   else
-      input_remapping_restore_global_config(true);
 }
 
 static void runloop_path_init_savefile_internal(void)
@@ -5318,6 +5302,9 @@ static bool core_load(unsigned poll_type_behavior)
       return false;
 
    runloop_st->current_core.retro_get_system_av_info(&video_st->av_info);
+   video_st->core_frame_time = 1000000 /
+         ((video_st->av_info.timing.fps > 0.0) ?
+               video_st->av_info.timing.fps : 60.0);
 
    return true;
 }
@@ -6540,30 +6527,36 @@ static enum runloop_state_enum runloop_check_state(
          if (runloop_exec)
             runloop_exec = false;
 
-         if (runloop_st->core_shutdown_initiated &&
-               settings->bools.load_dummy_on_core_shutdown)
+         if (runloop_st->core_shutdown_initiated)
          {
-            content_ctx_info_t content_info;
+            bool load_dummy_core = false;
 
-            content_info.argc               = 0;
-            content_info.argv               = NULL;
-            content_info.args               = NULL;
-            content_info.environ_get        = NULL;
+            runloop_st->core_shutdown_initiated = false;
 
-            if (task_push_start_dummy_core(&content_info))
+            /* Check whether dummy core should be loaded
+             * instead of exiting RetroArch completely
+             * (aborts shutdown if invoked) */
+            if (settings->bools.load_dummy_on_core_shutdown)
             {
-               /* Loads dummy core instead of exiting RetroArch completely.
-                * Aborts core shutdown if invoked. */
-               runloop_st->shutdown_initiated      = false;
-               runloop_st->core_shutdown_initiated = false;
+               load_dummy_core                = true;
+               runloop_st->shutdown_initiated = false;
             }
-            else
-               quit_runloop              = true;
+
+            /* Unload current core, and load dummy if
+             * required */
+            if (!command_event(CMD_EVENT_UNLOAD_CORE, &load_dummy_core))
+            {
+               runloop_st->shutdown_initiated = true;
+               quit_runloop                   = true;
+            }
+
+            if (!load_dummy_core)
+               quit_runloop = true;
          }
          else
             quit_runloop                 = true;
 
-         runloop_st->core_running   = false;
+         runloop_st->core_running        = false;
 
          if (quit_runloop)
          {
@@ -6689,13 +6682,20 @@ static enum runloop_state_enum runloop_check_state(
 
       /* Iterate the menu driver for one frame. */
 
+      /* If the user had requested that the Quick Menu
+       * be spawned during the previous frame, do this now
+       * and exit the function to go to the next frame. */
       if (menu_st->pending_quick_menu)
       {
-         /* If the user had requested that the Quick Menu
-          * be spawned during the previous frame, do this now
-          * and exit the function to go to the next frame.
-          */
-         menu_entries_flush_stack(NULL, MENU_SETTINGS);
+         menu_ctx_list_t list_info;
+
+         /* We are going to push a new menu; ensure
+          * that the current one is cached for animation
+          * purposes */
+         list_info.type   = MENU_LIST_PLAIN;
+         list_info.action = 0;
+         menu_driver_list_cache(&list_info);
+
          p_disp->msg_force = true;
 
          generic_action_ok_displaylist_push("", NULL,
@@ -6906,26 +6906,24 @@ static enum runloop_state_enum runloop_check_state(
    {
       static unsigned volume_hotkey_delay        = 0;
       static unsigned volume_hotkey_delay_active = 0;
-      unsigned volume_hotkey_delay_default       = 15;
-      if (BIT256_GET(current_bits, RARCH_VOLUME_UP))
+      unsigned volume_hotkey_delay_default       = 6;
+      bool volume_hotkey_up                      = BIT256_GET(
+            current_bits, RARCH_VOLUME_UP);
+      bool volume_hotkey_down                    = BIT256_GET(
+            current_bits, RARCH_VOLUME_DOWN);
+
+      if (  (volume_hotkey_up   && !volume_hotkey_down) ||
+            (volume_hotkey_down && !volume_hotkey_up))
       {
          if (volume_hotkey_delay > 0)
             volume_hotkey_delay--;
          else
          {
-            command_event(CMD_EVENT_VOLUME_UP, NULL);
-            if (volume_hotkey_delay_active > 0)
-               volume_hotkey_delay_active--;
-            volume_hotkey_delay = volume_hotkey_delay_active;
-         }
-      }
-      else if (BIT256_GET(current_bits, RARCH_VOLUME_DOWN))
-      {
-         if (volume_hotkey_delay > 0)
-            volume_hotkey_delay--;
-         else
-         {
-            command_event(CMD_EVENT_VOLUME_DOWN, NULL);
+            if (volume_hotkey_up)
+               command_event(CMD_EVENT_VOLUME_UP, NULL);
+            else if (volume_hotkey_down)
+               command_event(CMD_EVENT_VOLUME_DOWN, NULL);
+
             if (volume_hotkey_delay_active > 0)
                volume_hotkey_delay_active--;
             volume_hotkey_delay = volume_hotkey_delay_active;
@@ -7092,7 +7090,6 @@ static enum runloop_state_enum runloop_check_state(
             runloop_st->fastmotion            = true;
          }
 
-         runloop_apply_fastmotion_frameskip(runloop_st, settings);
          driver_set_nonblock_state();
 
          /* Reset frame time counter when toggling
@@ -7194,6 +7191,7 @@ static enum runloop_state_enum runloop_check_state(
 
          rewinding      = state_manager_check_rewind(
                &runloop_st->rewind_st,
+               &runloop_st->current_core,
                BIT256_GET(current_bits, RARCH_REWIND),
                settings->uints.rewind_granularity,
                runloop_st->paused,
@@ -7255,6 +7253,8 @@ static enum runloop_state_enum runloop_check_state(
          old_slowmotion_hold_button_state             = new_slowmotion_hold_button_state;
       }
    }
+
+   HOTKEY_CHECK(RARCH_VRR_RUNLOOP_TOGGLE, CMD_EVENT_VRR_RUNLOOP_TOGGLE, true, NULL);
 
    /* Check movie record toggle */
    HOTKEY_CHECK(RARCH_BSV_RECORD_TOGGLE, CMD_EVENT_BSV_RECORDING_TOGGLE, true, NULL);
@@ -7673,7 +7673,8 @@ int runloop_iterate(void)
       bool run_ahead_hide_warnings      = settings->bools.run_ahead_hide_warnings;
       bool run_ahead_secondary_instance = settings->bools.run_ahead_secondary_instance;
       /* Run Ahead Feature replaces the call to core_run in this loop */
-      bool want_runahead                = run_ahead_enabled && run_ahead_num_frames > 0;
+      bool want_runahead                = run_ahead_enabled &&
+            (run_ahead_num_frames > 0) && runloop_st->runahead_available;
 #ifdef HAVE_NETWORKING
       want_runahead                     = want_runahead && !netplay_driver_ctl(RARCH_NETPLAY_CTL_IS_ENABLED, NULL);
 #endif
@@ -7975,33 +7976,6 @@ bool core_set_default_callbacks(void *data)
    return true;
 }
 
-#ifdef HAVE_REWIND
-/**
- * core_set_rewind_callbacks:
- *
- * Sets the audio sampling callbacks based on whether or not
- * rewinding is currently activated.
- **/
-bool core_set_rewind_callbacks(void)
-{
-   runloop_state_t *runloop_st  = &runloop_state;
-   struct state_manager_rewind_state
-      *rewind_st                = &runloop_st->rewind_st;
-
-   if (rewind_st->frame_is_reversed)
-   {
-      runloop_st->current_core.retro_set_audio_sample(audio_driver_sample_rewind);
-      runloop_st->current_core.retro_set_audio_sample_batch(audio_driver_sample_batch_rewind);
-   }
-   else
-   {
-      runloop_st->current_core.retro_set_audio_sample(audio_driver_sample);
-      runloop_st->current_core.retro_set_audio_sample_batch(audio_driver_sample_batch);
-   }
-   return true;
-}
-#endif
-
 #ifdef HAVE_NETWORKING
 /**
  * core_set_netplay_callbacks:
@@ -8063,7 +8037,8 @@ bool core_set_cheat(retro_ctx_cheat_info_t *info)
       run_ahead_enabled              = settings->bools.run_ahead_enabled;
       run_ahead_frames               = settings->uints.run_ahead_frames;
       run_ahead_secondary_instance   = settings->bools.run_ahead_secondary_instance;
-      want_runahead                  = run_ahead_enabled && (run_ahead_frames > 0);
+      want_runahead                  = run_ahead_enabled &&
+            (run_ahead_frames > 0) && runloop_st->runahead_available;
 #ifdef HAVE_NETWORKING
       if (want_runahead)
          want_runahead               = !netplay_driver_ctl(RARCH_NETPLAY_CTL_IS_ENABLED, NULL);
@@ -8101,7 +8076,8 @@ bool core_reset_cheat(void)
       run_ahead_enabled              = settings->bools.run_ahead_enabled;
       run_ahead_frames               = settings->uints.run_ahead_frames;
       run_ahead_secondary_instance   = settings->bools.run_ahead_secondary_instance;
-      want_runahead                  = run_ahead_enabled && (run_ahead_frames > 0);
+      want_runahead                  = run_ahead_enabled &&
+            (run_ahead_frames > 0) && runloop_st->runahead_available;
 #ifdef HAVE_NETWORKING
       if (want_runahead)
          want_runahead               = !netplay_driver_ctl(RARCH_NETPLAY_CTL_IS_ENABLED, NULL);

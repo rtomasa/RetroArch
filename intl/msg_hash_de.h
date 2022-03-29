@@ -33,8 +33,16 @@ MSG_HASH(
    "Musik"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NETPLAY_TAB,
+   "Netzwerkspiel"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_EXPLORE_TAB,
    "Erkunden"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CONTENTLESS_CORES_TAB,
+   "Eigenständige Cores"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_ADD_TAB,
@@ -134,8 +142,12 @@ MSG_HASH(
    "Erweiterungen, Komponenten und Inhalte für RetroArch herunterladen."
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NETPLAY,
+   "Netzwerkspiel"
+   )
+MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY,
-   "Eine Netplay-Sitzung hosten oder einer beitreten."
+   "Ein Netzwerkspiel hosten oder einem beitreten."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_SETTINGS,
@@ -265,6 +277,14 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_GOTO_EXPLORE,
    "Alle mit der Datenbank übereinstimmenden Inhalte über eine kategorisierte Oberfläche durchsuchen."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_GOTO_CONTENTLESS_CORES,
+   "Eigenständige Cores"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_GOTO_CONTENTLESS_CORES,
+   "Installierte Cores, die ohne Laden von Inhalten arbeiten können, werden hier angezeigt."
    )
 
 /* Main Menu > Online Updater */
@@ -416,6 +436,10 @@ MSG_HASH(
    "Core-Label"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_CORE_VERSION,
+   "Core-Version"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_INFO_SYSTEM_NAME,
    "Systemname"
    )
@@ -448,6 +472,26 @@ MSG_HASH(
    "Benötigte Grafik-API"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_SUPPORT_LEVEL,
+   "Savestate-Unterstützung"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_DISABLED,
+   "Nein"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_BASIC,
+   "Grundlegend (Speichern/Laden)"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_SERIALIZED,
+   "Serialisiert (Speichern/Laden, Zurückspulen)"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_DETERMINISTIC,
+   "Deterministisch (Speichern/Laden, Zurückspulen, Run-Ahead, Netplay)"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MISSING_REQUIRED,
    "Fehlt, erforderlich:"
    )
@@ -470,6 +514,14 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_CORE_LOCK,
    "Änderungen am aktuell installierten Core verhindern. Kann verwendet werden, um unerwünschte Updates zu vermeiden, wenn Inhalte eine bestimmte Core-Version benötigen (z.B. Arcade-ROM-Sets)."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_SET_STANDALONE_EXEMPT,
+   "Aus \"Eigenständige Cores\" ausschließen"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_CORE_SET_STANDALONE_EXEMPT,
+   "Verhindern, dass dieser Core auf der Registerkarte/im Menü \"Eigenständige Cores\" angezeigt wird. Gilt nur, wenn der Anzeigemodus auf \"Benutzerdefiniert\" eingestellt ist."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_DELETE,
@@ -768,11 +820,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_NETPLAY_SUPPORT,
-   "Netplay-Unterstützung (Peer-to-Peer)"
-   )
-MSG_HASH(
-   MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_PYTHON_SUPPORT,
-   "Python-Unterstützung (Script-Unterstützung in Shadern)"
+   "Netzwerkspiel-Unterstützung (Peer-to-Peer)"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_V4L2_SUPPORT,
@@ -799,6 +847,54 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RDB_ENTRY_DESCRIPTION,
    "Beschreibung"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_ACHIEVEMENTS,
+   "Errungenschaften"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_CATEGORY,
+   "Kategorie"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_LANGUAGE,
+   "Sprache"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_CONSOLE_EXCLUSIVE,
+   "Konsolenexklusiv"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_PLATFORM_EXCLUSIVE,
+   "Plattformexklusiv"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_SCORE,
+   "Bewertung"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_MEDIA,
+   "Medium"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_CONTROLS,
+   "Steuerung"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_ARTSTYLE,
+   "Grafikstil"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_NARRATIVE,
+   "Handlung"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_PERSPECTIVE,
+   "Perspektive"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_VEHICULAR,
+   "Fahrzeugtyp"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RDB_ENTRY_DEVELOPER,
@@ -870,7 +966,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RDB_ENTRY_RUMBLE,
-   "Rumble unterstützt"
+   "Vibration unterstützt"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RDB_ENTRY_COOP,
@@ -1416,6 +1512,16 @@ MSG_HASH(
    MENU_ENUM_SUBLABEL_VIDEO_MONITOR_INDEX,
    "Den Wiedergabebildschirm auswählen."
    )
+#if defined (WIIU)
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_WIIU_PREFER_DRC,
+   "Für Wii U GamePad optimieren (Neustart erforderlich)"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_WIIU_PREFER_DRC,
+   "Eine exakte zweifache Skalierung des GamePads als Ansichtsfenster verwenden. Deaktivieren, um mit der nativen TV-Auflösung anzuzeigen."
+   )
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_VIDEO_ROTATION,
    "Bildrotation"
@@ -2379,6 +2485,14 @@ MSG_HASH(
    "Aktiviert Zeitlupe, solange gedrückt. Inhalte laufen mit normaler Geschwindigkeit, wenn Taste losgelassen wird."
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_INPUT_META_VRR_RUNLOOP_TOGGLE,
+   "Mit exakter Inhaltssignalfrequenz synchronisieren (Umschalten)"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_INPUT_META_VRR_RUNLOOP_TOGGLE,
+   "Synchronisierung mit exakter Signalfrequenz des Inhalts umschalten."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_META_LOAD_STATE_KEY,
    "Savestate laden"
    )
@@ -2556,11 +2670,11 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_META_NETPLAY_PING_TOGGLE,
-   "Netplay-Ping anzeigen (Umschalten)"
+   "Netzwerkspiel-Ping anzeigen (Umschalten)"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_INPUT_META_NETPLAY_PING_TOGGLE,
-   "Blendet den Ping-Zähler für den aktuellen Netplay-Raum ein/aus."
+   "Blendet den Ping-Zähler für den aktuellen Netzwerkspielraum ein/aus."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_META_SEND_DEBUG_INFO,
@@ -2572,35 +2686,35 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_META_NETPLAY_HOST_TOGGLE,
-   "Netplay-Hosting (Umschalten)"
+   "Netzwerkspiel-Hosting (Umschalten)"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_INPUT_META_NETPLAY_HOST_TOGGLE,
-   "Schaltet Netplay-Hosting ein/aus."
+   "Schaltet Netzwerkspiel-Hosting ein/aus."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_META_NETPLAY_GAME_WATCH,
-   "Netplay Spiel-/Zuschauermodus (Umschalten)"
+   "Netzwerkspiel Spieler-/Zuschauermodus (Umschalten)"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_INPUT_META_NETPLAY_GAME_WATCH,
-   "Schaltet die aktuelle Netplay-Sitzung zwischen 'Spielen' und 'Zuschauen' um."
+   "Schaltet das aktuelle Netzwerkspiel zwischen 'Spieler'- und 'Zuschauer'-Modus um."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_META_NETPLAY_PLAYER_CHAT,
-   "Netplay-Spieler-Chat"
+   "Netzwerkspielerchat"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_INPUT_META_NETPLAY_PLAYER_CHAT,
-   "Sendet eine Chat-Nachricht an die aktuelle Netplay-Sitzung."
+   "Sendet eine Chat-Nachricht an das aktuelle Netzwerkspiel."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_META_NETPLAY_FADE_CHAT_TOGGLE,
-   "Verblassender Netplay-Chat"
+   "Verblassender Netzwerkspiel-Chat"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_INPUT_META_NETPLAY_FADE_CHAT_TOGGLE,
-   "Zwischen verblassenden und statischen Netplay-Chat-Nachrichten umschalten."
+   "Zwischen verblassenden und statischen Netzwerkspiel-Chatnachrichten umschalten."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_META_ENABLE_HOTKEY,
@@ -2909,6 +3023,14 @@ MSG_HASH(
 /* Settings > Latency */
 
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RUN_AHEAD_UNSUPPORTED,
+   "[Run-Ahead nicht verfügbar]"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_RUN_AHEAD_UNSUPPORTED,
+   "Der aktuelle Core ist aufgrund fehlender deterministischer Savestate-Unterstützung nicht mit Run-ahead kompatibel."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RUN_AHEAD_ENABLED,
    "Run-Ahead zur Reduzierung der Latenz"
    )
@@ -3021,7 +3143,35 @@ MSG_HASH(
    MENU_ENUM_SUBLABEL_CORE_MANAGER_LIST,
    "Informationen zu installierten Cores anzeigen und Offline-Wartungsarbeiten ausführen (Sichern, Wiederherstellen, Löschen usw.)."
    )
+#ifdef HAVE_MIST
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_MANAGER_STEAM_LIST,
+   "Cores verwalten"
+   )
 
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_CORE_MANAGER_STEAM_LIST,
+   "Über Steam verfügbare Cores installieren oder deinstallieren."
+   )
+
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_STEAM_INSTALL,
+   "Core installieren"
+)
+
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_STEAM_UNINSTALL,
+   "Core deinstallieren"
+)
+
+
+MSG_HASH(
+   MSG_CORE_STEAM_INSTALLING,
+   "Installiere Core: "
+)
+
+
+#endif
 /* Settings > Configuration */
 
 MSG_HASH(
@@ -3826,11 +3976,11 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_PING_SHOW,
-   "Netplay-Ping anzeigen"
+   "Netzwerkspiel-Ping anzeigen"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_PING_SHOW,
-   "Ping für den aktuellen Netplay-Raum anzeigen."
+   "Ping für den aktuellen Netzwerkspielraum anzeigen."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MENU_SHOW_LOAD_CONTENT_ANIMATION,
@@ -3950,11 +4100,11 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NOTIFICATION_SHOW_NETPLAY_EXTRA,
-   "Zusätzliche Netplay-Benachrichtigungen"
+   "Zusätzliche Netzwerkspiel-Benachrichtigungen"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NOTIFICATION_SHOW_NETPLAY_EXTRA,
-   "Nicht essentielle Netplay-Nachrichten anzeigen."
+   "Nicht essentielle Netzwerkspiel-Nachrichten anzeigen."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NOTIFICATION_SHOW_WHEN_MENU_IS_ALIVE,
@@ -4394,11 +4544,11 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CONTENT_SHOW_NETPLAY,
-   "\"Netplay\" anzeigen"
+   "\"Netzwerkspiel\" anzeigen"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_CONTENT_SHOW_NETPLAY,
-   "Das \"Netplay\"-Menü anzeigen. (Neustart erforderlich bei Ozone/XMB)"
+   "Das \"Netzwerkspiel\"-Menü anzeigen. (Neustart erforderlich bei Ozone/XMB)"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CONTENT_SHOW_HISTORY,
@@ -4447,6 +4597,22 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_CONTENT_SHOW_EXPLORE,
    "Das \"Erkunden\"-Menü anzeigen. (Neustart erforderlich bei Ozone/XMB)"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CONTENT_SHOW_CONTENTLESS_CORES,
+   "\"Eigenständige Cores\" anzeigen"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_SHOW_CONTENTLESS_CORES_ALL,
+   "Alle"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_SHOW_CONTENTLESS_CORES_SINGLE_PURPOSE,
+   "Einzelzweck"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_SHOW_CONTENTLESS_CORES_CUSTOM,
+   "Benutzerdefiniert"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_TIMEDATE_ENABLE,
@@ -5125,11 +5291,11 @@ MSG_HASH(
 
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_PUBLIC_ANNOUNCE,
-   "Netplay öffentlich ankündigen"
+   "Netzwerkspiel öffentlich ankündigen"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_PUBLIC_ANNOUNCE,
-   "Legt fest, ob Netplay-Spiele öffentlich angekündigt werden sollen. Wenn deaktiviert, müssen sich Clients manuell verbinden anstelle die öffentliche Lobby zu verwenden."
+   "Legt fest, ob Netzwerkspiele öffentlich angekündigt werden sollen. Wenn deaktiviert, müssen sich Clients manuell verbinden anstelle die öffentliche Lobby zu verwenden."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_USE_MITM_SERVER,
@@ -5137,7 +5303,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_USE_MITM_SERVER,
-   "Leite alle Netplay-Verbindungen durch einen Man-in-the-middle-Server. Hilfreich, wenn sich der Host hinter einer Firewall befindet oder Probleme mit NAT/UPnP hat."
+   "Leite alle Netzwerkspiel-Verbindungen durch einen Man-in-the-middle-Server. Hilfreich, wenn sich der Host hinter einer Firewall befindet oder Probleme mit NAT/UPnP hat."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_MITM_SERVER,
@@ -5165,7 +5331,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_TCP_UDP_PORT,
-   "Netplay TCP/UDP-Port"
+   "Netzwerkspiel-TCP/UDP-Port"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_TCP_UDP_PORT,
@@ -5205,11 +5371,11 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_START_AS_SPECTATOR,
-   "Im Beobachtermodus starten"
+   "Netzwerkspiel-Zuschauermodus"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_START_AS_SPECTATOR,
-   "Startet das Netplay im Zuschauermodus."
+   "Das Netzwerkspiel im Zuschauermodus starten."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_FADE_CHAT,
@@ -5225,7 +5391,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_ALLOW_PAUSING,
-   "Spielern erlauben, während des Netplays zu pausieren."
+   "Spielern erlauben, während des Netzwerkspiels zu pausieren."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_ALLOW_SLAVES,
@@ -5245,19 +5411,19 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_STATELESS_MODE,
-   "Netplay ohne Savestates"
+   "Netzwerkspiel ohne Savestates"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_STATELESS_MODE,
-   "Netplay startet in einem Modus, der keine Savestates erfordert. Ein sehr schnelles Netzwerk wird benötigt, aber es wird kein Zurückspulen durchgeführt, sodass keine Netplay-Ruckler auftreten."
+   "Netzwerkspiel startet in einem Modus, der keine Savestates erfordert. Ein sehr schnelles Netzwerk wird benötigt, aber es wird kein Zurückspulen durchgeführt, sodass keine Netzwerk-Ruckler auftreten."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_CHECK_FRAMES,
-   "Netplay-Synchronisations-Periode"
+   "Netzwerkspiel-Synchronisationsperiode"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_CHECK_FRAMES,
-   "Die Periode (in Frames), in der Netplay überprüft, ob Host und Client synchron sind."
+   "Die Periode (in Frames), in der geprüft wird, ob Host und Client synchron sind."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_INPUT_LATENCY_FRAMES_MIN,
@@ -5265,7 +5431,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_INPUT_LATENCY_FRAMES_MIN,
-   "Eingabeverzögerung in Frames, die im Netplay verwendet wird, um die Netzwerklatenz zu verbergen. Reduziert Bildruckeln und CPU-Last, auf Kosten spürbarer Eingabeverzögerung."
+   "Eingabeverzögerung in Frames, die im Netzwerkspiel verwendet wird, um die Netzwerklatenz zu verbergen. Reduziert Bildruckeln und CPU-Last, auf Kosten spürbarer Eingabeverzögerung."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_INPUT_LATENCY_FRAMES_RANGE,
@@ -5273,11 +5439,11 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_INPUT_LATENCY_FRAMES_RANGE,
-   "Der Bereich der Eingabeverzögerung in Einzelbildern, die im Netplay verwendet werden kann, um die Netzwerklatenz zu verbergen. Reduziert Bildruckeln und CPU-Last, verursacht jedoch unvorhersehbare Eingabeverzögerungen."
+   "Der Bereich der Eingabeverzögerung in Frames, die im Netzwerkspiel verwendet werden kann, um die Netzwerklatenz zu verbergen. Reduziert Bildruckeln und CPU-Last, verursacht jedoch unvorhersehbare Eingabeverzögerungen."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_NAT_TRAVERSAL,
-   "Netplay NAT-Traversal"
+   "Netzwerkspiel-NAT-Traversal"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_NAT_TRAVERSAL,
@@ -5285,7 +5451,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_SHARE_DIGITAL,
-   "Freigabe digitaler Eingaben"
+   "Digitale Eingaben teilen"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_REQUEST_DEVICE_I,
@@ -5621,7 +5787,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_NICKNAME,
-   "Gib Deinen Benutzernamen hier ein. Dieser wird unter anderem für Netplay-Sitzungen verwendet."
+   "Gib Deinen Benutzernamen hier ein. Dieser wird unter anderem für Netzwerkspielsitzungen verwendet."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_USER_LANGUAGE,
@@ -5957,55 +6123,59 @@ MSG_HASH(
 /* Netplay */
 
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NETWORK_HOSTING_SETTINGS,
+   "Selbst hosten"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_ENABLE_CLIENT,
-   "Verbinde zu einem Netplay-Host"
+   "Zu Netzwerkspiel-Host verbinden"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_ENABLE_CLIENT,
-   "Aktiviere Netplay im Client-Modus."
+   "Netzwerkspieladresse eingeben und als Client verbinden."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_DISCONNECT,
-   "Verbindung trennen"
+   "Verbindung zum Netzwerkspiel trennen"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_DISCONNECT,
-   "Aktive Netplay-Verbindung trennen."
+   "Aktive Netzwerkspiel-Verbindung trennen."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_SHOW_ONLY_CONNECTABLE,
-   "Nur Verbindbare Räume"
+   "Nur verbindbare Räume"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_REFRESH_ROOMS,
-   "Netplay-Hostliste aktualisieren"
+   "Netzwerkspielliste aktualisieren"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_REFRESH_ROOMS,
-   "Nach Netplay-Hosts suchen."
+   "Nach Netzwerkspielen suchen."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_REFRESH_LAN,
-   "Netplay-LAN-Liste aktualisieren"
+   "LAN-Netzwerkspielliste aktualisieren"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_REFRESH_LAN,
-   "Im LAN nach Netplay-Hosts suchen."
+   "Im LAN nach Netzwerkspielen suchen."
    )
 
 /* Netplay > Host */
 
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_ENABLE_HOST,
-   "Starte Hosting"
+   "Hosting starten"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_ENABLE_HOST,
-   "Netplay im Host-Modus (Server) starten."
+   "Netzwerkspiel im Host-Modus (Server) starten."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_DISABLE_HOST,
-   "Netplay-Host stoppen"
+   "Netzwerkspiel-Hosting stoppen"
    )
 
 /* Import Content */
@@ -6211,12 +6381,68 @@ MSG_HASH(
    "Nach Genre"
    )
 MSG_HASH(
-   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_ORIGIN,
-   "Nach Ursprung"
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_ACHIEVEMENTS,
+   "Nach Errungenschaften"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_CATEGORY,
+   "Nach Kategorie"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_LANGUAGE,
+   "Nach Sprache"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_EXPLORE_BY_REGION,
    "Nach Region"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_CONSOLE_EXCLUSIVE,
+   "Nach Konsolenexklusivität"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_PLATFORM_EXCLUSIVE,
+   "Nach Plattformexklusivität"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_SCORE,
+   "Nach Bewertung"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_MEDIA,
+   "Nach Medium"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_CONTROLS,
+   "Nach Steuerung"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_ARTSTYLE,
+   "Nach Grafikstil"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_GAMEPLAY,
+   "Nach Gameplay"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_NARRATIVE,
+   "Nach Handlung"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_PERSPECTIVE,
+   "Nach Perspektive"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_SETTING,
+   "Nach Setting"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_VEHICULAR,
+   "Nach Fahrzeugtyp"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_ORIGIN,
+   "Nach Ursprung"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_EXPLORE_BY_FRANCHISE,
@@ -6549,6 +6775,9 @@ MSG_HASH(
 
 /* Quick Menu > Controls */
 
+
+/* Quick Menu > Controls > Manage Remap Files */
+
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_REMAP_FILE_LOAD,
    "Remap-Datei laden"
@@ -6578,7 +6807,7 @@ MSG_HASH(
    "Lösche Spiel-Remap-Datei"
    )
 
-/* Quick Menu > Controls > Load Remap File */
+/* Quick Menu > Controls > Manage Remap Files > Load Remap File */
 
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_REMAP_FILE,
@@ -7309,7 +7538,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_SHARE_DIGITAL_XOR,
-   "Festhalten"
+   "Ausschließen"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_SHARE_DIGITAL_VOTE,
@@ -7317,7 +7546,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_SHARE_ANALOG,
-   "Freigabe analoger Eingaben"
+   "Analoge Eingaben teilen"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_SHARE_ANALOG_MAX,
@@ -7329,7 +7558,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_SHARE_NONE,
-   "Keine"
+   "Nein"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_SHARE_NO_PREFERENCE,
@@ -7636,6 +7865,10 @@ MSG_HASH(
    "Deaktiviert"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NOT_AVAILABLE,
+   "K.A."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CHEEVOS_LOCKED_ENTRY,
    "Gesperrt"
    )
@@ -7680,8 +7913,12 @@ MSG_HASH(
    "Nächster"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_MAIN,
+   "Haupt-Icons"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CONTENT,
-   "Inhalt"
+   "Inhalts-Icons"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MANUAL_CONTENT_SCAN_SYSTEM_NAME_USE_CONTENT_DIR,
@@ -8178,6 +8415,18 @@ MSG_HASH(
    "Tango hell"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RGUI_MENU_COLOR_THEME_DYNAMIC,
+   "Dynamisch"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RGUI_MENU_COLOR_THEME_GRAY_DARK,
+   "Dunkelgrau"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RGUI_MENU_COLOR_THEME_GRAY_LIGHT,
+   "Hellgrau"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RGUI_PARTICLE_EFFECT_NONE,
    "AUS"
    )
@@ -8515,6 +8764,14 @@ MSG_HASH(
    "Solarized hell"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_OZONE_COLOR_THEME_GRAY_DARK,
+   "Dunkelgrau"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_OZONE_COLOR_THEME_GRAY_LIGHT,
+   "Hellgrau"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_LEFT_THUMBNAILS_OZONE,
    "Zweites Vorschaubild"
    )
@@ -8529,6 +8786,10 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_OZONE_SCROLL_CONTENT_METADATA,
    "Wenn aktiviert, belegen alle Inhaltsmetadaten in der rechten Seitenleiste der Wiedergabelisten (zugeordneter Core, Spielzeit) eine einzelne Zeile. Text, der die Breite der Seitenleiste überschreitet, wird als Lauftext angezeigt. Wenn deaktiviert, werden alle Inhaltsmetadaten statisch angezeigt und so umbrochen, dass sie so viele Zeilen wie erforderlich belegen."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_OZONE_THUMBNAIL_SCALE_FACTOR,
+   "Vorschaubilder-Skalierungsfaktor"
    )
 
 /* MaterialUI: Settings > User Interface > Appearance */
@@ -8699,6 +8960,14 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MATERIALUI_MENU_COLOR_THEME_HACKING_THE_KERNEL,
    "Den Kernel hacken"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_MATERIALUI_MENU_COLOR_THEME_GRAY_DARK,
+   "Dunkelgrau"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_MATERIALUI_MENU_COLOR_THEME_GRAY_LIGHT,
+   "Hellgrau"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MATERIALUI_MENU_TRANSITION_ANIM_FADE,
@@ -9324,7 +9593,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NO_NETPLAY_HOSTS_FOUND,
-   "Keine Netplay-Hosts gefunden."
+   "Keine Netzwerkspiele gefunden."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NO_PERFORMANCE_COUNTERS,
@@ -9430,6 +9699,10 @@ MSG_HASH(
    "Automatisches Bildseitenverhältnis"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NETPLAY_ROOM_NICKNAME_LAN,
+   "Spitzname (LAN): %s"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_SYSTEM_BGM_ENABLE,
    "Aktiviere System-BGM"
    )
@@ -9502,6 +9775,10 @@ MSG_HASH( /* FIXME Still exists in a comment about being removed */
    "Ändere die Transparenz der Header-Grafik."
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NETPLAY_ENABLE,
+   "Netzwerkspiel"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RDB_ENTRY_START_CONTENT,
    "Starte Inhalt"
    )
@@ -9555,7 +9832,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_DELAY_FRAMES,
-   "Netplay-Verzögerung"
+   "Netzwerkspiel-Verzögerung"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_LAN_SCAN_SETTINGS,
@@ -9563,15 +9840,15 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_LAN_SCAN_SETTINGS,
-   "Netplay-Hosts im lokalen Netzwerk suchen und zu ihnen verbinden."
+   "Netzwerkspiele im lokalen Netzwerk suchen und zu ihnen verbinden."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_MODE,
-   "Netplay-Client aktivieren"
+   "Netzwerkspiel-Client"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_SPECTATOR_MODE_ENABLE,
-   "Beobachtermodus aktivieren"
+   "Netzwerkspiel-Zuschauer"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CHEEVOS_DESCRIPTION,
@@ -9654,59 +9931,59 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_DEVELOPER,
-   "Datenbank - Filter : Entwickler"
+   "Datenbank - Filter: Entwickler"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_PUBLISHER,
-   "Datenbank - Filter : Publisher"
+   "Datenbank - Filter: Publisher"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_ORIGIN,
-   "Datenbank - Filter : Herkunft"
+   "Datenbank - Filter: Herkunft"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_FRANCHISE,
-   "Datenbank - Filter : Franchise"
+   "Datenbank - Filter: Franchise"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_ESRB_RATING,
-   "Datenbank - Filter : ESRB-Bewertung"
+   "Datenbank - Filter: ESRB-Bewertung"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_ELSPA_RATING,
-   "Datenbank - Filter : ELSPA-Bewertung"
+   "Datenbank - Filter: ELSPA-Bewertung"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_PEGI_RATING,
-   "Datenbank - Filter : PEGI-Bewertung"
+   "Datenbank - Filter: PEGI-Bewertung"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_CERO_RATING,
-   "Datenbank - Filter : CERO-Bewertung"
+   "Datenbank - Filter: CERO-Bewertung"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_BBFC_RATING,
-   "Datenbank - Filter : BBFC-Bewertung"
+   "Datenbank - Filter: BBFC-Bewertung"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_MAX_USERS,
-   "Datenbank - Filter : Max. Spieler"
+   "Datenbank - Filter: Max. Spieler"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_RELEASEDATE_BY_MONTH,
-   "Datenbank - Filter : Veröffentlichungsdatum nach Monat"
+   "Datenbank - Filter: Veröffentlichungsdatum nach Monat"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_RELEASEDATE_BY_YEAR,
-   "Datenbank - Filter : Veröffentlichungsdatum nach Jahr"
+   "Datenbank - Filter: Veröffentlichungsdatum nach Jahr"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_EDGE_MAGAZINE_ISSUE,
-   "Datenbank - Filter : Edge Magazine-Ausgabe"
+   "Datenbank - Filter: Edge-Zeitschriftenausgabe"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_EDGE_MAGAZINE_RATING,
-   "Datenbank - Filter : Edge Magazine-Bewertung"
+   "Datenbank - Filter: Edge-Bewertung"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_DATABASE_INFO,
@@ -9718,7 +9995,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_SETTINGS,
-   "Netplay-Einstellungen"
+   "Netzwerkspiel-Einstellungen"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_SLANG_SUPPORT,
@@ -9796,7 +10073,7 @@ MSG_HASH(
 
 MSG_HASH( /* FIXME Should be MSG_ */
    MENU_ENUM_LABEL_VALUE_NETPLAY_START_WHEN_LOADED,
-   "Netplay wird gestartet, sobald ein Inhalt geladen wurde."
+   "Netzwerkspiel wird gestartet, sobald der Inhalt geladen ist."
    )
 MSG_HASH( /* FIXME Should be MSG_ */
    MENU_ENUM_LABEL_VALUE_NETPLAY_LOAD_CONTENT_MANUALLY,
@@ -9848,11 +10125,11 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_NETPLAY_LAN_SCAN_COMPLETE,
-   "Netplay-Suche abgeschlossen."
+   "Netzwerkspiel-Suche abgeschlossen."
    )
 MSG_HASH(
    MSG_SORRY_UNIMPLEMENTED_CORES_DONT_DEMAND_CONTENT_NETPLAY,
-   "Entschuldigung, nicht implementiert: Cores, die keinen Inhalt verlangen, können nicht an Netplay teilnehmen."
+   "Entschuldigung, nicht implementiert: Cores, die keinen Inhalt verlangen, können nicht an Netzwerkspielen teilnehmen."
    )
 MSG_HASH(
    MSG_NATIVE,
@@ -9864,7 +10141,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_UNKNOWN_NETPLAY_COMMAND_RECEIVED,
-   "Unbekannter Netplay-Befehl wurde empfangen"
+   "Unbekannten Netzwerkspiel-Befehl empfangen"
    )
 MSG_HASH(
    MSG_FILE_ALREADY_EXISTS_SAVING_TO_BACKUP_BUFFER,
@@ -9928,31 +10205,31 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_NETPLAY_NOT_RETROARCH,
-   "Ein Netplay-Verbindungsversuch ist fehlgeschlagen, da beim Teilnehmer RetroArch nicht oder in einer älteren Version augeführt wird."
+   "Ein Netzwerkspiel-Verbindungsversuch ist fehlgeschlagen, da beim Teilnehmer RetroArch nicht oder in einer älteren Version ausgeführt wird."
    )
 MSG_HASH(
    MSG_NETPLAY_OUT_OF_DATE,
-   "Der Netplay-Teilnehmer nutzt eine alte Version von RetroArch. Kann nicht verbinden."
+   "Der Netzwerkspiel-Teilnehmer nutzt eine alte Version von RetroArch. Kann nicht verbinden."
    )
 MSG_HASH(
    MSG_NETPLAY_DIFFERENT_VERSIONS,
-   "WARNUNG: Ein Netplay-Teilnehmer nutzt eine andere Version von RetroArch. Falls Probleme auftreten, benutzt dieselbe Version."
+   "WARNUNG: Ein Netzwerkspiel-Teilnehmer nutzt eine andere Version von RetroArch. Falls Probleme auftreten, benutzt dieselbe Version."
    )
 MSG_HASH(
    MSG_NETPLAY_DIFFERENT_CORES,
-   "Ein Netplay-Teilnehmer nutzt einen anderen Core. Kann nicht verbinden."
+   "Ein Netzwerkspiel-Teilnehmer nutzt einen anderen Core. Kann nicht verbinden."
    )
 MSG_HASH(
    MSG_NETPLAY_DIFFERENT_CORE_VERSIONS,
-   "WARNUNG: Ein Netplay-Teilnehmer nutzt eine andere Version vom Core. Falls Probleme auftreten, benutzt dieselbe Version."
+   "WARNUNG: Ein Netzwerkspiel-Teilnehmer nutzt eine andere Version vom Core. Falls Probleme auftreten, benutzt dieselbe Version."
    )
 MSG_HASH(
    MSG_NETPLAY_ENDIAN_DEPENDENT,
-   "Dieser Core unterstützt kein Netplay zwischen diesen Systemen"
+   "Dieser Core unterstützt kein Netzwerkspiel zwischen diesen Systemen"
    )
 MSG_HASH(
    MSG_NETPLAY_PLATFORM_DEPENDENT,
-   "Dieser Core unterstützt kein Netplay zwischen verschiedenen Systemen"
+   "Dieser Core unterstützt kein Netzwerkspiel zwischen verschiedenen Systemen"
    )
 MSG_HASH(
    MSG_NETPLAY_ENTER_PASSWORD,
@@ -9960,7 +10237,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_NETPLAY_ENTER_CHAT,
-   "Netplay-Chat-Nachricht eingeben:"
+   "Netzwerkspiel-Chatnachricht eingeben:"
    )
 MSG_HASH(
    MSG_DISCORD_CONNECTION_REQUEST,
@@ -9976,11 +10253,11 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_NETPLAY_SERVER_HANGUP,
-   "Die Verbindung mit einem Netplay-Client wurde getrennt"
+   "Ein Netzwerkspiel-Client hat die Verbindung getrennt"
    )
 MSG_HASH(
    MSG_NETPLAY_CLIENT_HANGUP,
-   "Verbindung mit Netplay getrennt"
+   "Verbindung mit Netzwerkspiel getrennt"
    )
 MSG_HASH(
    MSG_NETPLAY_CANNOT_PLAY_UNPRIVILEGED,
@@ -10000,7 +10277,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_NETPLAY_PEER_PAUSED,
-   "Netplay-Teilnehmer \"%s\" hat pausiert"
+   "Netzwerkspiel-Teilnehmer \"%s\" hat pausiert"
    )
 MSG_HASH(
    MSG_NETPLAY_CHANGED_NICK,
@@ -10024,7 +10301,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_CONNECTING_TO_NETPLAY_HOST,
-   "Verbinde zu Netplay-Host"
+   "Verbinde zu Netzwerkspiel"
    )
 MSG_HASH(
    MSG_CONNECTING_TO_PORT,
@@ -10720,7 +10997,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_NETPLAY_FAILED,
-   "Netplay-Initialisierung fehlgeschlagen."
+   "Netzwerkspiel-Initialisierung fehlgeschlagen."
    )
 MSG_HASH(
    MSG_NO_CONTENT_STARTING_DUMMY_CORE,
@@ -10813,6 +11090,10 @@ MSG_HASH(
 MSG_HASH(
    MSG_REWINDING,
    "Zurückspulen."
+   )
+MSG_HASH(
+   MSG_REWIND_UNSUPPORTED,
+   "Zurückspringen nicht verfügbar, da dieser Core keine serialisierte Savestate-Unterstützung bietet."
    )
 MSG_HASH(
    MSG_REWIND_INIT,
@@ -11056,7 +11337,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_NETPLAY_LAN_SCANNING,
-   "Suche nach Netplay-Hosts..."
+   "Suche nach Netzwerkspielen..."
    )
 MSG_HASH(
    MSG_PREPARING_FOR_CONTENT_SCAN,
@@ -11117,6 +11398,10 @@ MSG_HASH(
 MSG_HASH(
    MSG_RUNAHEAD_CORE_DOES_NOT_SUPPORT_SAVESTATES,
    "Run-Ahead wurde deaktiviert, da dieser Core keine Savestates unterstützt."
+   )
+MSG_HASH(
+   MSG_RUNAHEAD_CORE_DOES_NOT_SUPPORT_RUNAHEAD,
+   "Run-Ahead nicht verfügbar, da dieser Core keine deterministische Savestate-Unterstützung bietet."
    )
 MSG_HASH(
    MSG_RUNAHEAD_FAILED_TO_SAVE_STATE,
@@ -11228,7 +11513,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_NETPLAY_HOST_FULL,
-   "Netplay-Host voll"
+   "Netzwerkspiel voll"
    )
 MSG_HASH(
    MSG_FAILED_TO_RECEIVE_HEADER_FROM_HOST,
@@ -11245,6 +11530,14 @@ MSG_HASH(
 MSG_HASH(
    MSG_CHEEVOS_HARDCORE_MODE_DISABLED_CHEAT,
    "Ein Cheat wurde aktiviert. Errungenschaften-Hardcore-Modus wurde für die aktuelle Sitzung deaktiviert."
+   )
+MSG_HASH(
+   MSG_CHEEVOS_MASTERED_GAME,
+   "%s gemeistert"
+   )
+MSG_HASH(
+   MSG_CHEEVOS_COMPLETED_GAME,
+   "%s vervollständigt"
    )
 MSG_HASH(
    MSG_RESAMPLER_QUALITY_LOWEST,

@@ -561,6 +561,7 @@
 #define DEFAULT_OZONE_TRUNCATE_PLAYLIST_NAME true
 #define DEFAULT_OZONE_SORT_AFTER_TRUNCATE_PLAYLIST_NAME true
 #define DEFAULT_OZONE_SCROLL_CONTENT_METADATA false
+#define DEFAULT_OZONE_THUMBNAIL_SCALE_FACTOR 1.0f
 #endif
 
 #define DEFAULT_SETTINGS_SHOW_DRIVERS true
@@ -669,6 +670,9 @@ static const bool menu_show_core_updater       = false;
 #else
 static const bool menu_show_core_updater       = true;
 #endif
+#ifdef HAVE_MIST
+static const bool menu_show_core_manager_steam = true;
+#endif
 static const bool menu_show_legacy_thumbnail_updater = false;
 static const bool menu_show_sublabels                = true;
 static const bool menu_dynamic_wallpaper_enable      = true;
@@ -733,10 +737,12 @@ static const bool content_show_playlists    = true;
 #if defined(HAVE_LIBRETRODB)
 #define DEFAULT_MENU_CONTENT_SHOW_EXPLORE true
 #endif
+#define DEFAULT_MENU_CONTENT_SHOW_CONTENTLESS_CORES MENU_CONTENTLESS_CORES_DISPLAY_SINGLE_PURPOSE
 
 #ifdef HAVE_XMB
 #define DEFAULT_XMB_ANIMATION 0
 #define DEFAULT_XMB_VERTICAL_FADE_FACTOR 100
+#define DEFAULT_XMB_TITLE_MARGIN 5
 
 static const unsigned xmb_alpha_factor      = 75;
 static const unsigned menu_font_color_red   = 255;
@@ -853,7 +859,7 @@ static const unsigned input_backtouch_toggle       = false;
 
 #define DEFAULT_OVERLAY_SHOW_INPUTS_PORT 0
 
-#if defined(ANDROID) || defined(_WIN32)
+#if defined(ANDROID) || defined(_WIN32) || defined(HAVE_STEAM)
 #define DEFAULT_MENU_SWAP_OK_CANCEL_BUTTONS true
 #else
 #define DEFAULT_MENU_SWAP_OK_CANCEL_BUTTONS false
@@ -947,10 +953,18 @@ static const float message_bgcolor_opacity = 1.0f;
 #define DEFAULT_ALLOW_ROTATE true
 
 #if defined(_3DS)
+/* Enable New3DS clock and L2 cache */
+static const bool new3ds_speedup_enable      = true;
 /* Enable bottom LCD screen */
-static const bool video_3ds_lcd_bottom = true;
+static const bool video_3ds_lcd_bottom       = true;
 /* Sets video display mode (3D, 2D, etc.) */
 static const unsigned video_3ds_display_mode = CTR_VIDEO_MODE_3D;
+#endif
+
+#ifdef WIIU
+/* On Wii U, whether to optimize for the native TV resolution
+ * or exactly 2x the Wii U GamePad resolution. */
+#define DEFAULT_WIIU_PREFER_DRC false
 #endif
 
 /* AUDIO */

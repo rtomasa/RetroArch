@@ -52,7 +52,11 @@
 
 #include "../../configuration.h"
 #include "../../gfx/drivers_font_renderer/bitmap.h"
+
+#ifdef HAVE_LANGEXTRA
 #include "../../gfx/drivers_font_renderer/bitmapfont_10x10.h"
+#include "../../gfx/drivers_font_renderer/bitmapfont_6x10.h"
+#endif
 
 /* Thumbnail additions */
 #include "../../gfx/gfx_thumbnail_path.h"
@@ -62,7 +66,7 @@
 /* Required for the Wii build, since we have
  * to query the hardware for the actual display
  * aspect ratio... */
-#include "../../wii/libogc/include/ogc/conf.h"
+#include <ogc/conf.h>
 #endif
 
 #if defined(GEKKO)
@@ -924,6 +928,54 @@ static const rgui_theme_t rgui_theme_opaque_flux = {
    0xFFEE2000  /* particle_color */
 };
 
+static const rgui_theme_t rgui_theme_gray_dark = {
+   0xFFFFFFFF, /* hover_color */
+   0xFF808080, /* normal_color */
+   0xFFFFFFFF, /* title_color */
+   0xE0101010, /* bg_dark_color */
+   0xE0101010, /* bg_light_color */
+   0xE0303030, /* border_dark_color */
+   0xE0303030, /* border_light_color */
+   0xFF000000, /* shadow_color */
+   0xE0202020  /* particle_color */
+};
+
+static const rgui_theme_t rgui_theme_opaque_gray_dark = {
+   0xFFFFFFFF, /* hover_color */
+   0xFF808080, /* normal_color */
+   0xFFFFFFFF, /* title_color */
+   0xFF101010, /* bg_dark_color */
+   0xFF101010, /* bg_light_color */
+   0xFF303030, /* border_dark_color */
+   0xFF303030, /* border_light_color */
+   0xFF000000, /* shadow_color */
+   0xE0202020  /* particle_color */
+};
+
+static const rgui_theme_t rgui_theme_gray_light = {
+   0xFFFFFFFF, /* hover_color */
+   0xFF808080, /* normal_color */
+   0xFFFFFFFF, /* title_color */
+   0xE0303030, /* bg_dark_color */
+   0xE0303030, /* bg_light_color */
+   0xE0101010, /* border_dark_color */
+   0xE0101010, /* border_light_color */
+   0xFF000000, /* shadow_color */
+   0xE0202020  /* particle_color */
+};
+
+static const rgui_theme_t rgui_theme_opaque_gray_light = {
+   0xFFFFFFFF, /* hover_color */
+   0xFF808080, /* normal_color */
+   0xFFFFFFFF, /* title_color */
+   0xFF303030, /* bg_dark_color */
+   0xFF303030, /* bg_light_color */
+   0xFF101010, /* border_dark_color */
+   0xFF101010, /* border_light_color */
+   0xFF000000, /* shadow_color */
+   0xE0202020  /* particle_color */
+};
+
 typedef struct
 {
    uint16_t hover_color;
@@ -1013,11 +1065,16 @@ typedef struct
    struct
    {
       bitmapfont_lut_t *regular;
+
+#ifdef HAVE_LANGEXTRA
+      bitmapfont_lut_t *eng_6x10;
+      bitmapfont_lut_t *lse_6x10;
       bitmapfont_lut_t *eng_10x10;
       bitmapfont_lut_t *chn_10x10;
       bitmapfont_lut_t *jpn_10x10;
       bitmapfont_lut_t *kor_10x10;
       bitmapfont_lut_t *rus_10x10;
+#endif
    } fonts;
 
    frame_buf_t frame_buf;
@@ -1063,6 +1120,8 @@ typedef struct
 
    char msgbox[1024];
    char theme_preset_path[PATH_MAX_LENGTH]; /* Must be a fixed length array... */
+   char theme_dynamic_path[PATH_MAX_LENGTH]; /* Must be a fixed length array... */
+   char last_theme_dynamic_path[PATH_MAX_LENGTH]; /* Must be a fixed length array... */
    char menu_title[255]; /* Must be a fixed length array... */
    char menu_sublabel[MENU_SUBLABEL_MAX_LENGTH]; /* Must be a fixed length array... */
 
@@ -1456,6 +1515,16 @@ static uint16_t argb32_to_abgr4444(uint32_t col)
    return (a << 12) | (b << 8) | (g << 4) | r;
 }
 
+/* PS3 */
+static uint16_t argb32_to_argb4444(uint32_t col)
+{
+   unsigned a = ((col >> 24) & 0xFF) >> 4;
+   unsigned r = ((col >> 16) & 0xFF) >> 4;
+   unsigned g = ((col >> 8)  & 0xFF) >> 4;
+   unsigned b = ( col        & 0xFF) >> 4;
+   return (a << 12) | (r << 8) | (g << 4) | b;
+}
+
 /* D3D10/11/12 */
 static uint16_t argb32_to_bgra4444(uint32_t col)
 {
@@ -1527,6 +1596,8 @@ static bool rgui_set_pixel_format_function(void)
       argb32_to_pixel_platform_format = argb32_to_rgb5a3;
    else if (string_is_equal(driver_ident, "psp1"))            /* PSP */
       argb32_to_pixel_platform_format = argb32_to_abgr4444;
+   else if (string_is_equal(driver_ident, "rsx"))             /* PS3 */
+      argb32_to_pixel_platform_format = argb32_to_argb4444;
    else if (string_is_equal(driver_ident, "d3d10") ||         /* D3D10/11/12 */
             string_is_equal(driver_ident, "d3d11") ||
             string_is_equal(driver_ident, "d3d12"))
@@ -1558,6 +1629,19 @@ static void rgui_fonts_free(rgui_t *rgui)
       rgui->fonts.regular = NULL;
    }
 
+#ifdef HAVE_LANGEXTRA
+   if (rgui->fonts.eng_6x10)
+   {
+      bitmapfont_free_lut(rgui->fonts.eng_6x10);
+      rgui->fonts.eng_6x10 = NULL;
+   }
+
+   if (rgui->fonts.lse_6x10)
+   {
+      bitmapfont_free_lut(rgui->fonts.lse_6x10);
+      rgui->fonts.lse_6x10 = NULL;
+   }
+
    if (rgui->fonts.eng_10x10)
    {
       bitmapfont_free_lut(rgui->fonts.eng_10x10);
@@ -1587,6 +1671,7 @@ static void rgui_fonts_free(rgui_t *rgui)
       bitmapfont_free_lut(rgui->fonts.rus_10x10);
       rgui->fonts.rus_10x10 = NULL;
    }
+#endif
 }
 
 static bool rgui_fonts_init(rgui_t *rgui)
@@ -1598,6 +1683,7 @@ static bool rgui_fonts_init(rgui_t *rgui)
    {
       case RETRO_LANGUAGE_ENGLISH:
          goto english;
+
       case RETRO_LANGUAGE_FRENCH:
       case RETRO_LANGUAGE_SPANISH:
       case RETRO_LANGUAGE_GERMAN:
@@ -1605,11 +1691,7 @@ static bool rgui_fonts_init(rgui_t *rgui)
       case RETRO_LANGUAGE_DUTCH:
       case RETRO_LANGUAGE_PORTUGUESE_BRAZIL:
       case RETRO_LANGUAGE_PORTUGUESE_PORTUGAL:
-      case RETRO_LANGUAGE_ESPERANTO:
-      case RETRO_LANGUAGE_POLISH:
       case RETRO_LANGUAGE_VIETNAMESE:
-      case RETRO_LANGUAGE_TURKISH:
-      case RETRO_LANGUAGE_SLOVAK:
       case RETRO_LANGUAGE_ASTURIAN:
       case RETRO_LANGUAGE_FINNISH:
       case RETRO_LANGUAGE_INDONESIAN:
@@ -1625,10 +1707,12 @@ static bool rgui_fonts_init(rgui_t *rgui)
             rgui->language              = language;
             goto english;
          }
+
       case RETRO_LANGUAGE_JAPANESE:
       case RETRO_LANGUAGE_KOREAN:
       case RETRO_LANGUAGE_CHINESE_SIMPLIFIED:
       case RETRO_LANGUAGE_CHINESE_TRADITIONAL:
+      {
          rgui->fonts.eng_10x10    = bitmapfont_10x10_load(RETRO_LANGUAGE_ENGLISH);
          rgui->fonts.chn_10x10    = bitmapfont_10x10_load(RETRO_LANGUAGE_CHINESE_SIMPLIFIED);
          rgui->fonts.jpn_10x10    = bitmapfont_10x10_load(RETRO_LANGUAGE_JAPANESE);
@@ -1653,7 +1737,10 @@ static bool rgui_fonts_init(rgui_t *rgui)
          rgui->font_height_stride = FONT_10X10_HEIGHT_STRIDE;
          rgui->language           = language;
          break;
+      }
+
       case RETRO_LANGUAGE_RUSSIAN:
+      {
          rgui->fonts.eng_10x10    = bitmapfont_10x10_load(RETRO_LANGUAGE_ENGLISH);
          rgui->fonts.rus_10x10    = bitmapfont_10x10_load(RETRO_LANGUAGE_RUSSIAN);
 
@@ -1674,6 +1761,47 @@ static bool rgui_fonts_init(rgui_t *rgui)
          rgui->font_height_stride = FONT_10X10_HEIGHT_STRIDE;
          rgui->language           = language;
          break;
+      }
+
+      case RETRO_LANGUAGE_ESPERANTO:
+      case RETRO_LANGUAGE_POLISH:
+      case RETRO_LANGUAGE_TURKISH:
+      case RETRO_LANGUAGE_SLOVAK:
+      case RETRO_LANGUAGE_CZECH:
+      /* These languages are not yet implemented
+      case RETRO_LANGUAGE_ROMANIAN:
+      case RETRO_LANGUAGE_CROATIAN:
+      case RETRO_LANGUAGE_HUNGARIAN:
+      case RETRO_LANGUAGE_SERBIAN:
+      case RETRO_LANGUAGE_WELSH:
+      */
+      /* 6x10 fonts, including:
+       * Latin Extended A + B
+       *
+       */
+      {
+         rgui->fonts.eng_6x10 = bitmapfont_6x10_load(RETRO_LANGUAGE_ENGLISH);
+         rgui->fonts.lse_6x10 = bitmapfont_6x10_load(language);
+
+         if (!rgui->fonts.eng_6x10 ||
+             !rgui->fonts.lse_6x10)
+         {
+            rgui_fonts_free(rgui);
+            *msg_hash_get_uint(MSG_HASH_USER_LANGUAGE) = RETRO_LANGUAGE_ENGLISH;
+            runloop_msg_queue_push(
+                  msg_hash_to_str(MSG_RGUI_MISSING_FONTS), 1, 256, false, NULL,
+                  MESSAGE_QUEUE_ICON_DEFAULT, MESSAGE_QUEUE_CATEGORY_INFO);
+            goto english;
+         }
+
+         rgui->font_width         = FONT_6X10_WIDTH;
+         rgui->font_height        = FONT_6X10_HEIGHT;
+         rgui->font_width_stride  = FONT_6X10_WIDTH_STRIDE;
+         rgui->font_height_stride = FONT_6X10_HEIGHT_STRIDE;
+         rgui->language           = language;
+         break;
+      }
+
       case RETRO_LANGUAGE_ARABIC:
       case RETRO_LANGUAGE_GREEK:
       case RETRO_LANGUAGE_PERSIAN:
@@ -3001,6 +3129,14 @@ static const rgui_theme_t *get_theme(rgui_t *rgui)
          return transparent ?
                &rgui_theme_flux :
                &rgui_theme_opaque_flux;
+      case RGUI_THEME_GRAY_DARK:
+         return transparent ?
+               &rgui_theme_gray_dark :
+               &rgui_theme_opaque_gray_dark;
+      case RGUI_THEME_GRAY_LIGHT:
+         return transparent ?
+               &rgui_theme_gray_light :
+               &rgui_theme_opaque_gray_light;
       default:
          break;
    }
@@ -3008,6 +3144,31 @@ static const rgui_theme_t *get_theme(rgui_t *rgui)
    return transparent ?
          &rgui_theme_classic_green :
          &rgui_theme_opaque_classic_green;
+}
+
+static void update_dynamic_theme_path(rgui_t *rgui, const char *theme_dir)
+{
+   bool use_playlist_theme = false;
+
+   if (string_is_empty(theme_dir))
+   {
+      rgui->theme_dynamic_path[0] = '\0';
+      return;
+   }
+
+   if (rgui->is_playlist && !string_is_empty(rgui->menu_title))
+   {
+      fill_pathname_join(rgui->theme_dynamic_path, theme_dir,
+            rgui->menu_title, sizeof(rgui->theme_dynamic_path));
+      strlcat(rgui->theme_dynamic_path, FILE_PATH_CONFIG_EXTENSION,
+            sizeof(rgui->theme_dynamic_path));
+
+      use_playlist_theme = path_is_valid(rgui->theme_dynamic_path);
+   }
+
+   if (!use_playlist_theme)
+      fill_pathname_join(rgui->theme_dynamic_path, theme_dir,
+            "default.cfg", sizeof(rgui->theme_dynamic_path));
 }
 
 static void load_custom_theme(rgui_t *rgui, rgui_theme_t *theme_colors, const char *theme_path)
@@ -3202,9 +3363,15 @@ static void prepare_rgui_colors(rgui_t *rgui, settings_t *settings)
 
    if (rgui->color_theme == RGUI_THEME_CUSTOM)
    {
-      memcpy(rgui->theme_preset_path,
-            rgui_theme_preset, sizeof(rgui->theme_preset_path));
+      strlcpy(rgui->theme_preset_path, rgui_theme_preset,
+            sizeof(rgui->theme_preset_path));
       load_custom_theme(rgui, &theme_colors, rgui_theme_preset);
+   }
+   else if (rgui->color_theme == RGUI_THEME_DYNAMIC)
+   {
+      strlcpy(rgui->last_theme_dynamic_path, rgui->theme_dynamic_path,
+            sizeof(rgui->last_theme_dynamic_path));
+      load_custom_theme(rgui, &theme_colors, rgui->theme_dynamic_path);
    }
    else
    {
@@ -3510,6 +3677,7 @@ static void blit_line_cjk(
          bool *symbol_lut;
          uint32_t symbol = utf8_walk(&message);
 
+         /* TODO/FIXME: check if really needed */
          if (symbol == 339) /* Latin small ligature oe */
             symbol = 156;
          if (symbol == 338) /* Latin capital ligature oe */
@@ -3573,6 +3741,7 @@ static void blit_line_cjk_shadow(
          bool *symbol_lut;
          uint32_t symbol = utf8_walk(&message);
 
+         /* TODO/FIXME: check if really needed */
          if (symbol == 339) /* Latin small ligature oe */
             symbol = 156;
          if (symbol == 338) /* Latin capital ligature oe */
@@ -3635,6 +3804,7 @@ static void blit_line_rus(
          bool *symbol_lut;
          uint32_t symbol = utf8_walk(&message);
 
+         /* TODO/FIXME: check if really needed */
          if (symbol == 339) /* Latin small ligature oe */
             symbol = 156;
          if (symbol == 338) /* Latin capital ligature oe */
@@ -3692,6 +3862,7 @@ static void blit_line_rus_shadow(
          bool *symbol_lut;
          uint32_t symbol = utf8_walk(&message);
 
+         /* TODO/FIXME: check if really needed */
          if (symbol == 339) /* Latin small ligature oe */
             symbol = 156;
          if (symbol == 338) /* Latin capital ligature oe */
@@ -3727,6 +3898,111 @@ static void blit_line_rus_shadow(
       }
 
       x += FONT_10X10_WIDTH_STRIDE;
+   }
+}
+
+static void blit_line_6x10(
+      rgui_t *rgui,
+      unsigned fb_width, int x, int y,
+      const char *message, uint16_t color, uint16_t shadow_color)
+{
+   uint16_t *frame_buf_data   = rgui->frame_buf.data;
+   bitmapfont_lut_t *font_eng = rgui->fonts.eng_6x10;
+   bitmapfont_lut_t *font_lse = rgui->fonts.lse_6x10;
+
+   while (!string_is_empty(message))
+   {
+      /* Deal with spaces first, for efficiency */
+      if (*message == ' ')
+         message++;
+      else
+      {
+         unsigned i, j;
+         bool *symbol_lut;
+         uint32_t symbol = utf8_walk(&message);
+
+         /* Find glyph LUT data */
+         if (symbol <= font_eng->glyph_max)
+            symbol_lut = font_eng->lut[symbol];
+         else if ((symbol >= font_lse->glyph_min) && (symbol <= font_lse->glyph_max))
+            symbol_lut = font_lse->lut[symbol - font_lse->glyph_min];
+         else
+            continue;
+
+         for (j = 0; j < FONT_6X10_HEIGHT; j++)
+         {
+            unsigned buff_offset = ((y + j) * fb_width) + x;
+
+            for (i = 0; i < FONT_6X10_WIDTH; i++)
+            {
+               if (*(symbol_lut + i + (j * FONT_6X10_WIDTH)))
+                  *(frame_buf_data + buff_offset + i) = color;
+            }
+         }
+      }
+
+      x += FONT_6X10_WIDTH_STRIDE;
+   }
+}
+
+static void blit_line_6x10_shadow(
+      rgui_t *rgui,
+      unsigned fb_width, int x, int y,
+      const char *message, uint16_t color, uint16_t shadow_color)
+{
+   uint16_t *frame_buf_data   = rgui->frame_buf.data;
+   bitmapfont_lut_t *font_eng = rgui->fonts.eng_6x10;
+   bitmapfont_lut_t *font_lse = rgui->fonts.lse_6x10;
+   uint16_t color_buf[2];
+   uint16_t shadow_color_buf[2];
+
+   color_buf[0] = color;
+   color_buf[1] = shadow_color;
+
+   shadow_color_buf[0] = shadow_color;
+   shadow_color_buf[1] = shadow_color;
+
+   while (!string_is_empty(message))
+   {
+      /* Deal with spaces first, for efficiency */
+      if (*message == ' ')
+         message++;
+      else
+      {
+         unsigned i, j;
+         bool *symbol_lut;
+         uint32_t symbol = utf8_walk(&message);
+
+         /* Find glyph LUT data */
+         if (symbol <= font_eng->glyph_max)
+            symbol_lut = font_eng->lut[symbol];
+         else if ((symbol >= font_lse->glyph_min) && (symbol <= font_lse->glyph_max))
+            symbol_lut = font_lse->lut[symbol - font_lse->glyph_min];
+         else
+            continue;
+
+         for (j = 0; j < FONT_6X10_HEIGHT; j++)
+         {
+            unsigned buff_offset = ((y + j) * fb_width) + x;
+
+            for (i = 0; i < FONT_6X10_WIDTH; i++)
+            {
+               if (*(symbol_lut + i + (j * FONT_6X10_WIDTH)))
+               {
+                  uint16_t *frame_buf_ptr = frame_buf_data + buff_offset + i;
+
+                  /* Text pixel + right shadow */
+                  memcpy(frame_buf_ptr, color_buf, sizeof(color_buf));
+
+                  /* Bottom shadow */
+                  frame_buf_ptr += fb_width;
+                  memcpy(frame_buf_ptr, shadow_color_buf, sizeof(shadow_color_buf));
+               }
+            }
+         }
+      }
+
+      x += FONT_6X10_WIDTH_STRIDE;
    }
 }
 #endif
@@ -3866,6 +4142,13 @@ static void rgui_set_blit_functions(unsigned language,
          case RETRO_LANGUAGE_RUSSIAN:
             blit_line = blit_line_rus_shadow;
             break;
+         case RETRO_LANGUAGE_ESPERANTO:
+         case RETRO_LANGUAGE_POLISH:
+         case RETRO_LANGUAGE_TURKISH:
+         case RETRO_LANGUAGE_SLOVAK:
+         case RETRO_LANGUAGE_CZECH:
+            blit_line = blit_line_6x10_shadow;
+            break;
          default:
             if (extended_ascii)
                blit_line = blit_line_extended_shadow;
@@ -3895,6 +4178,13 @@ static void rgui_set_blit_functions(unsigned language,
             break;
          case RETRO_LANGUAGE_RUSSIAN:
             blit_line = blit_line_rus;
+            break;
+         case RETRO_LANGUAGE_ESPERANTO:
+         case RETRO_LANGUAGE_POLISH:
+         case RETRO_LANGUAGE_TURKISH:
+         case RETRO_LANGUAGE_SLOVAK:
+         case RETRO_LANGUAGE_CZECH:
+            blit_line = blit_line_6x10;
             break;
          default:
             if (extended_ascii)
@@ -5473,7 +5763,10 @@ static bool rgui_set_aspect_ratio(rgui_t *rgui,
    unsigned aspect_ratio        = settings->uints.menu_rgui_aspect_ratio;
    unsigned aspect_ratio_lock   = settings->uints.menu_rgui_aspect_ratio_lock;
 #endif
-   
+#ifdef DJGPP
+   const char *driver_ident    = video_driver_get_ident();
+#endif
+
    rgui_framebuffer_free(&rgui->frame_buf);
    rgui_framebuffer_free(&rgui->background_buf);
    rgui_thumbnail_free(&rgui->fs_thumbnail);
@@ -5606,6 +5899,13 @@ static bool rgui_set_aspect_ratio(rgui_t *rgui,
          base_term_width = rgui->frame_buf.width;
          break;
    }
+
+#ifdef DJGPP
+   if (string_is_equal(driver_ident, "vga")) {
+      rgui->frame_buf.width = 320;
+      rgui->frame_buf.height = 200;
+   }
+#endif
    
    /* Ensure frame buffer/terminal width is sane
     * - Must be less than max_frame_buf_width
@@ -5755,9 +6055,10 @@ static bool rgui_set_aspect_ratio(rgui_t *rgui,
       return false;
    
    /* Trigger background/display update */
-   rgui->theme_preset_path[0] = '\0';
-   rgui->bg_modified          = true;
-   rgui->force_redraw         = true;
+   rgui->theme_preset_path[0]       = '\0';
+   rgui->last_theme_dynamic_path[0] = '\0';
+   rgui->bg_modified                = true;
+   rgui->force_redraw               = true;
    
    /* If aspect ratio lock is enabled, notify
     * video driver of change */
@@ -5792,27 +6093,29 @@ static void *rgui_init(void **userdata, bool video_is_threaded)
 {
    unsigned new_font_height;
    struct video_viewport vp;
-   size_t               start = 0;
-   rgui_t               *rgui = NULL;
-   settings_t *settings       = config_get_ptr();
-   gfx_display_t    *p_disp   = disp_get_ptr();
-   gfx_animation_t *p_anim    = anim_get_ptr();
+   size_t start                  = 0;
+   rgui_t *rgui                  = NULL;
+   settings_t *settings          = config_get_ptr();
+   gfx_display_t *p_disp         = disp_get_ptr();
+   gfx_animation_t *p_anim       = anim_get_ptr();
 #if defined(DINGUX)
-   unsigned aspect_ratio_lock = RGUI_ASPECT_RATIO_LOCK_NONE;
+   unsigned aspect_ratio_lock    = RGUI_ASPECT_RATIO_LOCK_NONE;
 #else
-   unsigned aspect_ratio_lock = settings->uints.menu_rgui_aspect_ratio_lock;
+   unsigned aspect_ratio_lock    = settings->uints.menu_rgui_aspect_ratio_lock;
 #endif
-   menu_handle_t        *menu = (menu_handle_t*)calloc(1, sizeof(*menu));
+   unsigned rgui_color_theme     = settings->uints.menu_rgui_color_theme;
+   const char *dynamic_theme_dir = settings->paths.directory_dynamic_wallpapers;
+   menu_handle_t *menu           = (menu_handle_t*)calloc(1, sizeof(*menu));
 
    if (!menu)
       return NULL;
 
-   rgui                       = (rgui_t*)calloc(1, sizeof(rgui_t));
+   rgui = (rgui_t*)calloc(1, sizeof(rgui_t));
 
    if (!rgui)
       goto error;
 
-   *userdata                  = rgui;
+   *userdata = rgui;
 
 #ifdef HAVE_GFX_WIDGETS
    /* We have to be somewhat careful here, since some
@@ -5830,6 +6133,7 @@ static void *rgui_init(void **userdata, bool video_is_threaded)
 
    rgui->menu_title[0]    = '\0';
    rgui->menu_sublabel[0] = '\0';
+   rgui->is_playlist      = false;
 
    /* Set pixel format conversion function */
    rgui->transparency_supported = rgui_set_pixel_format_function();
@@ -5860,7 +6164,11 @@ static void *rgui_init(void **userdata, bool video_is_threaded)
    p_disp->header_height = new_font_height;
 
    /* Prepare RGUI colors, to improve performance */
-   rgui->theme_preset_path[0] = '\0';
+   rgui->theme_preset_path[0]       = '\0';
+   rgui->theme_dynamic_path[0]      = '\0';
+   rgui->last_theme_dynamic_path[0] = '\0';
+   if (rgui_color_theme == RGUI_THEME_DYNAMIC)
+      update_dynamic_theme_path(rgui, dynamic_theme_dir);
    prepare_rgui_colors(rgui, settings);
 
    menu_entries_ctl(MENU_ENTRIES_CTL_SET_START, &start);
@@ -5910,14 +6218,17 @@ static void *rgui_init(void **userdata, bool video_is_threaded)
    return menu;
 
 error:
-   rgui_fonts_free(rgui);
+   if (rgui)
+   {
+      rgui_fonts_free(rgui);
 
-   rgui_framebuffer_free(&rgui->frame_buf);
-   rgui_framebuffer_free(&rgui->background_buf);
+      rgui_framebuffer_free(&rgui->frame_buf);
+      rgui_framebuffer_free(&rgui->background_buf);
 
-   rgui_thumbnail_free(&rgui->fs_thumbnail);
-   rgui_thumbnail_free(&rgui->mini_thumbnail);
-   rgui_thumbnail_free(&rgui->mini_left_thumbnail);
+      rgui_thumbnail_free(&rgui->fs_thumbnail);
+      rgui_thumbnail_free(&rgui->mini_thumbnail);
+      rgui_thumbnail_free(&rgui->mini_left_thumbnail);
+   }
 
    if (menu)
       free(menu);
@@ -5936,17 +6247,17 @@ static void rgui_free(void *data)
 #endif
       if (rgui->thumbnail_path_data)
          free(rgui->thumbnail_path_data);
+
+      rgui_fonts_free(rgui);
+
+      rgui_framebuffer_free(&rgui->frame_buf);
+      rgui_framebuffer_free(&rgui->background_buf);
+      rgui_framebuffer_free(&rgui->upscale_buf);
+
+      rgui_thumbnail_free(&rgui->fs_thumbnail);
+      rgui_thumbnail_free(&rgui->mini_thumbnail);
+      rgui_thumbnail_free(&rgui->mini_left_thumbnail);
    }
-
-   rgui_fonts_free(rgui);
-
-   rgui_framebuffer_free(&rgui->frame_buf);
-   rgui_framebuffer_free(&rgui->background_buf);
-   rgui_framebuffer_free(&rgui->upscale_buf);
-
-   rgui_thumbnail_free(&rgui->fs_thumbnail);
-   rgui_thumbnail_free(&rgui->mini_thumbnail);
-   rgui_thumbnail_free(&rgui->mini_left_thumbnail);
 }
 
 static void rgui_set_texture(void *data)
@@ -6402,15 +6713,16 @@ static void rgui_populate_entries(void *data,
       const char *path,
       const char *label, unsigned k)
 {
-   rgui_t       *rgui         = (rgui_t*)data;
+   rgui_t *rgui                  = (rgui_t*)data;
+   settings_t *settings          = config_get_ptr();
 #if defined(DINGUX)
-   unsigned aspect_ratio_lock = RGUI_ASPECT_RATIO_LOCK_NONE;
+   unsigned aspect_ratio_lock    = RGUI_ASPECT_RATIO_LOCK_NONE;
 #else
-   settings_t       *settings = config_get_ptr();
-   unsigned aspect_ratio_lock = settings->uints.menu_rgui_aspect_ratio_lock;
+   unsigned aspect_ratio_lock    = settings->uints.menu_rgui_aspect_ratio_lock;
 #endif
+   const char *dynamic_theme_dir = settings->paths.directory_dynamic_wallpapers;
 #ifdef HAVE_LANGEXTRA
-   gfx_display_t *p_disp  = disp_get_ptr();
+   gfx_display_t *p_disp         = disp_get_ptr();
 #endif
    
    if (!rgui)
@@ -6444,6 +6756,10 @@ static void rgui_populate_entries(void *data,
    
    /* Set menu title */
    menu_entries_get_title(rgui->menu_title, sizeof(rgui->menu_title));
+   
+   /* If dynamic themes are enabled, update the theme path */
+   if (rgui->color_theme == RGUI_THEME_DYNAMIC)
+      update_dynamic_theme_path(rgui, dynamic_theme_dir);
    
    /* Cancel any pending thumbnail load operations */
    rgui->thumbnail_load_pending = false;
@@ -6678,10 +6994,23 @@ static void rgui_frame(void *data, video_frame_info_t *video_info)
    if ((settings->uints.menu_rgui_color_theme != rgui->color_theme) ||
        (rgui->transparency_supported &&
             (settings->bools.menu_rgui_transparency != rgui->transparency_enable)))
+   {
+      if (settings->uints.menu_rgui_color_theme == RGUI_THEME_DYNAMIC)
+         update_dynamic_theme_path(rgui,
+               settings->paths.directory_dynamic_wallpapers);
+
       prepare_rgui_colors(rgui, settings);
+   }
    else if (settings->uints.menu_rgui_color_theme == RGUI_THEME_CUSTOM)
    {
-      if (string_is_not_equal_fast(settings->paths.path_rgui_theme_preset, rgui->theme_preset_path, sizeof(rgui->theme_preset_path)))
+      if (!string_is_equal(settings->paths.path_rgui_theme_preset,
+            rgui->theme_preset_path))
+         prepare_rgui_colors(rgui, settings);
+   }
+   else if (settings->uints.menu_rgui_color_theme == RGUI_THEME_DYNAMIC)
+   {
+      if (!string_is_equal(rgui->last_theme_dynamic_path,
+            rgui->theme_dynamic_path))
          prepare_rgui_colors(rgui, settings);
    }
 

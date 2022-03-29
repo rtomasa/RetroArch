@@ -135,6 +135,7 @@ typedef struct rcheevos_game_info_t
    char* title;
    char  badge_name[16];
    char* hash;
+   bool  mastery_placard_shown;
 
    rcheevos_hash_entry_t* hashes;
 
@@ -168,6 +169,7 @@ typedef struct rcheevos_locals_t
    enum event_command queued_command; /* action queued by background thread to be run on main thread */
 #endif
 
+   char displayname[32];              /* name to display in messages */
    char username[32];                 /* case-corrected username */
    char token[32];                    /* user's session token */
    char user_agent_prefix[128];       /* RetroArch/OS version information */
@@ -193,6 +195,8 @@ rcheevos_locals_t* get_rcheevos_locals(void);
 void rcheevos_begin_load_state(enum rcheevos_load_state state);
 int rcheevos_end_load_state(void);
 bool rcheevos_load_aborted(void);
+
+void rcheevos_show_mastery_placard(void);
 
 #ifdef HAVE_THREADS
  #define CHEEVOS_LOCK(l)   do { slock_lock(l); } while (0)

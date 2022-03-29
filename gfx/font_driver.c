@@ -678,6 +678,37 @@ static bool wiiu_font_init_first(
 }
 #endif
 
+#ifdef __PSL1GHT__
+static const font_renderer_t *rsx_font_backends[] = {
+   &rsx_font,
+   NULL
+};
+
+static bool rsx_font_init_first(
+      const void **font_driver, void **font_handle,
+      void *video_data, const char *font_path,
+      float font_size, bool is_threaded)
+{
+   unsigned i;
+
+   for (i = 0; rsx_font_backends[i]; i++)
+   {
+      void *data = rsx_font_backends[i]->init(
+            video_data, font_path, font_size,
+            is_threaded);
+
+      if (!data)
+         continue;
+
+      *font_driver = rsx_font_backends[i];
+      *font_handle = data;
+      return true;
+   }
+
+   return false;
+}
+#endif
+
 static bool font_init_first(
       const void **font_driver, void **font_handle,
       void *video_data, const char *font_path, float font_size,
@@ -773,6 +804,11 @@ static bool font_init_first(
          return switch_font_init_first(font_driver, font_handle,
                video_data, font_path, font_size, is_threaded);
 #endif
+#ifdef __PSL1GHT__
+      case FONT_DRIVER_RENDER_RSX:
+         return rsx_font_init_first(font_driver, font_handle,
+               video_data, font_path, font_size, is_threaded);
+#endif
 #ifdef HAVE_GDI
 #if defined(_WIN32) && !defined(_XBOX) && !defined(__WINRT__)
       case FONT_DRIVER_RENDER_GDI:
@@ -797,21 +833,27 @@ static bool font_init_first(
 
 #ifdef HAVE_LANGEXTRA
 
-/* ACII:        0xxxxxxx  (c & 0x80) == 0x00
+/* ASCII:       0xxxxxxx  (c & 0x80) == 0x00
  * other start: 11xxxxxx  (c & 0xC0) == 0xC0
  * other cont:  10xxxxxx  (c & 0xC0) == 0x80
- * Neutral :
- * 0020 - 002F : 001xxxxx (c & 0xE0) == 0x20
+ * Neutral:
+ * 0020 - 002F: 001xxxxx (c & 0xE0) == 0x20
+ * misc. white space:
+ * 2000 - 200D: 11100010 10000000 1000xxxx (c[2] < 0x8E) (3 bytes)
+ * Hebrew:
+ * 0591 - 05F4: 1101011x (c & 0xFE) == 0xD6 (2 bytes)
  * Arabic:
- * 0600 - 06FF : 110110xx (c & 0xFC) == 0xD8 (2 bytes) */
+ * 0600 - 06FF: 110110xx (c & 0xFC) == 0xD8 (2 bytes)
+ */
 
 /* clang-format off */
 #define IS_ASCII(p)        ((*(p)&0x80) == 0x00)
 #define IS_MBSTART(p)      ((*(p)&0xC0) == 0xC0)
 #define IS_MBCONT(p)       ((*(p)&0xC0) == 0x80)
 #define IS_DIR_NEUTRAL(p)  ((*(p)&0xE0) == 0x20)
+#define IS_HEBREW(p)       ((*(p)&0xFE) == 0xD6)
 #define IS_ARABIC(p)       ((*(p)&0xFC) == 0xD8)
-#define IS_RTL(p)          IS_ARABIC(p)
+#define IS_RTL(p)          (IS_HEBREW(p) || IS_ARABIC(p))
 #define GET_ID_ARABIC(p)   (((unsigned char)(p)[0] << 6) | ((unsigned char)(p)[1] & 0x3F))
 
 /* 0x0620 to 0x064F */
@@ -951,6 +993,22 @@ static const unsigned arabic_shape_map[0x100][0x4] = {
 };
 /* clang-format on */
 
+/* Checks for miscellaneous whitespace characters in the range U+2000 to U+200D */
+static INLINE unsigned is_misc_ws(const unsigned char* src)
+{
+   unsigned res = 0;
+   if (*(src) == 0xE2) /* first byte */
+   {
+      src++;
+      if (*(src) == 0x80) /* second byte */
+      {
+         src++;
+         res = (*(src) < 0x8E); /* third byte */
+      }
+   }
+   return res;
+}
+
 static INLINE unsigned font_get_replacement(const char* src, const char* start)
 {
    if (IS_ARABIC(src)) /* 0x0600 to 0x06FF */
@@ -1063,7 +1121,7 @@ static char* font_driver_reshape_msg(const char* msg, unsigned char *buffer, siz
          while (src > (const unsigned char*)msg && IS_MBCONT(src))
             src--;
 
-         if (src >= (const unsigned char*)msg && (IS_RTL(src) || IS_DIR_NEUTRAL(src)))
+         if (src >= (const unsigned char*)msg && (IS_RTL(src) || IS_DIR_NEUTRAL(src) || is_misc_ws(src)))
          {
             unsigned replacement = font_get_replacement((const char*)src, msg);
             if (replacement)
@@ -1108,7 +1166,7 @@ static char* font_driver_reshape_msg(const char* msg, unsigned char *buffer, siz
          {
             reverse = false;
             src++;
-            while (IS_MBCONT(src) || IS_RTL(src) || IS_DIR_NEUTRAL(src))
+            while (IS_MBCONT(src) || IS_RTL(src) || IS_DIR_NEUTRAL(src) || is_misc_ws(src))
                src++;
          }
       }
@@ -1117,7 +1175,7 @@ static char* font_driver_reshape_msg(const char* msg, unsigned char *buffer, siz
          if (IS_RTL(src))
          {
             reverse = true;
-            while (IS_MBCONT(src) || IS_RTL(src) || IS_DIR_NEUTRAL(src))
+            while (IS_MBCONT(src) || IS_RTL(src) || IS_DIR_NEUTRAL(src) || is_misc_ws(src))
                src++;
          }
          else
@@ -1280,7 +1338,6 @@ font_data_t *font_driver_init_first(
    void *font_handle       = NULL;
    bool ok                 = false;
 #ifdef HAVE_THREADS
-
    if (     threading_hint
          && is_threaded
          && !video_driver_is_hw_context())
@@ -1294,11 +1351,15 @@ font_data_t *font_driver_init_first(
 
    if (ok)
    {
-      font_data_t *font   = (font_data_t*)malloc(sizeof(*font));
-      font->renderer      = (const font_renderer_t*)font_driver;
-      font->renderer_data = font_handle;
-      font->size          = font_size;
-      return font;
+      font_data_t *font      = (font_data_t*)malloc(sizeof(*font));
+
+      if (font)
+      {
+         font->renderer      = (const font_renderer_t*)font_driver;
+         font->renderer_data = font_handle;
+         font->size          = font_size;
+         return font;
+      }
    }
 
    return NULL;

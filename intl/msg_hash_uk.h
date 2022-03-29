@@ -330,6 +330,14 @@ MSG_HASH(
    "Завантажити вміст"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_DOWNLOAD_CORE_SYSTEM_FILES,
+   "Завантажувач базових системних файлів"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_DOWNLOAD_CORE_SYSTEM_FILES,
+   "Завантаження допоміжних системних файлів, необхідних для правильної/оптимальної основи системи."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_UPDATE_CORE_INFO_FILES,
    "Оновити інформаційні файли ядер"
    )
@@ -458,6 +466,26 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_INFO_REQUIRED_HW_API,
    "Необхідний графічний API"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_SUPPORT_LEVEL,
+   "Підтримка збереження стану"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_DISABLED,
+   "Немає"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_BASIC,
+   "Звичайний (зберегти/прочитати)"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_SERIALIZED,
+   "Послідовний (зберегти/прочитати, перемотка)"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_DETERMINISTIC,
+   "Деталізовано (зберегти/прочитати, перемотка, прискорений пропуск, стан мережевої гри)"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_INFO_FIRMWARE,
@@ -795,10 +823,6 @@ MSG_HASH(
    "Підтримка однорангової мережевої гри"
    )
 MSG_HASH(
-   MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_PYTHON_SUPPORT,
-   "Підтримка Python (підтримка скриптів у шейдерах)"
-   )
-MSG_HASH(
    MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_V4L2_SUPPORT,
    "Підтримка Video4Linux2"
    )
@@ -827,6 +851,22 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RDB_ENTRY_GENRE,
    "Жанр"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_ACHIEVEMENTS,
+   "Досягнення"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_LANGUAGE,
+   "Мова"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_REGION,
+   "Регіон"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_CONTROLS,
+   "Управління"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RDB_ENTRY_PUBLISHER,
@@ -1468,6 +1508,8 @@ MSG_HASH(
    MENU_ENUM_SUBLABEL_VIDEO_MONITOR_INDEX,
    "Вибрати дисплей для використання."
    )
+#if defined (WIIU)
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_VIDEO_ROTATION,
    "Обертання відео"
@@ -2204,6 +2246,10 @@ MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_NOWINKEY_ENABLE,
    "Вимкнути гарячі клавіші Windows (потрібен перезапуск)"
    )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_INPUT_NOWINKEY_ENABLE,
+   "Опрацьовуювати комбанції з клавішею Win."
+   )
 #endif
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_SENSORS_ENABLE,
@@ -2226,6 +2272,10 @@ MSG_HASH(
    "Автоматично активувати режим \"Ігровий фокус\""
    )
 MSG_HASH(
+   MENU_ENUM_SUBLABEL_INPUT_AUTO_GAME_FOCUS,
+   "Завжди вмикати режим \"Фокус на грі\" при запуску та відновленні вмісту. Якщо ввімкнути \"Виявляти автоматично\", ця опція буде увімкнена, якщо поточне ядро підтримує функцію автоматичного переведення вводу з клавіатури на себе."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_AUTO_GAME_FOCUS_OFF,
    "ВИМК"
    )
@@ -2242,6 +2292,10 @@ MSG_HASH(
    "Зрушення по осі Кнопки Ввода"
    )
 MSG_HASH(
+   MENU_ENUM_SUBLABEL_INPUT_BUTTON_AXIS_THRESHOLD,
+   "Як далеко відхиленим стік, щоб спрацьовувати як натиснута кнопка."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_ANALOG_DEADZONE,
    "Мертва зона анолога"
    )
@@ -2254,6 +2308,10 @@ MSG_HASH(
    "Затримка привʼязки"
    )
 MSG_HASH(
+   MENU_ENUM_SUBLABEL_INPUT_BIND_TIMEOUT,
+   "Кількість секунд затримки до переходу в наступну комбінацію."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_BIND_HOLD,
    "Затримка привʼязки"
    )
@@ -2264,6 +2322,10 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_TURBO_PERIOD,
    "Турбо-період"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_INPUT_TURBO_PERIOD,
+   "Тривалість (у кадрах) дії turbo-кнопок."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_TURBO_MODE,
@@ -2629,7 +2691,19 @@ MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_MANAGER_LIST,
    "Керувати ядрами"
    )
+#ifdef HAVE_MIST
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_MANAGER_STEAM_LIST,
+   "Керувати ядрами"
+   )
 
+
+
+
+
+
+
+#endif
 /* Settings > Configuration */
 
 MSG_HASH(
@@ -3095,6 +3169,14 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MENU_ADD_CONTENT_ENTRY_DISPLAY_MAIN_TAB,
    "Головне меню"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_SHOW_CONTENTLESS_CORES_ALL,
+   "Усі"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_SHOW_CONTENTLESS_CORES_CUSTOM,
+   "Користувацька"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_TIMEDATE_ENABLE,
@@ -3925,12 +4007,15 @@ MSG_HASH(
 
 /* Quick Menu > Controls */
 
+
+/* Quick Menu > Controls > Manage Remap Files */
+
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_REMAP_FILE_LOAD,
    "Завантажити файл перепризначення"
    )
 
-/* Quick Menu > Controls > Load Remap File */
+/* Quick Menu > Controls > Manage Remap Files > Load Remap File */
 
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_REMAP_FILE,
@@ -5318,6 +5403,10 @@ MSG_HASH(
    MENU_ENUM_LABEL_VALUE_LEFT_THUMBNAILS_OZONE,
    "Додаткова мініатюра"
    )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_OZONE_THUMBNAIL_SCALE_FACTOR,
+   "Фактор масштабування мініатюр"
+   )
 
 /* MaterialUI: Settings > User Interface > Appearance */
 
@@ -6381,10 +6470,6 @@ MSG_HASH(
 MSG_HASH(
    MSG_PUBLIC_ADDRESS,
    "Порт для мережевої гри призначено"
-   )
-MSG_HASH(
-   MSG_UPNP_FAILED,
-   "Не вдалося призначити порт UPNP"
    )
 MSG_HASH(
    MSG_NETPLAY_YOU_HAVE_LEFT_THE_GAME,

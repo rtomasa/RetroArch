@@ -147,7 +147,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY,
-   "Bli med i eller start en nettspillsøkt."
+   "Bli med i eller start en Nettspillsøkt."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_SETTINGS,
@@ -418,7 +418,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CURSOR_MANAGER,
-   "Musepeker behandler"
+   "Musepekerstyring"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_CURSOR_MANAGER,
@@ -433,7 +433,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_INFO_CORE_LABEL,
-   "Kjerne etikett"
+   "Kjerneetikett"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_INFO_SYSTEM_NAME,
@@ -466,6 +466,26 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_INFO_REQUIRED_HW_API,
    "Nødvendig grafikk API"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_SUPPORT_LEVEL,
+   "Lagretilstand Støtte"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_DISABLED,
+   "Ingen"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_BASIC,
+   "Grunnleggende (lagre/laste inn)"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_SERIALIZED,
+   "Serialisert (lagre, laste inn, spol tilbake)"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_DETERMINISTIC,
+   "Deterministisk (lagre, laste inn, spol tilbake, spol framover, nettspill)"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_INFO_FIRMWARE,
@@ -799,10 +819,6 @@ MSG_HASH(
    "Nettspill (Peer-til-Peer) støtte"
    )
 MSG_HASH(
-   MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_PYTHON_SUPPORT,
-   "Python (Script Support in Shaders) støtte"
-   )
-MSG_HASH(
    MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_V4L2_SUPPORT,
    "Video4Linux2 Støtte"
    )
@@ -831,6 +847,10 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RDB_ENTRY_GENRE,
    "Sjanger"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_ACHIEVEMENTS,
+   "Prestasjoner"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RDB_ENTRY_PUBLISHER,
@@ -1406,6 +1426,14 @@ MSG_HASH(
    "Bla gjennom disse alternativene hvis bildet ikke er sentrert riktig på skjermen."
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CRT_SWITCH_PORCH_ADJUST,
+   "Juster \"porch\""
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_CRT_SWITCH_PORCH_ADJUST,
+   "Bla gjennom disse valgene for å justere \"porch\" innstillingene for å endre bildestørrelsen."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CRT_SWITCH_HIRES_MENU,
    "Bruk høyoppløsings meny"
    )
@@ -1432,6 +1460,8 @@ MSG_HASH(
    MENU_ENUM_SUBLABEL_VIDEO_MONITOR_INDEX,
    "Velg hvilken skjerm som skal brukes."
    )
+#if defined (WIIU)
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_VIDEO_ROTATION,
    "Videorotasjon"
@@ -1565,6 +1595,10 @@ MSG_HASH(
    "Vindu skala"
    )
 MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_WINDOW_SCALE,
+   "Sett vindustørrelsen til den spesifiserte multiplikatet av størrelsen til kjernens visningsregion."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_VIDEO_WINDOW_OPACITY,
    "Gjennomsiktighet for vindumodus"
    )
@@ -1608,17 +1642,149 @@ MSG_HASH(
    MENU_ENUM_LABEL_VALUE_VIDEO_WINDOW_AUTO_WIDTH_MAX,
    "Maksimal vindubredde"
    )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_WINDOW_AUTO_WIDTH_MAX,
+   "Sett maksimalbredden av visningsvinduet når automatisk størrelse endring basert på \"vindu skalering\" er på."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_WINDOW_AUTO_HEIGHT_MAX,
+   "Maksimal vinduhøyde"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_WINDOW_AUTO_HEIGHT_MAX,
+   "Sett maksimalhøyden av visningsvinduet når automatisk størrelse endring basert på \"vindu skalering\" er på."
+   )
 
 /* Settings > Video > Scaling */
 
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_SCALE_INTEGER,
+   "Heltall skalering"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_SCALE_INTEGER,
+   "Skalerer video i bare heltallsteg. Basestørrelsen er avhengig av systemrapportert geometri og størrelsesforhold. Hvis \"tving størrelsesforhold\" er ikke på vil X/Y helltallsskalert uavhengig."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_SCALE_INTEGER_OVERSCALE,
+   "Opprunding av heltallskalering"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_SCALE_INTEGER_OVERSCALE,
+   "Tving heltallskalering til å runde opp til det neste heltallet i stedet for å runde ned."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_ASPECT_RATIO_INDEX,
+   "Størrelsesforhold"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_ASPECT_RATIO,
+   "Egendefinert størrelsesforhold"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_ASPECT_RATIO,
+   "Flytpunktverdi for bildestørrelsesforhold (bredde / høyde), brukt hvis \"størrelsesforhold\" er satt til \"konfigurasjon\"."
+   )
 #if defined(DINGUX)
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_DINGUX_IPU_KEEP_ASPECT,
+   "Behold størrelsesforhold"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_DINGUX_IPU_KEEP_ASPECT,
+   "Ha en 1:1 piksel størrelsesforhold når du skalerer innhold gjennom den interne IPU-en. Blider vil bli strekket for å fylle hele skjermen hvis deaktivert."
+   )
 #endif
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_VIEWPORT_CUSTOM_X,
+   "Egendefinert størrelsesforhold (X posisjon)"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_VIEWPORT_CUSTOM_X,
+   "Tilpasset visningsregion forskyvning bruk for å definere X-aksen av visningsregionen.\nDisse er ignorert hvis \"heltall skalering\" er aktivert."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_VIEWPORT_CUSTOM_Y,
+   "Egendefinert størrelsesforhold (Y posisjon)"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_VIEWPORT_CUSTOM_Y,
+   "Tilpasset visningsregion forskyvning bruk for å definere Y-aksen av visningsregionen.\nDisse er ignorert hvis \"heltall skalering\" er aktivert."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_VIEWPORT_CUSTOM_WIDTH,
+   "Egendefinert størrelsesforhold (bredde)"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_VIEWPORT_CUSTOM_WIDTH,
+   "Tilpasset visningsregionsbredde som er brukt hvis størrelsesforhold er satt til \"egendefinert størrelsesforhold\"."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_VIEWPORT_CUSTOM_HEIGHT,
+   "Egendefinert størrelsesforhold (høyde)"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_VIEWPORT_CUSTOM_HEIGHT,
+   "Tilpasset visningsregionshøyde som er brukt hvis størrelsesforhold er satt til \"egendefinert størrelsesforhold\"."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_CROP_OVERSCAN,
+   "Beskjær overskanning (omstart påkrevd)"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_CROP_OVERSCAN,
+   "Skjær av noen piksler rundt kanten av bildet som pleier å være svart og inneholder av og til søppelpiksler."
+   )
 
 /* Settings > Video > HDR */
 
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_HDR_ENABLE,
+   "Aktiver HDR"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_HDR_ENABLE,
+   "Aktiver HDR dersom skjermen støtter det."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_HDR_MAX_NITS,
+   "Maks luminans"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_HDR_MAX_NITS,
+   "Angi toppluminansen (i cd/m2) som skjermen din kan reprodusere. Se RTings for den maksimale luminansen til din skjerm."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_HDR_PAPER_WHITE_NITS,
+   "Papirhvit luminans"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_HDR_PAPER_WHITE_NITS,
+   "Sett luminansen hvor papirhvit bør være, f.eks lesbar tekst eller luminans på toppen av SDR (Standard dynamic range). Nyttig for justering til ulike lystilstander i dine omgivelser."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_HDR_CONTRAST,
+   "Kontrast"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_HDR_CONTRAST,
+   "Gamma/kontrastkontroll for HDR. Tar farger og øker totalintervallet mellom de lyseste delene og de mørkeste delene av bildet. Jo høyere HDR kontrast er, jo større blir denne forskjellen, mens jo lavere kontrasten er, jo mer utvaskes bildet blir. Hjelper brukere å justere bildet til deres preferanse og hva de føler ser best ut på sin skjerm."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_HDR_EXPAND_GAMUT,
+   "Utvidet gamut"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_HDR_EXPAND_GAMUT,
+   "Når fargespekteret er konvertert til lineært rom, bestem om vi skal bruke et utvidet fargegamut for å nå HDR10."
+   )
 
 /* Settings > Video > Synchronization */
 
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_VSYNC,
+   "Vertikal synkronisering (VSync)"
+   )
 
 /* Settings > Audio */
 
@@ -1705,7 +1871,15 @@ MSG_HASH(
 
 #ifndef HAVE_DYNAMIC
 #endif
+#ifdef HAVE_MIST
 
+
+
+
+
+
+
+#endif
 /* Settings > Configuration */
 
 
@@ -1804,6 +1978,10 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_HISTORY_LIST_ENABLE,
    "Historikk"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_PLAYLIST_SUBLABEL_CORE,
+   "Kjerne:"
    )
 
 /* Settings > Playlists > Playlist Management */
@@ -1910,7 +2088,10 @@ MSG_HASH(
 /* Quick Menu > Controls */
 
 
-/* Quick Menu > Controls > Load Remap File */
+/* Quick Menu > Controls > Manage Remap Files */
+
+
+/* Quick Menu > Controls > Manage Remap Files > Load Remap File */
 
 
 /* Quick Menu > Cheats */
@@ -1967,12 +2148,36 @@ MSG_HASH(
 
 /* Settings Options */
 
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NETPLAY_SHARE_NONE,
+   "Ingen"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NONE,
+   "Ingen"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_PLAYLIST_MANAGER_SORT_MODE_OFF,
+   "Ingen"
+   )
 
 /* RGUI: Settings > User Interface > Appearance */
 
 
 /* RGUI: Settings Options */
 
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RGUI_THUMB_SCALE_BILINEAR,
+   "Bilineær"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RGUI_UPSCALE_NONE,
+   "Ingen"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RGUI_ASPECT_RATIO_LOCK_INTEGER,
+   "Heltall skalering"
+   )
 
 /* XMB: Settings > User Interface > Appearance */
 
@@ -2022,6 +2227,14 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_QT_INFORMATION,
    "Informasjon"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_QT_PLAYLIST_ENTRY_NAME,
+   "Navn:"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_QT_PLAYLIST_ENTRY_CORE,
+   "Kjerne:"
    )
 
 /* Unsorted */

@@ -633,6 +633,7 @@ void drivers_init(
 #ifdef HAVE_LIBRETRODB
          menu_explore_context_init();
 #endif
+         menu_contentless_cores_context_init();
       }
    }
 
@@ -802,6 +803,7 @@ void driver_uninit(int flags)
 #ifdef HAVE_LIBRETRODB
       menu_explore_context_deinit();
 #endif
+      menu_contentless_cores_context_deinit();
 
       menu_driver_ctl(RARCH_MENU_CTL_DEINIT, NULL);
    }
@@ -946,18 +948,19 @@ void retroarch_deinit_drivers(struct retro_callbacks *cbs)
    audio_state_get_ptr()->active                    = false;
    audio_state_get_ptr()->current_audio             = NULL;
 
-   /* Input */
-   input_st->keyboard_linefeed_enable               = false;
-   input_st->block_hotkey                           = false;
-   input_st->block_libretro_input                   = false;
-
    if (input_st)
-      input_st->nonblocking_flag                    = false;
+   {
+      /* Input */
+      input_st->keyboard_linefeed_enable = false;
+      input_st->block_hotkey             = false;
+      input_st->block_libretro_input     = false;
+      input_st->nonblocking_flag         = false;
 
-   memset(&input_st->turbo_btns, 0, sizeof(turbo_buttons_t));
-   memset(&input_st->analog_requested, 0,
+      memset(&input_st->turbo_btns, 0, sizeof(turbo_buttons_t));
+      memset(&input_st->analog_requested, 0,
          sizeof(input_st->analog_requested));
-   input_st->current_driver                         = NULL;
+      input_st->current_driver           = NULL;
+   }
 
 #ifdef HAVE_MENU
    menu_driver_destroy(

@@ -106,6 +106,10 @@
 #include "network/discord.h"
 #endif
 
+#ifdef HAVE_MIST
+#include "steam/steam.h"
+#endif
+
 #include "config.def.h"
 
 #include "runloop.h"
@@ -1286,10 +1290,6 @@ enum rarch_content_type path_is_media_type(const char *path)
       case FILE_TYPE_XM:
          return RARCH_CONTENT_MUSIC;
 #endif
-#ifdef HAVE_GONG
-      case FILE_TYPE_GONG:
-         return RARCH_CONTENT_GONG;
-#endif
 
       case FILE_TYPE_NONE:
       default:
@@ -1624,6 +1624,14 @@ bool command_event(enum event_command cmd, void *data)
             char msg[256];
             msg[0] = '\0';
 
+            if (!core_info_current_supports_runahead())
+            {
+               runloop_msg_queue_push(msg_hash_to_str(MSG_RUNAHEAD_CORE_DOES_NOT_SUPPORT_RUNAHEAD),
+                     1, 100, false,
+                     NULL, MESSAGE_QUEUE_ICON_DEFAULT, MESSAGE_QUEUE_CATEGORY_INFO);
+               break;
+            }
+
             settings->bools.run_ahead_enabled =
                !(settings->bools.run_ahead_enabled);
 
@@ -1687,8 +1695,8 @@ bool command_event(enum event_command cmd, void *data)
                else
                {
                   if (!string_is_empty(desc))
-                     snprintf(msg, sizeof(msg), 
-                        msg_hash_to_str(MSG_SCREEN_RESOLUTION_DESC), 
+                     snprintf(msg, sizeof(msg),
+                        msg_hash_to_str(MSG_SCREEN_RESOLUTION_DESC),
                         width, height, desc);
                   else
                      snprintf(msg, sizeof(msg), msg_hash_to_str(MSG_SCREEN_RESOLUTION_NO_DESC),
@@ -1868,6 +1876,7 @@ bool command_event(enum event_command cmd, void *data)
          break;
       case CMD_EVENT_UNLOAD_CORE:
          {
+            bool load_dummy_core            = data ? *(bool*)data : true;
             bool contentless                = false;
             bool is_inited                  = false;
             content_ctx_info_t content_info = {0};
@@ -1920,15 +1929,16 @@ bool command_event(enum event_command cmd, void *data)
             if (     runloop_st->remaps_core_active
                   || runloop_st->remaps_content_dir_active
                   || runloop_st->remaps_game_active
+                  || !string_is_empty(runloop_st->name.remapfile)
                )
             {
-               input_remapping_deinit();
+               input_remapping_deinit(true);
                input_remapping_set_defaults(true);
             }
             else
                input_remapping_restore_global_config(true);
 
-            if (is_inited)
+            if (is_inited && load_dummy_core)
             {
 #ifdef HAVE_MENU
                if (  (settings->uints.quit_on_close_content == QUIT_ON_CLOSE_CONTENT_CLI && global->launched_from_cli)
@@ -1954,7 +1964,7 @@ bool command_event(enum event_command cmd, void *data)
             runloop_system_info_free();
 #endif
             {
-               audio_driver_state_t 
+               audio_driver_state_t
                   *audio_st                  = audio_state_get_ptr();
                audio_st->callback.callback   = NULL;
                audio_st->callback.set_state  = NULL;
@@ -1987,9 +1997,6 @@ bool command_event(enum event_command cmd, void *data)
       case CMD_EVENT_CHEEVOS_HARDCORE_MODE_TOGGLE:
 #ifdef HAVE_CHEEVOS
          rcheevos_toggle_hardcore_paused();
-
-         if (rcheevos_hardcore_active())
-            runloop_st->slowmotion = false;
 #endif
          break;
       case CMD_EVENT_REINIT_FROM_TOGGLE:
@@ -2008,10 +2015,13 @@ bool command_event(enum event_command cmd, void *data)
       case CMD_EVENT_REWIND_DEINIT:
 #ifdef HAVE_REWIND
          {
-	    bool core_type_is_dummy   = runloop_st->current_core_type == CORE_TYPE_DUMMY;
-	    if (core_type_is_dummy)
+            bool core_type_is_dummy   = runloop_st->current_core_type == CORE_TYPE_DUMMY;
+
+            if (core_type_is_dummy)
                return false;
-            state_manager_event_deinit(&runloop_st->rewind_st);
+
+            state_manager_event_deinit(&runloop_st->rewind_st,
+                  &runloop_st->current_core);
          }
 #endif
          break;
@@ -2020,8 +2030,9 @@ bool command_event(enum event_command cmd, void *data)
          {
             bool rewind_enable        = settings->bools.rewind_enable;
             size_t rewind_buf_size    = settings->sizes.rewind_buffer_size;
-	    bool core_type_is_dummy   = runloop_st->current_core_type == CORE_TYPE_DUMMY;
-	    if (core_type_is_dummy)
+            bool core_type_is_dummy   = runloop_st->current_core_type == CORE_TYPE_DUMMY;
+
+            if (core_type_is_dummy)
                return false;
 #ifdef HAVE_CHEEVOS
             if (rcheevos_hardcore_active())
@@ -2083,7 +2094,7 @@ bool command_event(enum event_command cmd, void *data)
          break;
       case CMD_EVENT_AUDIO_MUTE_TOGGLE:
          {
-            audio_driver_state_t 
+            audio_driver_state_t
                *audio_st                       = audio_state_get_ptr();
             bool audio_mute_enable             =
                *(audio_get_bool_ptr(AUDIO_ACTION_MUTE_ENABLE));
@@ -2118,7 +2129,7 @@ bool command_event(enum event_command cmd, void *data)
 #ifdef HAVE_OVERLAY
          {
             bool *check_rotation           = (bool*)data;
-            video_driver_state_t 
+            video_driver_state_t
                *video_st                   = video_state_get_ptr();
             input_driver_state_t *input_st = input_state_get_ptr();
             bool inp_overlay_auto_rotate   = settings->bools.input_overlay_auto_rotate;
@@ -2317,7 +2328,7 @@ bool command_event(enum event_command cmd, void *data)
       case CMD_EVENT_CORE_DEINIT:
          {
             struct retro_hw_render_callback *hwr = NULL;
-            video_driver_state_t 
+            video_driver_state_t
                *video_st                         = video_state_get_ptr();
             rarch_system_info_t *sys_info        = &runloop_st->system;
 
@@ -2394,7 +2405,7 @@ bool command_event(enum event_command cmd, void *data)
          {
             bool adaptive_vsync       = settings->bools.video_adaptive_vsync;
             unsigned swap_interval    = settings->uints.video_swap_interval;
-            video_driver_state_t 
+            video_driver_state_t
                *video_st              = video_state_get_ptr();
 
             if (video_st->current_video->set_nonblock_state)
@@ -2412,7 +2423,7 @@ bool command_event(enum event_command cmd, void *data)
 #ifdef HAVE_OVERLAY
          {
             overlay_layout_desc_t layout_desc;
-            video_driver_state_t 
+            video_driver_state_t
                *video_st                        = video_state_get_ptr();
             input_driver_state_t *input_st      = input_state_get_ptr();
 
@@ -2772,7 +2783,8 @@ bool command_event(enum event_command cmd, void *data)
             /* Disable rewind & SRAM autosave if it was enabled
              * TODO/FIXME: Add a setting for these tweaks */
 #ifdef HAVE_REWIND
-            state_manager_event_deinit(&runloop_st->rewind_st);
+            state_manager_event_deinit(&runloop_st->rewind_st,
+                  &runloop_st->current_core);
 #endif
 #ifdef HAVE_THREADS
             autosave_deinit();
@@ -2808,7 +2820,8 @@ bool command_event(enum event_command cmd, void *data)
             /* Disable rewind if it was enabled
                TODO/FIXME: Add a setting for these tweaks */
 #ifdef HAVE_REWIND
-            state_manager_event_deinit(&runloop_st->rewind_st);
+            state_manager_event_deinit(&runloop_st->rewind_st,
+                  &runloop_st->current_core);
 #endif
 #ifdef HAVE_THREADS
             autosave_deinit();
@@ -2844,7 +2857,8 @@ bool command_event(enum event_command cmd, void *data)
             /* Disable rewind if it was enabled
              * TODO/FIXME: Add a setting for these tweaks */
 #ifdef HAVE_REWIND
-            state_manager_event_deinit(&runloop_st->rewind_st);
+            state_manager_event_deinit(&runloop_st->rewind_st,
+                  &runloop_st->current_core);
 #endif
 #ifdef HAVE_THREADS
             autosave_deinit();
@@ -2929,9 +2943,9 @@ bool command_event(enum event_command cmd, void *data)
 #endif
       case CMD_EVENT_FULLSCREEN_TOGGLE:
          {
-            audio_driver_state_t 
+            audio_driver_state_t
                *audio_st              = audio_state_get_ptr();
-            input_driver_state_t 
+            input_driver_state_t
                *input_st              = input_state_get_ptr();
             bool *userdata            = (bool*)data;
             bool video_fullscreen     = settings->bools.video_fullscreen;
@@ -3134,7 +3148,7 @@ bool command_event(enum event_command cmd, void *data)
       case CMD_EVENT_GRAB_MOUSE_TOGGLE:
          {
             bool ret              = false;
-            input_driver_state_t 
+            input_driver_state_t
                *input_st          = input_state_get_ptr();
             bool grab_mouse_state = !input_st->grab_mouse_state;
 
@@ -3180,7 +3194,7 @@ bool command_event(enum event_command cmd, void *data)
             bool video_fullscreen                         =
                settings->bools.video_fullscreen || video_st->force_fullscreen;
             enum input_game_focus_cmd_type game_focus_cmd = GAME_FOCUS_CMD_TOGGLE;
-            input_driver_state_t 
+            input_driver_state_t
                *input_st                                  = input_state_get_ptr();
             bool current_enable_state                     = input_st->game_focus_state.enabled;
             bool apply_update                             = false;
@@ -3235,7 +3249,7 @@ bool command_event(enum event_command cmd, void *data)
 
             if (apply_update)
             {
-               input_driver_state_t 
+               input_driver_state_t
                   *input_st          = input_state_get_ptr();
 
                if (input_st->game_focus_state.enabled)
@@ -3275,7 +3289,7 @@ bool command_event(enum event_command cmd, void *data)
          break;
       case CMD_EVENT_VOLUME_UP:
          {
-            audio_driver_state_t 
+            audio_driver_state_t
                *audio_st              = audio_state_get_ptr();
             command_event_set_volume(settings, 0.5f,
 #if defined(HAVE_GFX_WIDGETS)
@@ -3304,9 +3318,9 @@ bool command_event(enum event_command cmd, void *data)
          break;
       case CMD_EVENT_SET_FRAME_LIMIT:
          {
-            video_driver_state_t 
+            video_driver_state_t
                *video_st                        = video_state_get_ptr();
-            runloop_st->frame_limit_minimum_time= 
+            runloop_st->frame_limit_minimum_time=
                runloop_set_frame_limit(&video_st->av_info,
                      runloop_get_fastforward_ratio(
                         settings,
@@ -3404,6 +3418,14 @@ bool command_event(enum event_command cmd, void *data)
                      settings->uints.input_max_users);
          }
          break;
+      case CMD_EVENT_VRR_RUNLOOP_TOGGLE:
+         settings->bools.vrr_runloop_enable = !(settings->bools.vrr_runloop_enable);
+         runloop_msg_queue_push(
+               msg_hash_to_str(
+                     settings->bools.vrr_runloop_enable ? MSG_VRR_RUNLOOP_ENABLED
+                                                        : MSG_VRR_RUNLOOP_DISABLED),
+               1, 100, false, NULL, MESSAGE_QUEUE_ICON_DEFAULT, MESSAGE_QUEUE_CATEGORY_INFO);
+         break;
       case CMD_EVENT_NONE:
          return false;
    }
@@ -3429,7 +3451,7 @@ void retroarch_override_setting_set(
             if (val)
             {
                unsigned                bit = *val;
-	       runloop_state_t *runloop_st = runloop_state_get_ptr();
+               runloop_state_t *runloop_st = runloop_state_get_ptr();
                BIT256_SET(runloop_st->has_set_libretro_device, bit);
             }
          }
@@ -3506,7 +3528,7 @@ void retroarch_override_setting_unset(
             if (val)
             {
                unsigned                bit = *val;
-	       runloop_state_t *runloop_st = runloop_state_get_ptr();
+               runloop_state_t *runloop_st = runloop_state_get_ptr();
                BIT256_CLEAR(runloop_st->has_set_libretro_device, bit);
             }
          }
@@ -3577,7 +3599,7 @@ static void retroarch_override_setting_free_state(void)
          unsigned j;
          for (j = 0; j < MAX_USERS; j++)
             retroarch_override_setting_unset(
-                  (enum rarch_override_setting)(i), &j);
+                  RARCH_OVERRIDE_SETTING_LIBRETRO_DEVICE, &j);
       }
       else
          retroarch_override_setting_unset(
@@ -3734,6 +3756,10 @@ void main_exit(void *args)
    play_feature_delivery_deinit();
 #endif
 
+#if defined(HAVE_MIST)
+   steam_deinit();
+#endif
+
 #if defined(_WIN32) && !defined(_XBOX) && !defined(__WINRT__)
    CoUninitialize();
 #endif
@@ -3782,6 +3808,10 @@ int rarch_main(int argc, char *argv[], void *data)
    play_feature_delivery_init();
 #endif
 
+#if defined(HAVE_MIST)
+   steam_init();
+#endif
+
    libretro_free_system_info(&runloop_st->system.info);
    command_event(CMD_EVENT_HISTORY_DEINIT, NULL);
    rarch_favorites_deinit();
@@ -3805,7 +3835,7 @@ int rarch_main(int argc, char *argv[], void *data)
    audio_state_get_ptr()->active = true;
 
    {
-      uint8_t i;
+      unsigned i;
       for (i = 0; i < MAX_USERS; i++)
          input_config_set_device(i, RETRO_DEVICE_JOYPAD);
    }
@@ -3843,6 +3873,10 @@ int rarch_main(int argc, char *argv[], void *data)
       ret = runloop_iterate();
 
       task_queue_check();
+
+#ifdef HAVE_MIST
+   steam_poll();
+#endif
 
 #ifdef HAVE_QT
       app_exit = ui_companion_qt.application->exiting;
@@ -4043,7 +4077,6 @@ static void retroarch_print_features(void)
    _PSUPP_BUF(buf, SUPPORTS_FREETYPE,        "FreeType",        "TTF font rendering driver");
    _PSUPP_BUF(buf, SUPPORTS_CORETEXT,        "CoreText",        "TTF font rendering driver ");
    _PSUPP_BUF(buf, SUPPORTS_NETPLAY,         "Netplay",         "Peer-to-peer netplay");
-   _PSUPP_BUF(buf, SUPPORTS_PYTHON,          "Python",          "Script support in shaders");
    _PSUPP_BUF(buf, SUPPORTS_LIBUSB,          "Libusb",          "Libusb support");
    _PSUPP_BUF(buf, SUPPORTS_COCOA,           "Cocoa",           "Cocoa UI companion support "
                                               "(for OSX and/or iOS)");
@@ -4059,7 +4092,7 @@ static void retroarch_print_version(void)
    frontend_driver_attach_console();
    str[0] = '\0';
 
-   fprintf(stderr, "%s: %s -- v%s",
+   fprintf(stdout, "%s: %s -- v%s",
          msg_hash_to_str(MSG_PROGRAM),
          msg_hash_to_str(MSG_LIBRETRO_FRONTEND),
          PACKAGE_VERSION);
@@ -4080,173 +4113,209 @@ static void retroarch_print_version(void)
  **/
 static void retroarch_print_help(const char *arg0)
 {
+   char buf[2048];
+   buf[0] = '\0';
+
    frontend_driver_attach_console();
+   fputs("\n", stdout);
    puts("===================================================================");
    retroarch_print_version();
    puts("===================================================================");
+   fputs("\n", stdout);
 
-   printf("Usage: %s [OPTIONS]... [FILE]\n", arg0);
+   fprintf(stdout, "Usage: %s [OPTIONS]... [FILE]\n\n", arg0);
 
-   {
-      char buf[2720];
-      buf[0] = '\0';
-
-      strlcpy(buf, "  -h, --help            Show this help message.\n", sizeof(buf));
-      strlcat(buf, "  -v, --verbose         Verbose logging.\n",        sizeof(buf));
-      strlcat(buf, "      --log-file FILE   Log messages to FILE.\n",   sizeof(buf));
-      strlcat(buf, "      --version         Show version.\n",           sizeof(buf));
-      strlcat(buf, "      --features        Prints available features compiled into "
-            "program.\n", sizeof(buf));
+   strlcat(buf, "  -h, --help                     "
+         "Show this help message.\n", sizeof(buf));
+   strlcat(buf, "  -v, --verbose                  "
+         "Verbose logging.\n", sizeof(buf));
+   strlcat(buf, "      --log-file=FILE            "
+         "Log messages to FILE.\n", sizeof(buf));
+   strlcat(buf, "      --version                  "
+         "Show version.\n", sizeof(buf));
+   strlcat(buf, "      --features                 "
+         "Print available features compiled into program.\n", sizeof(buf));
 
 #ifdef HAVE_MENU
-      strlcat(buf, "      --menu            Do not require content or libretro core to "
-            "be loaded,\n"
-            "                        starts directly in menu. If no arguments "
-            "are passed to\n"
-            "                        the program, it is equivalent to using "
-            "--menu as only argument.\n", sizeof(buf));
+   strlcat(buf, "      --menu                     "
+         "Do not require content or libretro core to be loaded,\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  starts directly in menu. If no arguments are passed to\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  the program, it is equivalent to using --menu as only argument.\n", sizeof(buf));
 #endif
 
-      strlcat(buf, "  -s, --save=PATH       Path for save files (*.srm). (DEPRECATED, use --appendconfig and savefile_directory)\n", sizeof(buf));
-      strlcat(buf, "  -S, --savestate=PATH  Path for the save state files (*.state). (DEPRECATED, use --appendconfig and savestate_directory)\n", sizeof(buf));
-      strlcat(buf, "      --set-shader PATH Path to a shader (preset) that will be loaded each time content is loaded.\n"
-            "                        Effectively overrides automatic shader presets.\n"
-            "                        An empty argument \"\" will disable automatic shader presets.\n", sizeof(buf));
-      strlcat(buf, "  -f, --fullscreen      Start the program in fullscreen regardless "
-            "of config settings.\n", sizeof(buf));
 #ifdef HAVE_CONFIGFILE
+   strlcat(buf, "  -c, --config=FILE              "
+         "Path for config file.\n", sizeof(buf));
 #ifdef _WIN32
-      strlcat(buf, "  -c, --config=FILE     Path for config file."
-            "\n\t\tDefaults to retroarch.cfg in same directory as retroarch.exe."
-            "\n\t\tIf a default config is not found, the program will attempt to "
-            "create one.\n"
-            , sizeof(buf));
+   strlcat(buf, "                                 "
+         "  Defaults to retroarch.cfg in same directory as retroarch.exe.\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  If a default config is not found, the program will attempt to create one.\n", sizeof(buf));
 #else
-      strlcat(buf, "  -c, --config=FILE     Path for config file."
-            "\n\t\tBy default looks for config in $XDG_CONFIG_HOME/retroarch/"
-            "retroarch.cfg,\n\t\t$HOME/.config/retroarch/retroarch.cfg,\n\t\t"
-            "and $HOME/.retroarch.cfg.\n\t\tIf a default config is not found, "
-            "the program will attempt to create one based on the \n\t\t"
-            "skeleton config (" GLOBAL_CONFIG_DIR "/retroarch.cfg). \n"
-            , sizeof(buf));
+   strlcat(buf, "                                 "
+         "  By default looks for config in\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  $XDG_CONFIG_HOME/retroarch/retroarch.cfg,\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  $HOME/.config/retroarch/retroarch.cfg, and\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  $HOME/.retroarch.cfg.\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  If a default config is not found, the program will attempt to create one\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  based on the skeleton config (" GLOBAL_CONFIG_DIR "/retroarch.cfg).\n", sizeof(buf));
 #endif
+   strlcat(buf, "      --appendconfig=FILE        "
+         "Extra config files are loaded in, and take priority over\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  config selected in -c (or default). Multiple configs are\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  delimited by '|'.\n", sizeof(buf));
 #endif
-      strlcat(buf, "      --appendconfig=FILE\n"
-            "                        Extra config files are loaded in, "
-            "and take priority over\n"
-            "                        config selected in -c (or default). "
-            "Multiple configs are\n"
-            "                        delimited by '|'.\n", sizeof(buf));
+
+   fputs(buf, stdout);
+   buf[0] = '\0';
+
 #ifdef HAVE_DYNAMIC
-      /* Note: Must strlcat the the string literal in two passes
-       * due to C89 limitations (509 character limit) */
-      strlcat(buf, "  -L, --libretro=FILE   Path to libretro implementation. "
-            "Overrides any config setting. FILE may be one of the following:"
-            , sizeof(buf));
-      strlcat(buf,
-            "\n\t\t1. The full path to a core shared object library: path/to/<core_name>_libretro.<lib_ext>"
-            "\n\t\t2. A core shared object library 'file name' (*): <core_name>_libretro.<lib_ext>"
-            "\n\t\t3. A core 'short name' (*): <core_name>_libretro OR <core_name>"
-            "\n\t\t(*) If 'file name' or 'short name' do not correspond to an existing full file path,"
-            "\n\t\t    the configured frontend 'cores' directory will be searched for a match\n"
-            , sizeof(buf));
+   strlcat(buf, "  -L, --libretro=FILE            "
+         "Path to libretro implementation. Overrides any config setting.\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  FILE may be one of the following:\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  1. The full path to a core shared object library: path/to/<core_name>_libretro.<lib_ext>\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  2. A core shared object library 'file name' (*): <core_name>_libretro.<lib_ext>\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  3. A core 'short name' (*): <core_name>_libretro OR <core_name>\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  (*) If 'file name' or 'short name' do not correspond to an existing full file path,\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  the configured frontend 'cores' directory will be searched for a match.\n", sizeof(buf));
 #endif
-      strlcat(buf, "      --subsystem=NAME  Use a subsystem of the libretro core. "
-            "Multiple content\n"
-            "                        files are loaded as multiple arguments. "
-            "If a content\n"
-            "                        file is skipped, use a blank (\"\") "
-            "command line argument.\n"
-            "                        Content must be loaded in an order "
-            "which depends on the\n"
-            "                        particular subsystem used. See verbose "
-            "log output to learn\n"
-            "                        how a particular subsystem wants content "
-            "to be loaded.\n", sizeof(buf));
-      puts(buf);
-   }
 
-   printf("  -N, --nodevice=PORT\n"
-          "                        Disconnects controller device connected "
-          "to PORT (1 to %d).\n", MAX_USERS);
-   printf("  -A, --dualanalog=PORT\n"
-          "                        Connect a DualAnalog controller to PORT "
-          "(1 to %d).\n", MAX_USERS);
-   printf("  -d, --device=PORT:ID\n"
-          "                        Connect a generic device into PORT of "
-          "the device (1 to %d).\n", MAX_USERS);
+   strlcat(buf, "      --subsystem=NAME           "
+         "Use a subsystem of the libretro core. Multiple content\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  files are loaded as multiple arguments. If a content\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  file is skipped, use a blank (\"\") command line argument.\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  Content must be loaded in an order which depends on the\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  particular subsystem used. See verbose log output to learn\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  how a particular subsystem wants content to be loaded.\n", sizeof(buf));
 
-   {
-      char buf[2560];
-      buf[0] = '\0';
-      strlcpy(buf, "                        Format is PORT:ID, where ID is a number "
-            "corresponding to the particular device.\n", sizeof(buf));
-#ifdef HAVE_BSV_MOVIE
-      strlcat(buf, "  -P, --bsvplay=FILE    Playback a BSV movie file.\n", sizeof(buf));
-      strlcat(buf, "  -R, --bsvrecord=FILE  Start recording a BSV movie file from "
-            "the beginning.\n", sizeof(buf));
-      strlcat(buf, "      --eof-exit        Exit upon reaching the end of the "
-            "BSV movie file.\n", sizeof(buf));
-#endif
-      strlcat(buf, "  -M, --sram-mode=MODE  SRAM handling mode. MODE can be "
-            "'noload-nosave',\n"
-            "                        'noload-save', 'load-nosave' or "
-            "'load-save'.\n"
-            "                        Note: 'noload-save' implies that "
-            "save files *WILL BE OVERWRITTEN*.\n", sizeof(buf));
+   strlcat(buf, "  -f, --fullscreen               "
+         "Start the program in fullscreen regardless of config setting.\n", sizeof(buf));
+   strlcat(buf, "      --set-shader=PATH          "
+         "Path to a shader (preset) that will be loaded each time content is loaded.\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  Effectively overrides automatic shader presets.\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  An empty argument \"\" will disable automatic shader presets.\n", sizeof(buf));
+
+   fputs(buf, stdout);
+   buf[0] = '\0';
+
+   printf(      "  -N, --nodevice=PORT            "
+         "Disconnects controller device connected to PORT (1 to %d).\n", MAX_USERS);
+   printf(      "  -A, --dualanalog=PORT          "
+         "Connect a DualAnalog controller to PORT (1 to %d).\n", MAX_USERS);
+   printf(      "  -d, --device=PORT:ID           "
+         "Connect a generic device into PORT of the device (1 to %d).\n", MAX_USERS);
+   strlcat(buf, "                                 "
+         "  Format is PORT:ID, where ID is a number corresponding to the particular device.\n", sizeof(buf));
+
+   strlcat(buf, "  -M, --sram-mode=MODE           "
+         "SRAM handling mode. MODE can be:\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  'noload-nosave', 'noload-save', 'load-nosave' or 'load-save'.\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  Note: 'noload-save' implies that save files *WILL BE OVERWRITTEN*.\n", sizeof(buf));
+
 #ifdef HAVE_NETWORKING
-      strlcat(buf, "  -H, --host            Host netplay as user 1.\n", sizeof(buf));
-      strlcat(buf, "  -C, --connect=HOST    Connect to netplay server as user 2.\n", sizeof(buf));
-      strlcat(buf, "      --port=PORT       Port used to netplay. Default is 55435.\n", sizeof(buf));
-      strlcat(buf, "      --stateless       Use \"stateless\" mode for netplay\n", sizeof(buf));
-      strlcat(buf, "                        (requires a very fast network).\n", sizeof(buf));
-      strlcat(buf, "      --check-frames=NUMBER\n"
-            "                        Check frames when using netplay.\n", sizeof(buf));
+   strlcat(buf, "  -H, --host                     "
+         "Host netplay as user 1.\n", sizeof(buf));
+   strlcat(buf, "  -C, --connect=HOST             "
+         "Connect to netplay server as user 2.\n", sizeof(buf));
+   strlcat(buf, "      --port=PORT                "
+         "Port used to netplay. Default is 55435.\n", sizeof(buf));
+   strlcat(buf, "      --nick=NICK                "
+         "Picks a username (for use with netplay). Not mandatory.\n", sizeof(buf));
+   strlcat(buf, "      --stateless                "
+         "Use \"stateless\" mode for netplay (requires a very fast network).\n", sizeof(buf));
+   strlcat(buf, "      --check-frames=NUMBER      "
+         "Check frames when using netplay.\n", sizeof(buf));
 #ifdef HAVE_NETWORK_CMD
-      strlcat(buf, "      --command         Sends a command over UDP to an already "
-            "running program process.\n", sizeof(buf));
-      strlcat(buf, "      Available commands are listed if command is invalid.\n", sizeof(buf));
+   strlcat(buf, "      --command                  "
+         "Sends a command over UDP to an already running program process.\n", sizeof(buf));
+   strlcat(buf, "                                 "
+         "  Available commands are listed if command is invalid.\n", sizeof(buf));
+#endif
 #endif
 
+#ifdef HAVE_BSV_MOVIE
+   strlcat(buf, "  -P, --bsvplay=FILE             "
+         "Playback a BSV movie file.\n", sizeof(buf));
+   strlcat(buf, "  -R, --bsvrecord=FILE           "
+         "Start recording a BSV movie file from the beginning.\n", sizeof(buf));
+   strlcat(buf, "      --eof-exit                 "
+         "Exit upon reaching the end of the BSV movie file.\n", sizeof(buf));
 #endif
 
-      strlcat(buf, "      --nick=NICK       Picks a username (for use with netplay). "
-            "Not mandatory.\n", sizeof(buf));
-      strlcat(buf, "  -r, --record=FILE     Path to record video file.\n        "
-            "Using .mkv extension is recommended.\n", sizeof(buf));
-      strlcat(buf, "      --recordconfig    Path to settings used during recording.\n", sizeof(buf));
-      strlcat(buf, "      --size=WIDTHxHEIGHT\n"
-            "                        Overrides output video size when recording.\n", sizeof(buf));
+   strlcat(buf, "  -r, --record=FILE              "
+         "Path to record video file. Using mkv extension is recommended.\n", sizeof(buf));
+   strlcat(buf, "      --recordconfig             "
+         "Path to settings used during recording.\n", sizeof(buf));
+   strlcat(buf, "      --size=WIDTHxHEIGHT        "
+         "Overrides output video size when recording.\n", sizeof(buf));
+
+   fputs(buf, stdout);
+   buf[0] = '\0';
+
+   strlcat(buf, "  -D, --detach                   "
+         "Detach program from the running console. Not relevant for all platforms.\n", sizeof(buf));
+   strlcat(buf, "      --max-frames=NUMBER        "
+         "Runs for the specified number of frames, then exits.\n", sizeof(buf));
+
 #ifdef HAVE_PATCH
-      strlcat(buf, "  -U, --ups=FILE        Specifies path for UPS patch that will be "
-            "applied to content.\n", sizeof(buf));
-      strlcat(buf, "      --bps=FILE        Specifies path for BPS patch that will be "
-            "applied to content.\n", sizeof(buf));
-      strlcat(buf, "      --ips=FILE        Specifies path for IPS patch that will be "
-            "applied to content.\n", sizeof(buf));
-      strlcat(buf, "      --no-patch        Disables all forms of content patching.\n", sizeof(buf));
+   strlcat(buf, "  -U, --ups=FILE                 "
+         "Specifies path for UPS patch that will be applied to content.\n", sizeof(buf));
+   strlcat(buf, "      --bps=FILE                 "
+         "Specifies path for BPS patch that will be applied to content.\n", sizeof(buf));
+   strlcat(buf, "      --ips=FILE                 "
+         "Specifies path for IPS patch that will be applied to content.\n", sizeof(buf));
+   strlcat(buf, "      --no-patch                 "
+         "Disables all forms of content patching.\n", sizeof(buf));
 #endif
-      strlcat(buf, "  -D, --detach          Detach program from the running console. "
-            "Not relevant for all platforms.\n", sizeof(buf));
-      strlcat(buf, "      --max-frames=NUMBER\n"
-            "                        Runs for the specified number of frames, "
-            "then exits.\n", sizeof(buf));
+
 #ifdef HAVE_SCREENSHOTS
-      strlcat(buf, "      --max-frames-ss\n"
-            "                        Takes a screenshot at the end of max-frames.\n", sizeof(buf));
-      strlcat(buf, "      --max-frames-ss-path=FILE\n"
-            "                        Path to save the screenshot to at the end of max-frames.\n", sizeof(buf));
+   strlcat(buf, "      --max-frames-ss            "
+         "Takes a screenshot at the end of max-frames.\n", sizeof(buf));
+   strlcat(buf, "      --max-frames-ss-path=FILE  "
+         "Path to save the screenshot to at the end of max-frames.\n", sizeof(buf));
 #endif
+
 #ifdef HAVE_ACCESSIBILITY
-      strlcat(buf, "      --accessibility\n"
-            "                        Enables accessibilty for blind users using text-to-speech.\n", sizeof(buf));
+   strlcat(buf, "      --accessibility            "
+         "Enables accessibilty for blind users using text-to-speech.\n", sizeof(buf));
 #endif
-      strlcat(buf, "      --load-menu-on-error\n"
-            "                        Open menu instead of quitting if specified core or content fails to load.\n", sizeof(buf));
-      strlcat(buf, "  -e, --entryslot=NUMBER\n"
-            "                        Slot from which to load an entry state\n", sizeof(buf));
-      puts(buf);
-   }
+
+   strlcat(buf, "      --load-menu-on-error       "
+         "Open menu instead of quitting if specified core or content fails to load.\n", sizeof(buf));
+   strlcat(buf, "  -e, --entryslot=NUMBER         "
+         "Slot from which to load an entry state.\n", sizeof(buf));
+
+   strlcat(buf, "  -s, --save=PATH                "
+         "Path for save files (*.srm). (DEPRECATED, use --appendconfig and savefile_directory)\n", sizeof(buf));
+   strlcat(buf, "  -S, --savestate=PATH           "
+         "Path for the save state files (*.state). (DEPRECATED, use --appendconfig and savestate_directory)\n", sizeof(buf));
+
+   fputs(buf, stdout);
+   fputs("\n", stdout);
 }
 
 #ifdef HAVE_DYNAMIC
@@ -4614,8 +4683,12 @@ static bool retroarch_parse_input_and_config(
 
             /* Must handle '?' otherwise you get an infinite loop */
             case '?':
-               retroarch_print_help(argv[0]);
-               retroarch_fail(1, "retroarch_parse_input()");
+               frontend_driver_attach_console();
+#ifdef _WIN32
+               fprintf(stderr, "\n%s: unrecognized option '%s'\n", argv[0], argv[optind]);
+#endif
+               fprintf(stderr, "Try '%s --help' for more information\n", argv[0]);
+               exit(EXIT_FAILURE);
                break;
             /* All other arguments are handled in the second pass */
          }
@@ -4648,14 +4721,14 @@ static bool retroarch_parse_input_and_config(
    }
 
    verbosity_enabled = verbosity_is_enabled();
-   /* Init logging after config load only if not overridden by command line argument. 
+   /* Init logging after config load only if not overridden by command line argument.
     * This handles when logging is set in the config but not via the --log-file option. */
    if (verbosity_enabled && !retroarch_override_setting_is_set(RARCH_OVERRIDE_SETTING_LOG_TO_FILE, NULL))
       rarch_log_file_init(
             settings->bools.log_to_file,
             settings->bools.log_to_file_timestamp,
             settings->paths.log_dir);
-            
+
    /* Second pass: All other arguments override the config file */
    optind = 1;
 
@@ -4690,7 +4763,7 @@ static bool retroarch_parse_input_and_config(
                      retroarch_print_help(argv[0]);
                      retroarch_fail(1, "retroarch_parse_input()");
                   }
-                  new_port = port -1;
+                  new_port = port - 1;
 
                   input_config_set_device(new_port, id);
 
@@ -4735,7 +4808,7 @@ static bool retroarch_parse_input_and_config(
                      retroarch_fail(1, "retroarch_parse_input()");
                   }
                   new_port = port - 1;
-                  input_config_set_device(port - 1, RETRO_DEVICE_NONE);
+                  input_config_set_device(new_port, RETRO_DEVICE_NONE);
                   retroarch_override_setting_set(
                         RARCH_OVERRIDE_SETTING_LIBRETRO_DEVICE, &new_port);
                }
@@ -5123,11 +5196,11 @@ bool retroarch_main_init(int argc, char *argv[])
    bool           init_failed   = false;
    struct rarch_state *p_rarch  = &rarch_st;
    runloop_state_t *runloop_st  = runloop_state_get_ptr();
-   input_driver_state_t 
+   input_driver_state_t
       *input_st                 = input_state_get_ptr();
    video_driver_state_t*video_st= video_state_get_ptr();
    settings_t *settings         = config_get_ptr();
-   recording_state_t 
+   recording_state_t
 	   *recording_st             = recording_state_get_ptr();
    global_t            *global  = global_get_ptr();
 #ifdef HAVE_ACCESSIBILITY
@@ -5194,7 +5267,7 @@ bool retroarch_main_init(int argc, char *argv[])
             strlcat(str_output, "\n", sizeof(str_output));
          }
 
-         RARCH_LOG_OUTPUT(str_output);
+         RARCH_LOG_OUTPUT("%s", str_output);
       }
       {
          char str_output[256];
@@ -5216,7 +5289,7 @@ bool retroarch_main_init(int argc, char *argv[])
                msg_hash_to_str(MSG_CAPABILITIES),
                str);
 #endif
-         RARCH_LOG_OUTPUT(str_output);
+         RARCH_LOG_OUTPUT("%s", str_output);
       }
    }
 
@@ -5266,12 +5339,6 @@ bool retroarch_main_init(int argc, char *argv[])
                   retroarch_override_setting_set(RARCH_OVERRIDE_SETTING_LIBRETRO, NULL);
                   runloop_set_current_core_type(CORE_TYPE_IMAGEVIEWER, false);
                }
-               break;
-#endif
-#ifdef HAVE_GONG
-            case RARCH_CONTENT_GONG:
-               retroarch_override_setting_set(RARCH_OVERRIDE_SETTING_LIBRETRO, NULL);
-               runloop_set_current_core_type(CORE_TYPE_GONG, false);
                break;
 #endif
             default:
@@ -5357,14 +5424,21 @@ bool retroarch_main_init(int argc, char *argv[])
          if (     runloop_st->remaps_core_active
                || runloop_st->remaps_content_dir_active
                || runloop_st->remaps_game_active
+               || !string_is_empty(runloop_st->name.remapfile)
             )
          {
-            input_remapping_deinit();
+            input_remapping_deinit(false);
             input_remapping_set_defaults(true);
          }
          else
             input_remapping_restore_global_config(true);
 
+#ifdef HAVE_DYNAMIC
+         /* Ensure that currently loaded core is properly
+          * deinitialised */
+         if (runloop_st->current_core_type != CORE_TYPE_DUMMY)
+            command_event(CMD_EVENT_CORE_DEINIT, NULL);
+#endif
          /* Attempt initializing dummy core */
          runloop_st->current_core_type = CORE_TYPE_DUMMY;
          if (!command_event(CMD_EVENT_CORE_INIT, &runloop_st->current_core_type))
@@ -5525,11 +5599,11 @@ bool retroarch_ctl(enum rarch_ctl_state state, void *data)
          return false;
 #if defined(HAVE_RUNAHEAD) && (defined(HAVE_DYNAMIC) || defined(HAVE_DYLIB))
       case RARCH_CTL_IS_SECOND_CORE_AVAILABLE:
-         return 
+         return
                   runloop_st->core_running
                && runloop_st->runahead_secondary_core_available;
       case RARCH_CTL_IS_SECOND_CORE_LOADED:
-         return 
+         return
                    runloop_st->core_running
                && (runloop_st->secondary_lib_handle != NULL);
 #endif
@@ -5637,17 +5711,25 @@ bool retroarch_ctl(enum rarch_ctl_state state, void *data)
       case RARCH_CTL_IS_OVERRIDES_ACTIVE:
          return runloop_st->overrides_active;
       case RARCH_CTL_SET_REMAPS_CORE_ACTIVE:
-         runloop_st->remaps_core_active = true;
+         /* Only one type of remap can be active
+          * at any one time */
+         runloop_st->remaps_core_active        = true;
+         runloop_st->remaps_content_dir_active = false;
+         runloop_st->remaps_game_active        = false;
          break;
       case RARCH_CTL_IS_REMAPS_CORE_ACTIVE:
          return runloop_st->remaps_core_active;
       case RARCH_CTL_SET_REMAPS_GAME_ACTIVE:
-         runloop_st->remaps_game_active = true;
+         runloop_st->remaps_core_active        = false;
+         runloop_st->remaps_content_dir_active = false;
+         runloop_st->remaps_game_active        = true;
          break;
       case RARCH_CTL_IS_REMAPS_GAME_ACTIVE:
          return runloop_st->remaps_game_active;
       case RARCH_CTL_SET_REMAPS_CONTENT_DIR_ACTIVE:
+         runloop_st->remaps_core_active        = false;
          runloop_st->remaps_content_dir_active = true;
+         runloop_st->remaps_game_active        = false;
          break;
       case RARCH_CTL_IS_REMAPS_CONTENT_DIR_ACTIVE:
          return runloop_st->remaps_content_dir_active;
@@ -5783,7 +5865,7 @@ bool retroarch_override_setting_is_set(
             if (val)
             {
                unsigned                bit = *val;
-	       runloop_state_t *runloop_st = runloop_state_get_ptr();
+               runloop_state_t *runloop_st = runloop_state_get_ptr();
                return BIT256_GET(runloop_st->has_set_libretro_device, bit);
             }
          }
@@ -5983,9 +6065,10 @@ bool retroarch_main_quit(void)
       if (     runloop_st->remaps_core_active
             || runloop_st->remaps_content_dir_active
             || runloop_st->remaps_game_active
+            || !string_is_empty(runloop_st->name.remapfile)
          )
       {
-         input_remapping_deinit();
+         input_remapping_deinit(true);
          input_remapping_set_defaults(true);
       }
       else
@@ -6044,6 +6127,7 @@ enum retro_language rarch_get_language_from_iso(const char *iso639)
       {"id", RETRO_LANGUAGE_INDONESIAN},
       {"sv", RETRO_LANGUAGE_SWEDISH},
       {"uk", RETRO_LANGUAGE_UKRAINIAN},
+      {"cs", RETRO_LANGUAGE_CZECH},
    };
 
    if (string_is_empty(iso639))
@@ -6121,7 +6205,7 @@ bool accessibility_speak_priority(
             accessibility_enable,
             access_st->enabled))
    {
-      frontend_ctx_driver_t *frontend = 
+      frontend_ctx_driver_t *frontend =
          frontend_state_get_ptr()->current_frontend_ctx;
 
       RARCH_LOG("Spoke: %s\n", speak_text);

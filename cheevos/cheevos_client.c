@@ -643,7 +643,9 @@ static void rcheevos_async_login_callback(
       settings->arrays.cheevos_password[0] = '\0';
 
       CHEEVOS_LOG(RCHEEVOS_TAG "%s logged in successfully\n",
-            api_response.username);
+            api_response.display_name);
+      strlcpy(rcheevos_locals->displayname, api_response.display_name,
+            sizeof(rcheevos_locals->displayname));
       strlcpy(rcheevos_locals->username, api_response.username,
             sizeof(rcheevos_locals->username));
       strlcpy(rcheevos_locals->token, api_response.api_token,
@@ -746,7 +748,6 @@ void rcheevos_client_identify_game(const char* hash,
       request->callback      = callback;
       request->callback_data = userdata;
 
-      rcheevos_begin_load_state(RCHEEVOS_LOAD_STATE_IDENTIFYING_GAME);
       rcheevos_async_begin_request(request, result,
          rcheevos_async_resolve_hash_callback,
          CHEEVOS_ASYNC_RESOLVE_HASH, 0,
@@ -1746,6 +1747,9 @@ static void rcheevos_async_award_achievement_callback(
          CHEEVOS_LOG(RCHEEVOS_TAG "Achievement %u: %s\n",
                request->id, api_response.response.error_message);
       }
+
+      if (api_response.achievements_remaining == 0)
+         rcheevos_show_mastery_placard();
    }
 
    rc_api_destroy_award_achievement_response(&api_response);

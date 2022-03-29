@@ -83,6 +83,7 @@ enum menu_displaylist_ctl_state
    DISPLAYLIST_HORIZONTAL_CONTENT_ACTIONS,
    DISPLAYLIST_HISTORY,
    DISPLAYLIST_EXPLORE,
+   DISPLAYLIST_CONTENTLESS_CORES,
    DISPLAYLIST_FAVORITES,
    DISPLAYLIST_PLAYLIST,
    DISPLAYLIST_VIDEO_HISTORY,
@@ -102,6 +103,10 @@ enum menu_displaylist_ctl_state
    DISPLAYLIST_CORES_COLLECTION_SUPPORTED,
    DISPLAYLIST_CORES_UPDATER,
    DISPLAYLIST_CORE_MANAGER_LIST,
+#ifdef HAVE_MIST
+   DISPLAYLIST_CORE_MANAGER_STEAM_LIST,
+   DISPLAYLIST_CORE_INFORMATION_STEAM_LIST,
+#endif
    DISPLAYLIST_THUMBNAILS_UPDATER,
    DISPLAYLIST_PL_THUMBNAILS_UPDATER,
    DISPLAYLIST_LAKKA,
@@ -123,6 +128,7 @@ enum menu_displaylist_ctl_state
    DISPLAYLIST_AUDIO_FILTERS,
    DISPLAYLIST_VIDEO_FILTERS,
    DISPLAYLIST_CHEAT_FILES,
+   DISPLAYLIST_REMAP_FILE_MANAGER,
    DISPLAYLIST_REMAP_FILES,
    DISPLAYLIST_RECORD_CONFIG_FILES,
    DISPLAYLIST_STREAM_CONFIG_FILES,
@@ -344,6 +350,7 @@ bool menu_displaylist_has_subsystems(void);
 #if defined(HAVE_LIBRETRODB)
 unsigned menu_displaylist_explore(file_list_t *list, settings_t *settings);
 #endif
+unsigned menu_displaylist_contentless_cores(file_list_t *list, settings_t *settings);
 
 enum filebrowser_enums filebrowser_get_type(void);
 

@@ -13,15 +13,23 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  */
 
+// Needed for memfd_create
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE /* See feature_test_macros(7) */
+#endif
+
 #include <stdint.h>
 #include <string.h>
 
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/mman.h>
 #include <poll.h>
 #include <unistd.h>
 
 #include <string/stdstring.h>
 
-#ifdef HAVE_LIBDECOR
+#ifdef HAVE_LIBDECOR_H
 #include <libdecor.h>
 #endif
 
@@ -29,6 +37,17 @@
 
 #include "../input_keymaps.h"
 #include "../../frontend/frontend_driver.h"
+
+#define DND_ACTION WL_DATA_DEVICE_MANAGER_DND_ACTION_MOVE
+#define FILE_MIME "text/uri-list"
+#define TEXT_MIME "text/plain;charset=utf-8"
+#define PIPE_MS_TIMEOUT 10
+
+#define IOR_READ 0x1
+#define IOR_WRITE 0x2
+#define IOR_NO_RETRY 0x4
+
+#define SPLASH_SHM_NAME "retroarch-wayland-splash"
 
 static void keyboard_handle_keymap(void* data,
       struct wl_keyboard* keyboard,
@@ -225,11 +244,14 @@ static void pointer_handle_button(void *data,
 
             if (BIT_GET(wl->input.key_state, KEY_LEFTALT))
             {
-#ifdef HAVE_LIBDECOR
-               libdecor_frame_move(wl->libdecor_frame, wl->seat, serial);
-#else
-               xdg_toplevel_move(wl->xdg_toplevel, wl->seat, serial);
+#ifdef HAVE_LIBDECOR_H
+               if (wl->libdecor)
+                   wl->libdecor_frame_move(wl->libdecor_frame, wl->seat, serial);
+               else
 #endif
+               {
+                  xdg_toplevel_move(wl->xdg_toplevel, wl->seat, serial);
+               }
             }
             break;
          case BTN_RIGHT:
@@ -488,17 +510,10 @@ static void xdg_shell_ping(void *data, struct xdg_wm_base *shell, uint32_t seria
     xdg_wm_base_pong(shell, serial);
 }
 
-static void handle_surface_config(void *data, struct xdg_surface *surface,
+static void xdg_surface_handle_configure(void *data, struct xdg_surface *surface,
                                   uint32_t serial)
 {
     xdg_surface_ack_configure(surface, serial);
-}
-
-void handle_toplevel_close(void *data,
-      struct xdg_toplevel *xdg_toplevel)
-{
-	gfx_ctx_wayland_data_t *wl = (gfx_ctx_wayland_data_t*)data;
-	command_event(CMD_EVENT_QUIT, NULL);
 }
 
 static void display_handle_geometry(void *data,
@@ -513,6 +528,8 @@ static void display_handle_geometry(void *data,
    output_info_t *oi          = (output_info_t*)data;
    oi->physical_width         = physical_width;
    oi->physical_height        = physical_height;
+   oi->make                   = strdup(make);
+   oi->model                  = strdup(model);
 }
 
 static void display_handle_mode(void *data,
@@ -542,43 +559,66 @@ static void display_handle_scale(void *data,
    oi->scale = factor;
 }
 
+bool setup_data_device(gfx_ctx_wayland_data_t *wl)
+{
+   if (wl->data_device == NULL && wl->data_device_manager != NULL && wl->seat != NULL)
+   {
+      wl->data_device = wl_data_device_manager_get_data_device(wl->data_device_manager, wl->seat);
+      if (wl->data_device != NULL)
+      {
+         wl_data_device_add_listener(wl->data_device, &data_device_listener, wl);
+         return true;
+      }
+   }
+   return false;
+}
+
 /* Registry callbacks. */
 static void registry_handle_global(void *data, struct wl_registry *reg,
       uint32_t id, const char *interface, uint32_t version)
 {
    gfx_ctx_wayland_data_t *wl = (gfx_ctx_wayland_data_t*)data;
 
-   if (string_is_equal(interface, "wl_compositor"))
+   RARCH_DBG("[Wayland]: Add global %u, interface %s, version %u\n", id, interface, version);
+
+   if (string_is_equal(interface, wl_compositor_interface.name))
       wl->compositor = (struct wl_compositor*)wl_registry_bind(reg,
-            id, &wl_compositor_interface, 3);
-   else if (string_is_equal(interface, "wl_output"))
+            id, &wl_compositor_interface, MIN(version, 4));
+   else if (string_is_equal(interface, wl_output_interface.name))
    {
       output_info_t *oi = (output_info_t*)
          calloc(1, sizeof(output_info_t));
 
       oi->global_id     = id;
       oi->output        = (struct wl_output*)wl_registry_bind(reg,
-            id, &wl_output_interface, 2);
+            id, &wl_output_interface, MIN(version, 2));
       wl_output_add_listener(oi->output, &output_listener, oi);
       wl_list_insert(&wl->all_outputs, &oi->link);
       wl_display_roundtrip(wl->input.dpy);
    }
-   else if (string_is_equal(interface, "xdg_wm_base"))
+   else if (string_is_equal(interface, xdg_wm_base_interface.name))
       wl->xdg_shell = (struct xdg_wm_base*)
-         wl_registry_bind(reg, id, &xdg_wm_base_interface, 1);
-   else if (string_is_equal(interface, "wl_shm"))
-      wl->shm = (struct wl_shm*)wl_registry_bind(reg, id, &wl_shm_interface, 1);
-   else if (string_is_equal(interface, "wl_seat"))
+         wl_registry_bind(reg, id, &xdg_wm_base_interface, MIN(version, 3));
+   else if (string_is_equal(interface, wl_shm_interface.name))
+      wl->shm = (struct wl_shm*)wl_registry_bind(reg, id, &wl_shm_interface, MIN(version, 1));
+   else if (string_is_equal(interface, wl_seat_interface.name))
    {
-      wl->seat = (struct wl_seat*)wl_registry_bind(reg, id, &wl_seat_interface, 2);
+      wl->seat = (struct wl_seat*)wl_registry_bind(reg, id, &wl_seat_interface, MIN(version, 2));
       wl_seat_add_listener(wl->seat, &seat_listener, wl);
+      setup_data_device(wl);
    }
-   else if (string_is_equal(interface, "zwp_idle_inhibit_manager_v1"))
+   else if (string_is_equal(interface, wl_data_device_manager_interface.name))
+   {
+      wl->data_device_manager = (struct wl_data_device_manager*)wl_registry_bind(
+                                 reg, id, &wl_data_device_manager_interface, MIN(version, 3));
+      setup_data_device(wl);
+   }
+   else if (string_is_equal(interface, zwp_idle_inhibit_manager_v1_interface.name))
       wl->idle_inhibit_manager = (struct zwp_idle_inhibit_manager_v1*)wl_registry_bind(
-                                  reg, id, &zwp_idle_inhibit_manager_v1_interface, 1);
-   else if (string_is_equal(interface, "zxdg_decoration_manager_v1"))
+                                  reg, id, &zwp_idle_inhibit_manager_v1_interface, MIN(version, 1));
+   else if (string_is_equal(interface, zxdg_decoration_manager_v1_interface.name))
       wl->deco_manager = (struct zxdg_decoration_manager_v1*)wl_registry_bind(
-                                  reg, id, &zxdg_decoration_manager_v1_interface, 1);
+                                  reg, id, &zxdg_decoration_manager_v1_interface, MIN(version, 1));
 }
 
 static void registry_handle_global_remove(void *data,
@@ -598,6 +638,252 @@ static void registry_handle_global_remove(void *data,
    }
 }
 
+
+int ioready(int fd, int flags, int timeoutMS)
+{
+   int result;
+
+   do
+   {
+      struct pollfd info;
+      info.fd = fd;
+      info.events = 0;
+      if (flags & IOR_READ)
+         info.events |= POLLIN | POLLPRI;
+      if (flags & IOR_WRITE)
+         info.events |= POLLOUT;
+      result = poll(&info, 1, timeoutMS);
+   } while ( result < 0 && errno == EINTR && !(flags & IOR_NO_RETRY));
+
+   return result;
+}
+
+static ssize_t read_pipe(int fd, void** buffer, size_t* total_length, bool null_terminate)
+{
+   int ready = 0;
+   void* output_buffer = NULL;
+   char temp[PIPE_BUF];
+   size_t new_buffer_length = 0;
+   ssize_t bytes_read = 0;
+   size_t pos = 0;
+
+   ready = ioready(fd, IOR_READ, PIPE_MS_TIMEOUT);
+
+   if (ready == 0)
+   {
+      bytes_read = -1;
+      RARCH_WARN("[Wayland]: Pipe timeout\n");
+   }
+   else if (ready < 0)
+   {
+      bytes_read = -1;
+      RARCH_WARN("[Wayland]: Pipe select error");
+   }
+   else
+      bytes_read = read(fd, temp, sizeof(temp));
+
+   if (bytes_read > 0)
+   {
+      pos = *total_length;
+      *total_length += bytes_read;
+
+      if (null_terminate == true)
+         new_buffer_length = *total_length + 1;
+      else
+          new_buffer_length = *total_length;
+
+      if (*buffer == NULL)
+         output_buffer = malloc(new_buffer_length);
+      else
+         output_buffer = realloc(*buffer, new_buffer_length);
+      if (output_buffer == NULL)
+         RARCH_WARN("[Wayland]: Out of memory for pipe read\n");
+      else
+      {
+         memcpy((uint8_t*)output_buffer + pos, temp, bytes_read);
+
+         if (null_terminate == true)
+            memset((uint8_t*)output_buffer + (new_buffer_length - 1), 0, 1);
+
+         *buffer = output_buffer;
+      }
+   }
+
+   return bytes_read;
+}
+
+void* wayland_data_offer_receive(struct wl_display *display, struct wl_data_offer *offer, size_t *length,
+   const char* mime_type, bool null_terminate)
+{
+   int pipefd[2];
+   void *buffer = NULL;
+   *length = 0;
+
+   if (offer == NULL)
+      RARCH_WARN("[Wayland]: Invalid data offer\n");
+   else if (pipe2(pipefd, O_CLOEXEC|O_NONBLOCK) == -1)
+      RARCH_WARN("[Wayland]: Could not read pipe");
+   else
+   {
+      wl_data_offer_receive(offer, mime_type, pipefd[1]);
+
+      // Wait for sending client to transfer
+      wl_display_roundtrip(display);
+
+      close(pipefd[1]);
+
+      while (read_pipe(pipefd[0], &buffer, length, null_terminate) > 0);
+      close(pipefd[0]);
+   }
+   return buffer;
+}
+
+
+static void data_device_handle_data_offer(void *data,
+      struct wl_data_device *data_device, struct wl_data_offer *offer)
+{
+   data_offer_ctx *offer_data;
+
+   offer_data = calloc(1, sizeof *offer_data);
+   offer_data->offer = offer;
+   offer_data->data_device = data_device;
+   offer_data->dropped = false;
+
+   wl_data_offer_set_user_data(offer, offer_data);
+   wl_data_offer_add_listener(offer, &data_offer_listener, offer_data);
+}
+
+static void data_device_handle_enter(void *data,
+      struct wl_data_device *data_device, uint32_t serial,
+      struct wl_surface *surface, wl_fixed_t x, wl_fixed_t y,
+      struct wl_data_offer *offer)
+{
+   gfx_ctx_wayland_data_t *wl = (gfx_ctx_wayland_data_t*)data;
+
+   data_offer_ctx *offer_data;
+   enum wl_data_device_manager_dnd_action dnd_action = WL_DATA_DEVICE_MANAGER_DND_ACTION_NONE;
+
+   if (offer == NULL)
+      return;
+
+   offer_data = wl_data_offer_get_user_data(offer);
+   wl->current_drag_offer = offer_data;
+
+   wl_data_offer_accept(offer, serial,
+      offer_data->is_file_mime_type ? FILE_MIME : NULL);
+
+   if (offer_data->is_file_mime_type && offer_data->supported_actions & DND_ACTION)
+      dnd_action = DND_ACTION;
+
+   if (wl_data_offer_get_version(offer) >= WL_DATA_OFFER_SET_ACTIONS_SINCE_VERSION)
+     wl_data_offer_set_actions(offer, dnd_action, dnd_action);
+}
+
+static void data_device_handle_leave(void *data,
+      struct wl_data_device *data_device)
+{
+   gfx_ctx_wayland_data_t *wl = (gfx_ctx_wayland_data_t*)data;
+
+   data_offer_ctx *offer_data = wl->current_drag_offer;
+
+   if (offer_data != NULL && !offer_data->dropped)
+   {
+      wl->current_drag_offer = NULL;
+      wl_data_offer_destroy(offer_data->offer);
+      free(offer_data);
+   }
+}
+
+static void data_device_handle_motion(void *data,
+      struct wl_data_device *data_device, uint32_t time,
+      wl_fixed_t x, wl_fixed_t y) { }
+
+static void data_device_handle_drop(void *data,
+      struct wl_data_device *data_device)
+{
+   gfx_ctx_wayland_data_t *wl = (gfx_ctx_wayland_data_t*)data;
+
+   data_offer_ctx *offer_data = wl->current_drag_offer;
+
+   offer_data->dropped = true;
+
+   if (offer_data == NULL)
+      return;
+
+   int pipefd[2];
+   pipe(pipefd);
+   void *buffer;
+   size_t length;
+
+   buffer = wayland_data_offer_receive(wl->input.dpy, offer_data->offer, &length, FILE_MIME, false);
+
+   close(pipefd[1]);
+
+   size_t len = 0;
+   ssize_t read = 0;
+
+   char *line = NULL;
+
+   char file_list[512][512] = { 0 };
+   char file_list_i = 0;
+
+   close(pipefd[0]);
+
+   wl->current_drag_offer = NULL;
+   if (wl_data_offer_get_version(offer_data->offer) >= WL_DATA_OFFER_FINISH_SINCE_VERSION)
+      wl_data_offer_finish(offer_data->offer);
+   wl_data_offer_destroy(offer_data->offer);
+   free(offer_data);
+
+   FILE *stream = fmemopen(buffer, length, "r");
+
+   if (stream == NULL)
+   {
+      RARCH_WARN("[Wayland]: Failed to open DnD buffer\n");
+      return;
+   }
+
+   RARCH_WARN("[Wayland]: Files opp:\n");
+   while ((read = getline(&line,  &len, stream)) != -1)
+   {
+      line[strcspn(line, "\r\n")] = 0;
+      RARCH_LOG("[Wayland]: > \"%s\"\n", line);
+
+      // TODO: Convert from file:// URI, Implement file loading
+      //if (wayland_load_content_from_drop(g_filename_from_uri(line, NULL, NULL)))
+      //   RARCH_WARN("----- wayland_load_content_from_drop success\n");
+   }
+
+   fclose(stream);
+   free(buffer);
+}
+
+static void data_device_handle_selection(void *data,
+      struct wl_data_device *data_device, struct wl_data_offer *offer) { }
+
+
+static void data_offer_handle_offer(void *data, struct wl_data_offer *offer,
+      const char *mime_type)
+{
+   data_offer_ctx *offer_data = data;
+
+   // TODO: Keep list of mime types for offer if beneficial
+   if (string_is_equal(mime_type, FILE_MIME))
+      offer_data->is_file_mime_type = true;
+}
+
+static void data_offer_handle_source_actions(void *data,
+      struct wl_data_offer *offer, enum wl_data_device_manager_dnd_action actions)
+{
+   // Report of actions for this offer supported by compositor
+   data_offer_ctx *offer_data = data;
+   offer_data->supported_actions = actions;
+}
+
+static void data_offer_handle_action(void *data,
+      struct wl_data_offer *offer,
+      enum wl_data_device_manager_dnd_action dnd_action) { }
+
 const struct wl_registry_listener registry_listener = {
    registry_handle_global,
    registry_handle_global_remove,
@@ -616,7 +902,7 @@ const struct xdg_wm_base_listener xdg_shell_listener = {
 };
 
 const struct xdg_surface_listener xdg_surface_listener = {
-    handle_surface_config,
+    xdg_surface_handle_configure,
 };
 
 const struct wl_surface_listener wl_surface_listener = {
@@ -654,6 +940,21 @@ const struct wl_pointer_listener pointer_listener = {
    pointer_handle_axis,
 };
 
+const struct wl_data_device_listener data_device_listener = {
+   .data_offer = data_device_handle_data_offer,
+   .enter = data_device_handle_enter,
+   .leave = data_device_handle_leave,
+   .motion = data_device_handle_motion,
+   .drop = data_device_handle_drop,
+   .selection = data_device_handle_selection,
+};
+
+const struct wl_data_offer_listener data_offer_listener = {
+   .offer = data_offer_handle_offer,
+   .source_actions = data_offer_handle_source_actions,
+   .action = data_offer_handle_action,
+};
+
 void flush_wayland_fd(void *data)
 {
    struct pollfd fd = {0};
@@ -679,3 +980,5 @@ void flush_wayland_fd(void *data)
          wl_display_flush(wl->dpy);
    }
 }
+
+

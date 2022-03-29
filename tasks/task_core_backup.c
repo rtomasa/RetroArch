@@ -36,6 +36,10 @@
 #include "../core_info.h"
 #include "../core_backup.h"
 
+#if defined(RARCH_INTERNAL) && defined(HAVE_MENU)
+#include "../menu/menu_driver.h"
+#endif
+
 #if defined(ANDROID)
 #include "../play_feature_delivery/play_feature_delivery.h"
 #endif
@@ -649,6 +653,11 @@ static void cb_task_core_restore(
    /* Reload core info files
     * > This must be done on the main thread */
    command_event(CMD_EVENT_CORE_INFO_INIT, NULL);
+
+#if defined(RARCH_INTERNAL) && defined(HAVE_MENU)
+   /* Force reload of contentless cores icons */
+   menu_contentless_cores_free();
+#endif
 }
 
 static void task_core_restore_handler(retro_task_t *task)
@@ -929,7 +938,7 @@ bool task_push_core_restore(const char *backup_path, const char *dir_libretro,
    retro_task_t *task                  = NULL;
    core_backup_handle_t *backup_handle = NULL;
    char core_path[PATH_MAX_LENGTH];
-   char task_title[PATH_MAX_LENGTH];
+   char task_title[256];
 
    core_path[0]  = '\0';
    task_title[0] = '\0';

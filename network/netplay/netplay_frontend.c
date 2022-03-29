@@ -90,6 +90,10 @@
 #define HAVE_INET6 1
 #endif
 
+#ifdef GEKKO
+#define setsockopt net_setsockopt
+#endif
+
 #ifdef TCP_NODELAY
 #define SET_TCP_NODELAY(fd) \
    { \
@@ -6760,6 +6764,9 @@ netplay_t *netplay_new(const char *server, const char *mitm, uint16_t port,
    netplay->self_mode            = netplay->is_server ?
                                 NETPLAY_CONNECTION_SPECTATING :
                                 NETPLAY_CONNECTION_NONE;
+
+   if (netplay->stateless_mode)
+      netplay->quirks |= NETPLAY_QUIRK_NO_SAVESTATES;
 
    if (netplay->is_server)
    {

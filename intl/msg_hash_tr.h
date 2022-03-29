@@ -41,6 +41,10 @@ MSG_HASH(
    "Keşfet"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CONTENTLESS_CORES_TAB,
+   "Bağımsız Çekirdekler"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_ADD_TAB,
    "İçerik Aktar"
    )
@@ -278,6 +282,14 @@ MSG_HASH(
    MENU_ENUM_SUBLABEL_GOTO_EXPLORE,
    "Kategorize edilmiş bir arama arayüzü aracılığıyla veritabanı ile eşleşen tüm içeriğe göz atın."
    )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_GOTO_CONTENTLESS_CORES,
+   "Bağımsız Çekirdekler"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_GOTO_CONTENTLESS_CORES,
+   "İçerik yüklemeden çalışabilen kurulu çekirdekler burada görünecektir."
+   )
 
 /* Main Menu > Online Updater */
 
@@ -428,6 +440,10 @@ MSG_HASH(
    "Çekirdek Etiketi"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_CORE_VERSION,
+   "Çekirdek Sürüm"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_INFO_SYSTEM_NAME,
    "Sistem Adı"
    )
@@ -460,6 +476,26 @@ MSG_HASH(
    "Gerekli Grafik API"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_SUPPORT_LEVEL,
+   "Durum Kaydı Desteği"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_DISABLED,
+   "Yok"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_BASIC,
+   "Basit (Kaydet/Yükle)"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_SERIALIZED,
+   "Orta (Kaydet/Yükle, Geri Sar)"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_INFO_SAVESTATE_DETERMINISTIC,
+   "Ayrıntılı (Kaydet/Yükle, Geri Sar, Önden Git, Netplay)"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_INFO_FIRMWARE,
    "Ürün Yazılımı"
    )
@@ -486,6 +522,14 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_CORE_LOCK,
    "Kurulu olan çekirdeğin değiştirilmesini önle. İçerik belirli bir çekirdek sürüm gerektirdiğinde istenmeyen güncellemeleri önlemek için kullanılabilir (örn. Arcade ROM setleri)."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_SET_STANDALONE_EXEMPT,
+   "'Bağımsız Çekirdekler' Menüsü Üstünden Hariç Tut"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_CORE_SET_STANDALONE_EXEMPT,
+   "Bu çekirdeğin 'Bağımsız Çekirdekler' sekmesinde/menüsünde görüntülenmesini önleyin. Yalnızca görüntüleme kipi 'Özel' olarak ayarlandığında geçerlidir."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_DELETE,
@@ -795,10 +839,6 @@ MSG_HASH(
    "Netplay (Eşli Oynama) Desteği"
    )
 MSG_HASH(
-   MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_PYTHON_SUPPORT,
-   "Python (Gölgelendirici Komut Dosyası Desteği) Desteği"
-   )
-MSG_HASH(
    MENU_ENUM_LABEL_VALUE_SYSTEM_INFO_V4L2_SUPPORT,
    "Video4Linux2 Desteği"
    )
@@ -827,6 +867,74 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RDB_ENTRY_GENRE,
    "Tür"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_ACHIEVEMENTS,
+   "Başarımlar"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_CATEGORY,
+   "Kategori"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_LANGUAGE,
+   "Dil"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_REGION,
+   "Bölge"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_CONSOLE_EXCLUSIVE,
+   "Konsola özel"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_PLATFORM_EXCLUSIVE,
+   "Platforma özel"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_SCORE,
+   "Puan"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_MEDIA,
+   "Medya"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_CONTROLS,
+   "Kontrolcüler"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_ARTSTYLE,
+   "Sanat Tarzı"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_GAMEPLAY,
+   "Oynanış"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_NARRATIVE,
+   "Hikaye"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_PACING,
+   "İlerleyiş"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_PERSPECTIVE,
+   "Perspektif"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_SETTING,
+   "Ayar"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_VISUAL,
+   "Görsel"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RDB_ENTRY_VEHICULAR,
+   "Taşıtlar"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RDB_ENTRY_PUBLISHER,
@@ -1460,6 +1568,16 @@ MSG_HASH(
    MENU_ENUM_SUBLABEL_VIDEO_MONITOR_INDEX,
    "Hangi ekranın kullanılacağını seçer."
    )
+#if defined (WIIU)
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_WIIU_PREFER_DRC,
+   "Wii U GamePad için Düzenleyin (Yeniden Başlatılmalı)"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_VIDEO_WIIU_PREFER_DRC,
+   "Görünüm alanı olarak GamePad'in tam 2x ölçeğini kullanın. Yerel TV çözünürlüğünde görüntülemeyi devre dışı bırakın."
+   )
+#endif
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_VIDEO_ROTATION,
    "Videoyu Döndür"
@@ -2447,6 +2565,14 @@ MSG_HASH(
    "Basılı tutulduğunda ağır çekim sağlar. Anahtar bırakıldığında içerik normal hızda çalışır."
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_INPUT_META_VRR_RUNLOOP_TOGGLE,
+   "Tam İçerik Kare Hızına Eşitle (Aç/Kapa)"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_INPUT_META_VRR_RUNLOOP_TOGGLE,
+   "Tam içerik kare hızını eşitlemesini açar/kapatır."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_INPUT_META_LOAD_STATE_KEY,
    "Durum Yükle"
    )
@@ -2977,6 +3103,14 @@ MSG_HASH(
 /* Settings > Latency */
 
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RUN_AHEAD_UNSUPPORTED,
+   "[Önden-Git Kullanılamıyor]"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_RUN_AHEAD_UNSUPPORTED,
+   "Mevcut çekirdek, deterministik tasarruf durumu desteğinin olmaması nedeniyle önden git ile uyumlu değil."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RUN_AHEAD_ENABLED,
    "Gecikmeyi Azaltmak için Önden-Git"
    )
@@ -3089,7 +3223,51 @@ MSG_HASH(
    MENU_ENUM_SUBLABEL_CORE_MANAGER_LIST,
    "Kurulu çekirdeklerde (yedekleme, geri yükleme, silme vb.) Çevrimdışı bakım görevlerini gerçekleştirin ve temel bilgileri görüntüleyin."
    )
+#ifdef HAVE_MIST
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_MANAGER_STEAM_LIST,
+   "Çekirdekleri Yönet"
+   )
 
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_CORE_MANAGER_STEAM_LIST,
+   "Steam aracılığıyla dağıtılan çekirdekleri kurun veya kaldırın."
+   )
+
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_STEAM_INSTALL,
+   "Çekirdek kur"
+)
+
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CORE_STEAM_UNINSTALL,
+   "Çekirdek kaldır"
+)
+
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_MENU_SHOW_CORE_MANAGER_STEAM,
+   "'Çekirdekleri Yöneti' Göster"
+)
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_MENU_SHOW_CORE_MANAGER_STEAM,
+   "Ana Menüde 'Çekirdekleri Yönet' seçeneğini gösterin."
+)
+
+MSG_HASH(
+   MSG_CORE_STEAM_INSTALLING,
+   "Çekirdek kuruluyor: "
+)
+
+MSG_HASH(
+   MSG_CORE_STEAM_UNINSTALLED,
+   "RetroArch üstünden çıkarken çekirdek kaldırılacaktır."
+)
+
+MSG_HASH(
+   MSG_CORE_STEAM_CURRENTLY_DOWNLOADING,
+   "Çekirdek şu anda indiriliyor"
+)
+#endif
 /* Settings > Configuration */
 
 MSG_HASH(
@@ -3118,7 +3296,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_AUTO_REMAPS_ENABLE,
-   "Yeniden Haritalama Dosyalarını Otomatik Olarak Yükle"
+   "Yeniden Eşleşme Dosyalarını Otomatik Olarak Yükle"
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_AUTO_REMAPS_ENABLE,
@@ -4529,6 +4707,26 @@ MSG_HASH(
    "İçerik gezgini seçeneğini gösterin. (Ozon/XMB'de Yeniden Başlatılmalıdır)"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_CONTENT_SHOW_CONTENTLESS_CORES,
+   "'Bağımsız Çekirdekleri' Göster"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_CONTENT_SHOW_CONTENTLESS_CORES,
+   "'Bağımsız Çekirdekler' menüsünde gösterilecek çekirdek türünü (varsa) belirtin. 'Özel' olarak ayarlandığında, bireysel çekirdek görünürlüğü 'Çekirdekleri Yönet' menüsü aracılığıyla değiştirilebilir. (Ozone/XMB'de Yeniden Başlatılmalı)"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_SHOW_CONTENTLESS_CORES_ALL,
+   "Tümü"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_SHOW_CONTENTLESS_CORES_SINGLE_PURPOSE,
+   "Tek Kullanımlık"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_SHOW_CONTENTLESS_CORES_CUSTOM,
+   "Özel"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_TIMEDATE_ENABLE,
    "Tarih ve Saati Göster"
    )
@@ -5237,7 +5435,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_SUBLABEL_NETPLAY_CUSTOM_MITM_SERVER,
-   "Özel geçiş sunucunuzun adresini buraya girin. Biçim: adres veya adres|port"
+   "Özel geçiş sunucunuzun adresini buraya girin. Biçim: adres veya adres|port."
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_NETPLAY_IP_ADDRESS,
@@ -6351,12 +6549,80 @@ MSG_HASH(
    "Tür"
    )
 MSG_HASH(
-   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_ORIGIN,
-   "Menşei"
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_ACHIEVEMENTS,
+   "Başarılara Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_CATEGORY,
+   "Kategoriye Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_LANGUAGE,
+   "Dile Göre"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_EXPLORE_BY_REGION,
    "Bölge"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_CONSOLE_EXCLUSIVE,
+   "Konsola Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_PLATFORM_EXCLUSIVE,
+   "Platforma Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_RUMBLE,
+   "Titreşime Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_SCORE,
+   "Puana Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_MEDIA,
+   "Medyaya Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_CONTROLS,
+   "Kontrolcülere Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_ARTSTYLE,
+   "Sanat Tarzına Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_GAMEPLAY,
+   "Oynanışa Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_NARRATIVE,
+   "Hikayeye Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_PACING,
+   "İlerlemeye Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_PERSPECTIVE,
+   "Perspektife Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_SETTING,
+   "Ayara Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_VISUAL,
+   "Görsele Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_VEHICULAR,
+   "Taşıta Göre"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_EXPLORE_BY_ORIGIN,
+   "Menşei"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_EXPLORE_BY_FRANCHISE,
@@ -6702,6 +6968,21 @@ MSG_HASH(
 /* Quick Menu > Controls */
 
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_REMAP_FILE_MANAGER_LIST,
+   "Yeniden Eşleme Dosyaları Yönet"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_REMAP_FILE_MANAGER_LIST,
+   "Mevcut içerik için girdi yeniden eşleme dosyalarını yükleyin, kaydedin veya kaldırın."
+   )
+
+/* Quick Menu > Controls > Manage Remap Files */
+
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_REMAP_FILE_INFO,
+   "Etkin Yeniden Eşleme Dosyası:"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_REMAP_FILE_LOAD,
    "Yeniden Yapılandırma Dosyasını Yükle"
    )
@@ -6729,8 +7010,16 @@ MSG_HASH(
    MENU_ENUM_LABEL_VALUE_REMAP_FILE_REMOVE_GAME,
    "Oyun Yeniden Yapılandırma Dosyasını Sil"
    )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_REMAP_FILE_RESET,
+   "Giriş Eşlemesini Sıfırla"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_REMAP_FILE_RESET,
+   "Tüm giriş yeniden eşleme seçeneklerini varsayılan değerlere ayarlayın."
+   )
 
-/* Quick Menu > Controls > Load Remap File */
+/* Quick Menu > Controls > Manage Remap Files > Load Remap File */
 
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_REMAP_FILE,
@@ -8434,6 +8723,18 @@ MSG_HASH(
    "Tango Açık"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RGUI_MENU_COLOR_THEME_DYNAMIC,
+   "Dinamik"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RGUI_MENU_COLOR_THEME_GRAY_DARK,
+   "Koyu Gri"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_RGUI_MENU_COLOR_THEME_GRAY_LIGHT,
+   "Açık Gri"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_RGUI_PARTICLE_EFFECT_NONE,
    "KAPALI"
    )
@@ -8591,6 +8892,10 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MENU_XMB_VERTICAL_FADE_FACTOR,
    "Dikey Solma Etkeni"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_MENU_XMB_TITLE_MARGIN,
+   "Başlık Payı"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_XMB_MAIN_MENU_ENABLE_SETTINGS,
@@ -8827,6 +9132,14 @@ MSG_HASH(
    "Solarize Açık"
    )
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_OZONE_COLOR_THEME_GRAY_DARK,
+   "Koyu Gri"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_OZONE_COLOR_THEME_GRAY_LIGHT,
+   "Açık Gri"
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_LEFT_THUMBNAILS_OZONE,
    "İkinci Küçük Resim"
    )
@@ -8841,6 +9154,14 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_OZONE_SCROLL_CONTENT_METADATA,
    "Etkinleştirildiğinde, çalma listelerinin sağ kenar çubuğunda gösterilen içerik meta verilerinin her bir maddesi (ilişkili çekirdek, çalma süresi) tek bir satır kaplar; Kenar çubuğunun genişliğini aşan dizeler kayan yazı metni olarak görüntülenir. Devre dışı bırakıldığında, içerik meta verilerinin her bir öğesi, gerektiği kadar satır tutacak şekilde kaydırılarak statik olarak görüntülenir."
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_OZONE_THUMBNAIL_SCALE_FACTOR,
+   "Küçük Resim Ölçek Etkeni"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_OZONE_THUMBNAIL_SCALE_FACTOR,
+   "Küçük resim çubuğunun boyutunu ölçeklendirin."
    )
 
 /* MaterialUI: Settings > User Interface > Appearance */
@@ -9035,6 +9356,14 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MATERIALUI_MENU_COLOR_THEME_HACKING_THE_KERNEL,
    "Kırık Çekirdek"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_MATERIALUI_MENU_COLOR_THEME_GRAY_DARK,
+   "Koyu Gri"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_MATERIALUI_MENU_COLOR_THEME_GRAY_LIGHT,
+   "Açık Gri"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_MATERIALUI_MENU_TRANSITION_ANIM_AUTO,
@@ -10054,59 +10383,59 @@ MSG_HASH(
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_DEVELOPER,
-   "Veritabanı - Filtre : Geliştirici"
+   "Veritabanı - Filtre: Geliştirici"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_PUBLISHER,
-   "Veritabanı - Filtre : Dağıtıcı"
+   "Veritabanı - Filtre: Dağıtıcı"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_ORIGIN,
-   "Veritabanı - Filtre : Köken"
+   "Veritabanı - Filtre: Köken"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_FRANCHISE,
-   "Veritabanı - Filtre : İmtiyaz"
+   "Veritabanı - Filtre: İmtiyaz"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_ESRB_RATING,
-   "Veritabanı - Filtre : ESRB Değerlendirmesi"
+   "Veritabanı - Filtre: ESRB Değerlendirmesi"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_ELSPA_RATING,
-   "Veritabanı - Filtre : ELSPA Değerlendirmesi"
+   "Veritabanı - Filtre: ELSPA Değerlendirmesi"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_PEGI_RATING,
-   "Veritabanı - Filtre : PEGI Değerlendirmesi"
+   "Veritabanı - Filtre: PEGI Değerlendirmesi"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_CERO_RATING,
-   "Veritabanı - Filtre : CERO Değerlendirmesi"
+   "Veritabanı - Filtre: CERO Değerlendirmesi"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_BBFC_RATING,
-   "Veritabanı - Filtre : BBFC Değerlendirmesi"
+   "Veritabanı - Filtre: BBFC Değerlendirmesi"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_MAX_USERS,
-   "Veritabanı - Filtre : Azami Kullanıcı"
+   "Veritabanı - Filtre: Azami Kullanıcı"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_RELEASEDATE_BY_MONTH,
-   "Veritabanı - Filtre : Aylık Yayın Tarihi"
+   "Veritabanı - Filtre: Aylık Yayın Tarihi"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_RELEASEDATE_BY_YEAR,
-   "Veritabanı - Filtre : Yıla Göre Yayın Tarihi"
+   "Veritabanı - Filtre: Yıla Göre Yayın Tarihi"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_EDGE_MAGAZINE_ISSUE,
-   "Veritabanı - Filtre : Edge Dergisi Sayısı"
+   "Veritabanı - Filtre: Edge Dergisi Sayısı"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_EDGE_MAGAZINE_RATING,
-   "Veritabanı - Filtre : Edge Dergisi Değerlendirmesi"
+   "Veritabanı - Filtre: Edge Dergisi Değerlendirmesi"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_DATABASE_CURSOR_LIST_ENTRY_DATABASE_INFO,
@@ -10292,7 +10621,7 @@ MSG_HASH(
    )
 MSG_HASH(
    MSG_UPNP_FAILED,
-   "Netplay UPNP Port Eşlemesi Başarısız"
+   "Netplay UPnP Port Eşlemesi Başarısız"
    )
 MSG_HASH(
    MSG_NO_ARGUMENTS_SUPPLIED_AND_NO_MENU_BUILTIN,
@@ -11187,6 +11516,10 @@ MSG_HASH(
    "Yeniden yapılandırma dosyası başarıyla kaldırıldı."
    )
 MSG_HASH(
+   MSG_REMAP_FILE_RESET,
+   "Tüm giriş yeniden eşleme seçenekleri varsayılana sıfırlanır."
+   )
+MSG_HASH(
    MSG_REMOVED_DISK_FROM_TRAY,
    "Disk tepsiden kaldırıldı."
    )
@@ -11221,6 +11554,10 @@ MSG_HASH(
 MSG_HASH(
    MSG_REWINDING,
    "Geri sarılıyor."
+   )
+MSG_HASH(
+   MSG_REWIND_UNSUPPORTED,
+   "Bu çekirdekte serileştirilmiş durum kaydı desteği bulunmadığından geri sarma kullanılamıyor."
    )
 MSG_HASH(
    MSG_REWIND_INIT,
@@ -11531,6 +11868,10 @@ MSG_HASH(
    "Önden-Git devre dışı bırakıldı, bu çekirdek durum kayıtlarını desteklemiyor."
    )
 MSG_HASH(
+   MSG_RUNAHEAD_CORE_DOES_NOT_SUPPORT_RUNAHEAD,
+   "Bu çekirdek deterministik kaydetme durumu desteğine sahip olmadığı için önden git kullanılamıyor."
+   )
+MSG_HASH(
    MSG_RUNAHEAD_FAILED_TO_SAVE_STATE,
    "Durum kaydedilemedi. Önden-Git devre dışı bırakıldı."
    )
@@ -11657,6 +11998,14 @@ MSG_HASH(
 MSG_HASH(
    MSG_CHEEVOS_HARDCORE_MODE_DISABLED_CHEAT,
    "Bir hile etkinleştirildi. Başarılar mevcut oturum için Zorlu Kip devre dışı bırakıldı."
+   )
+MSG_HASH(
+   MSG_CHEEVOS_MASTERED_GAME,
+   "Ustalıkla %s"
+   )
+MSG_HASH(
+   MSG_CHEEVOS_COMPLETED_GAME,
+   "Tamamlandı %s"
    )
 MSG_HASH(
    MSG_RESAMPLER_QUALITY_LOWEST,
@@ -11835,6 +12184,14 @@ MSG_HASH(
    "Çekirdek kilidi açılamadı: "
    )
 MSG_HASH(
+   MSG_CORE_SET_STANDALONE_EXEMPT_FAILED,
+   "Çekirdek \"Bağımsız Çekirdekler\" listesinden kaldırılamadı: "
+   )
+MSG_HASH(
+   MSG_CORE_UNSET_STANDALONE_EXEMPT_FAILED,
+   "'Bağımsız Çekirdekler' listesine çekirdek eklenemedi: "
+   )
+MSG_HASH(
    MSG_CORE_DELETE_DISABLED,
    "Çekirdek silme devre dışı - çekirdek kilitli: "
    )
@@ -11861,6 +12218,14 @@ MSG_HASH(
 MSG_HASH(
    MSG_FAILED_TO_ENTER_GAMEMODE_LINUX,
    "OyunKipine girilemedi - OyunKipi arka plan programının kurulu olduğundan/çalıştığından emin olun"
+   )
+MSG_HASH(
+   MSG_VRR_RUNLOOP_ENABLED,
+   "Tam içerik kare hızına eşitleme etkinleştirildi."
+   )
+MSG_HASH(
+   MSG_VRR_RUNLOOP_DISABLED,
+   "Tam içerik kare hızına eşitleme devre dışı bırakıldı."
    )
 
 /* Lakka */
@@ -12342,6 +12707,14 @@ MSG_HASH(
 #endif
 #if defined(_3DS)
 MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_NEW3DS_SPEEDUP_ENABLE,
+   "New3DS Saat Hızı / L2 Önbellek Etkin"
+   )
+MSG_HASH(
+   MENU_ENUM_SUBLABEL_NEW3DS_SPEEDUP_ENABLE,
+   "New3DS saat hızı (804MHz) ve L2 önbelleği etkinleştirir."
+   )
+MSG_HASH(
    MENU_ENUM_LABEL_VALUE_VIDEO_3DS_LCD_BOTTOM,
    "3DS Alt Ekran"
    )
@@ -12408,3 +12781,11 @@ MSG_HASH(
    "Tarama Tamamlandı.<br><br>\nİçeriğin doğru bir şekilde taranabilmesi için şunları yapmanız gerekir:\n<ul><li>önceden indirilmiş uyumlu bir çekirdeğe sahip olmak</li>\n<li>\"Temel Bilgi Dosyaları\" nı Çevrimiçi Güncelleyici aracılığıyla güncelle</li>\n<li>\"Veritabanları\" nı Çevrimiçi Güncelleyici aracılığıyla güncelle</li>\n<li>Yukarıdakilerden biri yeni yapılmışsa RetroArch'ı yeniden başlat</li></ul>\nSon olarak, içeriğin mevcut veritabanlarıyla eşleşmesi gerekir <a href=\"https://docs.libretro.com/guides/roms-playlists-thumbnails/#sources\">burdan</a>. Hala çalışmıyorsa, düşünün <a href=\"https://www.github.com/libretro/RetroArch/issues\">hata raporu gönder</a>."
    )
 #endif
+MSG_HASH(
+   MSG_IOS_TOUCH_MOUSE_ENABLED,
+   "Dokunmatik fare etkin"
+   )
+MSG_HASH(
+   MSG_IOS_TOUCH_MOUSE_DISABLED,
+   "Dokunmatik fare devre dışı"
+   )

@@ -80,6 +80,10 @@
 #include "../switch_performance_profiles.h"
 #endif
 
+#ifdef HAVE_MIST
+#include "../steam/steam.h"
+#endif
+
 #ifdef HAVE_LIBNX
 #define LIBNX_SWKBD_LIMIT 500 /* enforced by HOS */
 
@@ -1309,6 +1313,7 @@ void menu_list_flush_stack(
    file_list_t *menu_list      = MENU_LIST_GET(list, (unsigned)idx);
 
    menu_entries_ctl(MENU_ENTRIES_CTL_SET_REFRESH, &refresh);
+   menu_contentless_cores_flush_runtime();
 
    if (menu_list && menu_list->size)
       file_list_get_at_offset(menu_list, menu_list->size - 1, &path, &label, &type, &entry_idx);
@@ -2334,6 +2339,11 @@ static bool menu_driver_displaylist_push_internal(
          return true;
    }
 #endif
+   else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_CONTENTLESS_CORES_TAB)))
+   {
+      if (menu_displaylist_ctl(DISPLAYLIST_CONTENTLESS_CORES, info, settings))
+         return true;
+   }
    else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_NETPLAY_TAB)))
    {
       if (menu_displaylist_ctl(DISPLAYLIST_NETPLAY_ROOM_LIST, info, settings))
@@ -3802,9 +3812,9 @@ bool menu_shader_manager_save_preset_internal(
             shader, save_reference);
 
       if (ret)
-         RARCH_LOG("[Shaders - Save Preset]: Saved shader preset to %s.\n", preset_path);
+         RARCH_LOG("[Shaders]: Saved shader preset to \"%s\".\n", preset_path);
       else
-         RARCH_ERR("[Shaders - Save Preset]: Failed writing shader preset to %s.\n", preset_path);
+         RARCH_ERR("[Shaders]: Failed writing shader preset to \"%s\".\n", preset_path);
    }
    else
    {
@@ -3827,7 +3837,7 @@ bool menu_shader_manager_save_preset_internal(
 
             if (!ret)
             {
-               RARCH_WARN("[Shaders - Save Preset]: Failed to create preset directory %s.\n", basedir);
+               RARCH_WARN("[Shaders]: Failed to create preset directory \"%s\".\n", basedir);
                continue;
             }
          }
@@ -3840,16 +3850,16 @@ bool menu_shader_manager_save_preset_internal(
 
          if (ret)
          {
-            RARCH_LOG("[Shaders - Save Preset]: Saved shader preset to %s.\n", preset_path);
+            RARCH_LOG("[Shaders]: Saved shader preset to \"%s\".\n", preset_path);
             break;
          }
          else
-            RARCH_WARN("[Shaders - Save Preset]: Failed writing shader preset to %s.\n", preset_path);
+            RARCH_WARN("[Shaders]: Failed writing shader preset to \"%s\".\n", preset_path);
       }
 
       if (!ret)
-         RARCH_ERR("[Shaders - Save Preset]: Failed to write shader preset. Make sure shader directory"
-               " and/or config directory are writable.\n");
+         RARCH_ERR("[Shaders]: Failed to write shader preset. Make sure shader directory "
+               "and/or config directory are writable.\n");
    }
 
    if (ret && apply)
@@ -3876,11 +3886,18 @@ bool menu_shader_manager_operate_auto_preset(
       RARCH_SHADER_GLSL, RARCH_SHADER_SLANG, RARCH_SHADER_CG
    };
    const char *core_name            = system ? system->library_name : NULL;
+   const char *rarch_path_basename  = path_get(RARCH_PATH_BASENAME);
    const char *auto_preset_dirs[3]  = {0};
+   bool has_content                 = !string_is_empty(rarch_path_basename);
 
    old_presets_directory[0] = config_directory[0] = tmp[0] = file[0] = '\0';
 
    if (type != SHADER_PRESET_GLOBAL && string_is_empty(core_name))
+      return false;
+
+   if (!has_content &&
+       ((type == SHADER_PRESET_GAME) ||
+            (type == SHADER_PRESET_PARENT)))
       return false;
 
    if (!path_is_empty(RARCH_PATH_CONFIG))
@@ -3912,13 +3929,12 @@ bool menu_shader_manager_operate_auto_preset(
          break;
       case SHADER_PRESET_PARENT:
          fill_pathname_parent_dir_name(tmp,
-               path_get(RARCH_PATH_BASENAME), sizeof(tmp));
+               rarch_path_basename, sizeof(tmp));
          fill_pathname_join(file, core_name, tmp, sizeof(file));
          break;
       case SHADER_PRESET_GAME:
          {
-            const char *game_name =
-               path_basename(path_get(RARCH_PATH_BASENAME));
+            const char *game_name = path_basename(rarch_path_basename);
             if (string_is_empty(game_name))
                return false;
             fill_pathname_join(file, core_name, game_name, sizeof(file));
@@ -4155,6 +4171,9 @@ int menu_driver_deferred_push_content_list(file_list_t *list)
    file_list_t *selection_buf     = MENU_LIST_GET_SELECTION(menu_list, (unsigned)0);
 
    menu_st->selection_ptr         = 0;
+   menu_st->contentless_core_ptr  = 0;
+
+   menu_contentless_cores_flush_runtime();
 
    if (!menu_driver_displaylist_push(
             menu_st,
@@ -4518,6 +4537,7 @@ bool menu_entries_append_enum(
    if (   enum_idx != MENU_ENUM_LABEL_PLAYLIST_ENTRY
        && enum_idx != MENU_ENUM_LABEL_PLAYLIST_COLLECTION_ENTRY
        && enum_idx != MENU_ENUM_LABEL_EXPLORE_ITEM
+       && enum_idx != MENU_ENUM_LABEL_CONTENTLESS_CORE
        && enum_idx != MENU_ENUM_LABEL_RDB_ENTRY)
       cbs->setting                 = menu_setting_find_enum(enum_idx);
 
@@ -5262,9 +5282,8 @@ bool menu_driver_init(bool video_is_threaded)
 const char *menu_driver_ident(void)
 {
    struct menu_state    *menu_st  = &menu_driver_state;
-   if (menu_st->alive)
-      if (menu_st->driver_ctx && menu_st->driver_ctx->ident)
-         return menu_st->driver_ctx->ident;
+   if (menu_st->driver_ctx && menu_st->driver_ctx->ident)
+      return menu_st->driver_ctx->ident;
    return NULL;
 }
 
@@ -5282,7 +5301,7 @@ const menu_ctx_driver_t *menu_driver_find_driver(
    if (verbosity_enabled)
    {
       unsigned d;
-      RARCH_WARN("Couldn't find any %s named \"%s\"\n", prefix,
+      RARCH_WARN("Couldn't find any %s named \"%s\".\n", prefix,
             settings->arrays.menu_driver);
       RARCH_LOG_OUTPUT("Available %ss are:\n", prefix);
       for (d = 0; menu_ctx_drivers[d]; d++)
@@ -5292,7 +5311,7 @@ const menu_ctx_driver_t *menu_driver_find_driver(
             RARCH_LOG_OUTPUT("\t%s\n", menu_ctx_drivers[d]->ident);
          }
       }
-      RARCH_WARN("Going to default to first %s...\n", prefix);
+      RARCH_WARN("Going to default to first %s..\n", prefix);
    }
 
    return (const menu_ctx_driver_t*)menu_ctx_drivers[0];
@@ -5919,6 +5938,11 @@ unsigned menu_event(
 
    if (display_kb)
    {
+#ifdef HAVE_MIST
+      /* Do not process input events if the Steam OSK is open */
+      if (!steam_has_osk_open())
+      {
+#endif
       bool show_osk_symbols = input_event_osk_show_symbol_pages(menu_st->driver_data);
 
       input_event_osk_iterate(input_st->osk_grid, input_st->osk_idx);
@@ -5995,6 +6019,10 @@ unsigned menu_event(
       /* send return key to close keyboard input window */
       if (BIT256_GET_PTR(p_trigger_input, RETRO_DEVICE_ID_JOYPAD_START))
          input_keyboard_event(true, '\n', '\n', 0, RETRO_DEVICE_KEYBOARD);
+
+#ifdef HAVE_MIST
+      }
+#endif
 
       BIT256_CLEAR_ALL_PTR(p_trigger_input);
    }
@@ -6389,6 +6417,11 @@ static int menu_input_pointer_post_iterate(
          /* On screen keyboard overrides normal menu input... */
          if (osk_active)
          {
+#ifdef HAVE_MIST
+         /* Disable OSK pointer input if the Steam OSK is used */
+         if (!steam_has_osk_open())
+         {
+#endif
             /* If pointer has been 'dragged', then it counts as
              * a miss. Only register 'release' event if pointer
              * has remained stationary */
@@ -6410,6 +6443,9 @@ static int menu_input_pointer_post_iterate(
                         input_st->osk_grid[input_st->osk_ptr]);
                }
             }
+#ifdef HAVE_MIST
+            }
+#endif
          }
          /* Message boxes override normal menu input...
           * > If a message box is shown, any kind of pointer
@@ -6974,8 +7010,12 @@ bool menu_driver_ctl(enum rarch_menu_ctl_state state, void *data)
    switch (state)
    {
       case RARCH_MENU_CTL_SET_PENDING_QUICK_MENU:
-         menu_entries_flush_stack(NULL, MENU_SETTINGS);
-         menu_st->pending_quick_menu = true;
+         {
+            bool flush_stack = !data ? true : *((bool *)data);
+            if (flush_stack)
+               menu_entries_flush_stack(NULL, MENU_SETTINGS);
+            menu_st->pending_quick_menu = true;
+         }
          break;
       case RARCH_MENU_CTL_SET_PREVENT_POPULATE:
          menu_st->prevent_populate = true;
@@ -7000,21 +7040,27 @@ bool menu_driver_ctl(enum rarch_menu_ctl_state state, void *data)
 #ifdef HAVE_NETWORKING
          core_updater_list_free_cached();
 #endif
-#if defined(HAVE_MENU) && defined(HAVE_LIBRETRODB)
+#if defined(HAVE_MENU)
+#if defined(HAVE_LIBRETRODB)
          /* Before freeing the explore menu, we
           * must wait for any explore menu initialisation
           * tasks to complete */
          menu_explore_wait_for_init_task();
          menu_explore_free();
 #endif
+         menu_contentless_cores_free();
+#endif
 
          if (menu_st->driver_data)
          {
             unsigned i;
 
-            menu_st->scroll.acceleration = 0;
-            menu_st->selection_ptr       = 0;
-            menu_st->scroll.index_size   = 0;
+            menu_st->scroll.acceleration  = 0;
+            menu_st->selection_ptr        = 0;
+            menu_st->contentless_core_ptr = 0;
+            menu_st->scroll.index_size    = 0;
+
+            menu_contentless_cores_flush_runtime();
 
             for (i = 0; i < SCROLL_INDEX_SIZE; i++)
                menu_st->scroll.index_list[i] = 0;
@@ -7348,7 +7394,7 @@ bool menu_shader_manager_set_preset(struct video_shader *shader,
          !(video_shader_load_preset_into_shader(preset_path, shader)))
       goto end;
 
-   RARCH_LOG("[Shaders]: Menu shader set to: %s.\n", preset_path);
+   RARCH_LOG("[Shaders]: Menu shader set to: \"%s\".\n", preset_path);
 
    ret = true;
 
@@ -7517,6 +7563,7 @@ static int generic_menu_iterate(
                      break;
 #endif
                   case MENU_ENUM_LABEL_CORE_MANAGER_ENTRY:
+                  case MENU_ENUM_LABEL_CONTENTLESS_CORE:
                      {
                         core_info_t *core_info = NULL;
                         const char *path       = selection_buf->list[selection].path;
@@ -8014,23 +8061,73 @@ int generic_menu_entry_action(
    }
 #endif
 
-   if (menu_st->pending_close_content)
+   if (menu_st->pending_close_content ||
+       menu_st->pending_env_shutdown_flush)
    {
-      const char *content_path  = path_get(RARCH_PATH_CONTENT);
-      const char *menu_flush_to = msg_hash_to_str(MENU_ENUM_LABEL_MAIN_MENU);
+      const char *content_path  = menu_st->pending_env_shutdown_flush ?
+            menu_st->pending_env_shutdown_content_path :
+            path_get(RARCH_PATH_CONTENT);
+      const char *deferred_path = menu ? menu->deferred_path : NULL;
+      const char *flush_target  = msg_hash_to_str(MENU_ENUM_LABEL_MAIN_MENU);
+      size_t stack_offset       = 1;
+      bool reset_navigation     = true;
 
-      /* Flush to playlist entry menu if launched via playlist */
-      if (menu &&
-          !string_is_empty(menu->deferred_path) &&
-          !string_is_empty(content_path) &&
-          string_is_equal(menu->deferred_path, content_path))
-         menu_flush_to = msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_RPL_ENTRY_ACTIONS);
+      /* Loop backwards through the menu stack to
+       * find a known reference point */
+      while (menu_stack && (menu_stack->size >= stack_offset))
+      {
+         const char *parent_label = NULL;
 
-      command_event(CMD_EVENT_UNLOAD_CORE, NULL);
-      menu_entries_flush_stack(menu_flush_to, 0);
+         file_list_get_at_offset(menu_stack,
+               menu_stack->size - stack_offset,
+               NULL, &parent_label, NULL, NULL);
+
+         if (string_is_empty(parent_label))
+            continue;
+
+         /* If core was launched via a playlist, flush
+          * to playlist entry menu */
+         if (string_is_equal(parent_label,
+                  msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_RPL_ENTRY_ACTIONS)) &&
+             (!string_is_empty(deferred_path) &&
+              !string_is_empty(content_path) &&
+              string_is_equal(deferred_path, content_path)))
+         {
+            flush_target = msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_RPL_ENTRY_ACTIONS);
+            break;
+         }
+         /* If core was launched via standalone cores menu,
+          * flush to standalone cores menu */
+         else if (string_is_equal(parent_label,
+                        msg_hash_to_str(MENU_ENUM_LABEL_CONTENTLESS_CORES_TAB)) ||
+                  string_is_equal(parent_label,
+                        msg_hash_to_str(MENU_ENUM_LABEL_DEFERRED_CONTENTLESS_CORES_LIST)))
+         {
+            flush_target     = parent_label;
+            reset_navigation = false;
+            break;
+         }
+
+         stack_offset++;
+      }
+
+      if (!menu_st->pending_env_shutdown_flush)
+         command_event(CMD_EVENT_UNLOAD_CORE, NULL);
+
+      menu_entries_flush_stack(flush_target, 0);
+      /* An annoyance - some menu drivers (Ozone...) call
+       * RARCH_MENU_CTL_SET_PREVENT_POPULATE in awkward
+       * places, which can cause breakage here when flushing
+       * the menu stack. We therefore have to force a
+       * RARCH_MENU_CTL_UNSET_PREVENT_POPULATE */
       menu_driver_ctl(RARCH_MENU_CTL_UNSET_PREVENT_POPULATE, NULL);
-      menu_st->selection_ptr         = 0;
-      menu_st->pending_close_content = false;
+
+      if (reset_navigation)
+         menu_st->selection_ptr = 0;
+
+      menu_st->pending_close_content                = false;
+      menu_st->pending_env_shutdown_flush           = false;
+      menu_st->pending_env_shutdown_content_path[0] = '\0';
    }
 
    return ret;
@@ -8072,6 +8169,9 @@ bool menu_input_dialog_start_search(void)
    if (!menu)
       return false;
 
+#ifdef HAVE_MIST
+   steam_open_osk();
+#endif
    menu_st->input_dialog_kb_display = true;
    strlcpy(menu_st->input_dialog_kb_label,
          msg_hash_to_str(MENU_ENUM_LABEL_VALUE_SEARCH),
@@ -8120,6 +8220,9 @@ bool menu_input_dialog_start(menu_input_ctx_line_t *line)
    if (!line || !menu)
       return false;
 
+#ifdef HAVE_MIST
+   steam_open_osk();
+#endif
    menu_st->input_dialog_kb_display = true;
 
    /* Only copy over the menu label and setting if they exist. */

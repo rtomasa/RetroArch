@@ -95,6 +95,111 @@ static int menu_action_sublabel_file_browser_core(file_list_t *list, unsigned ty
    return 1;
 }
 
+static int menu_action_sublabel_contentless_core(file_list_t *list,
+      unsigned type, unsigned i, const char *label, const char *path, char *s, size_t len)
+{
+   const char *core_path                      = path;
+   core_info_t *core_info                     = NULL;
+   const contentless_core_info_entry_t *entry = NULL;
+   const char *menu_ident                     = menu_driver_ident();
+   bool display_licenses                      = true;
+   bool display_runtime                       = true;
+   settings_t *settings                       = config_get_ptr();
+   bool playlist_show_sublabels               = settings->bools.playlist_show_sublabels;
+   unsigned playlist_sublabel_runtime_type    = settings->uints.playlist_sublabel_runtime_type;
+   bool content_runtime_log                   = settings->bools.content_runtime_log;
+   bool content_runtime_log_aggregate         = settings->bools.content_runtime_log_aggregate;
+   const char *directory_runtime_log          = settings->paths.directory_runtime_log;
+   const char *directory_playlist             = settings->paths.directory_playlist;
+   enum playlist_sublabel_last_played_style_type
+         playlist_sublabel_last_played_style  =
+               (enum playlist_sublabel_last_played_style_type)
+                     settings->uints.playlist_sublabel_last_played_style;
+   enum playlist_sublabel_last_played_date_separator_type
+         menu_timedate_date_separator         =
+               (enum playlist_sublabel_last_played_date_separator_type)
+                     settings->uints.menu_timedate_date_separator;
+
+   if (!playlist_show_sublabels)
+      return 0;
+
+   /* Search for specified core */
+   if (!core_info_find(core_path, &core_info) ||
+       !core_info->supports_no_game)
+      return 1;
+
+   /* Get corresponding contentless core info entry */
+   menu_contentless_cores_get_info(core_info->core_file_id.str,
+         &entry);
+
+   if (!entry)
+      return 1;
+
+   /* Determine which info we need to display */
+
+   /* > Runtime info is always omitted when using Ozone
+    * > Check if required runtime log is enabled */
+   if (((playlist_sublabel_runtime_type == PLAYLIST_RUNTIME_PER_CORE) &&
+         !content_runtime_log) ||
+       ((playlist_sublabel_runtime_type == PLAYLIST_RUNTIME_AGGREGATE) &&
+         !content_runtime_log_aggregate) ||
+       string_is_equal(menu_ident, "ozone"))
+      display_runtime = false;
+
+   /* > License info is always displayed unless
+    *   we are using GLUI with runtime info enabled */
+   if (display_runtime && string_is_equal(menu_ident, "glui"))
+      display_licenses = false;
+
+   if (display_licenses)
+      strlcpy(s, entry->licenses_str, len);
+
+   if (display_runtime)
+   {
+      /* Check whether runtime info should be loaded
+       * from log file */
+      if (entry->runtime.status == CONTENTLESS_CORE_RUNTIME_UNKNOWN)
+         runtime_update_contentless_core(
+               core_path,
+               directory_runtime_log,
+               directory_playlist,
+               (playlist_sublabel_runtime_type == PLAYLIST_RUNTIME_PER_CORE),
+               playlist_sublabel_last_played_style,
+               menu_timedate_date_separator);
+
+      /* Check whether runtime info is valid */
+      if (entry->runtime.status == CONTENTLESS_CORE_RUNTIME_VALID)
+      {
+         size_t n = 0;
+         char tmp[64];
+
+         tmp[0] = '\0';
+
+         if (display_licenses)
+         {
+            tmp[0  ] = '\n';
+            tmp[1  ] = '\0';
+         }
+         n           = strlcat(tmp, entry->runtime.runtime_str, sizeof(tmp));
+
+         if (n < 64 - 1)
+         {
+            tmp[n  ] = '\n';
+            tmp[n+1] = '\0';
+            n        = strlcat(tmp, entry->runtime.last_played_str, sizeof(tmp));
+         }
+
+         if (n >= 64)
+            n = 0; /* Silence GCC warnings... */
+         (void)n;
+         if (!string_is_empty(tmp))
+            strlcat(s, tmp, len);
+      }
+   }
+
+   return 0;
+}
+
 #ifdef HAVE_CHEEVOS
 static int menu_action_sublabel_achievement_pause_menu(file_list_t* list,
       unsigned type, unsigned i, const char* label, const char* path, char* s, size_t len)
@@ -261,6 +366,7 @@ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_input_meta_fast_forward_key,      ME
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_input_meta_fast_forward_hold_key, MENU_ENUM_SUBLABEL_INPUT_META_FAST_FORWARD_HOLD_KEY)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_input_meta_slowmotion_key,        MENU_ENUM_SUBLABEL_INPUT_META_SLOWMOTION_KEY)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_input_meta_slowmotion_hold_key,   MENU_ENUM_SUBLABEL_INPUT_META_SLOWMOTION_HOLD_KEY)
+DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_input_meta_vrr_runloop_toggle,    MENU_ENUM_SUBLABEL_INPUT_META_VRR_RUNLOOP_TOGGLE)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_input_meta_load_state_key,        MENU_ENUM_SUBLABEL_INPUT_META_LOAD_STATE_KEY)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_input_meta_save_state_key,        MENU_ENUM_SUBLABEL_INPUT_META_SAVE_STATE_KEY)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_input_meta_fullscreen_toggle_key, MENU_ENUM_SUBLABEL_INPUT_META_FULLSCREEN_TOGGLE_KEY)
@@ -420,6 +526,10 @@ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_switch_installed_cores_pfd,    MENU_
 #endif
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_sideload_core_list,            MENU_ENUM_SUBLABEL_SIDELOAD_CORE_LIST)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_core_manager_list,             MENU_ENUM_SUBLABEL_CORE_MANAGER_LIST)
+#ifdef HAVE_MIST
+DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_core_manager_steam_list,       MENU_ENUM_SUBLABEL_CORE_MANAGER_STEAM_LIST)
+DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_menu_show_core_manager_steam,  MENU_ENUM_SUBLABEL_MENU_SHOW_CORE_MANAGER_STEAM)
+#endif
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_load_disc,                  MENU_ENUM_SUBLABEL_LOAD_DISC)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_dump_disc,                  MENU_ENUM_SUBLABEL_DUMP_DISC)
 #ifdef HAVE_LAKKA
@@ -497,6 +607,7 @@ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_fastforward_ratio,             MENU_
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_fastforward_frameskip,         MENU_ENUM_SUBLABEL_FASTFORWARD_FRAMESKIP)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_vrr_runloop_enable,            MENU_ENUM_SUBLABEL_VRR_RUNLOOP_ENABLE)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_slowmotion_ratio,              MENU_ENUM_SUBLABEL_SLOWMOTION_RATIO)
+DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_run_ahead_unsupported,         MENU_ENUM_SUBLABEL_RUN_AHEAD_UNSUPPORTED)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_run_ahead_enabled,             MENU_ENUM_SUBLABEL_RUN_AHEAD_ENABLED)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_run_ahead_secondary_instance,  MENU_ENUM_SUBLABEL_RUN_AHEAD_SECONDARY_INSTANCE)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_run_ahead_hide_warnings,       MENU_ENUM_SUBLABEL_RUN_AHEAD_HIDE_WARNINGS)
@@ -651,6 +762,7 @@ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_ozone_collapse_sidebar,             
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_ozone_truncate_playlist_name,            MENU_ENUM_SUBLABEL_OZONE_TRUNCATE_PLAYLIST_NAME)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_ozone_sort_after_truncate_playlist_name, MENU_ENUM_SUBLABEL_OZONE_SORT_AFTER_TRUNCATE_PLAYLIST_NAME)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_ozone_scroll_content_metadata,           MENU_ENUM_SUBLABEL_OZONE_SCROLL_CONTENT_METADATA)
+DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_ozone_thumbnail_scale_factor,            MENU_ENUM_SUBLABEL_OZONE_THUMBNAIL_SCALE_FACTOR)
 #endif
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_menu_thumbnail_upscale_threshold,      MENU_ENUM_SUBLABEL_MENU_THUMBNAIL_UPSCALE_THRESHOLD)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_timedate_enable,                       MENU_ENUM_SUBLABEL_TIMEDATE_ENABLE)
@@ -692,6 +804,7 @@ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_goto_images,                        
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_goto_music,                            MENU_ENUM_SUBLABEL_GOTO_MUSIC)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_goto_video,                            MENU_ENUM_SUBLABEL_GOTO_VIDEO)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_goto_explore,                          MENU_ENUM_SUBLABEL_GOTO_EXPLORE)
+DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_goto_contentless_cores,                MENU_ENUM_SUBLABEL_GOTO_CONTENTLESS_CORES)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_menu_filebrowser_settings,             MENU_ENUM_SUBLABEL_MENU_FILE_BROWSER_SETTINGS)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_menu_filebrowser_open_uwp_permissions, MENU_ENUM_SUBLABEL_FILE_BROWSER_OPEN_UWP_PERMISSIONS)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_menu_filebrowser_open_picker,          MENU_ENUM_SUBLABEL_FILE_BROWSER_OPEN_PICKER)
@@ -720,6 +833,8 @@ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_save_current_config_override_content
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_save_current_config_override_game,     MENU_ENUM_SUBLABEL_SAVE_CURRENT_CONFIG_OVERRIDE_GAME)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_shader_options,                        MENU_ENUM_SUBLABEL_SHADER_OPTIONS)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_core_input_remapping_options,          MENU_ENUM_SUBLABEL_CORE_INPUT_REMAPPING_OPTIONS)
+DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_remap_file_manager_list,               MENU_ENUM_SUBLABEL_REMAP_FILE_MANAGER_LIST)
+DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_remap_file_reset,                      MENU_ENUM_SUBLABEL_REMAP_FILE_RESET)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_core_option_override_list,             MENU_ENUM_SUBLABEL_CORE_OPTION_OVERRIDE_LIST)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_core_options_reset,                    MENU_ENUM_SUBLABEL_CORE_OPTIONS_RESET)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_core_options_flush,                    MENU_ENUM_SUBLABEL_CORE_OPTIONS_FLUSH)
@@ -854,6 +969,7 @@ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_menu_import_content_tab,            
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_menu_import_content_entry,             MENU_ENUM_SUBLABEL_CONTENT_SHOW_ADD_ENTRY)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_menu_playlist_tabs,                    MENU_ENUM_SUBLABEL_CONTENT_SHOW_PLAYLISTS)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_menu_explore_tab,                      MENU_ENUM_SUBLABEL_CONTENT_SHOW_EXPLORE)
+DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_menu_contentless_cores_tab,            MENU_ENUM_SUBLABEL_CONTENT_SHOW_CONTENTLESS_CORES)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_main_menu_enable_settings,             MENU_ENUM_SUBLABEL_XMB_MAIN_MENU_ENABLE_SETTINGS)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_rgui_show_start_screen,                MENU_ENUM_SUBLABEL_RGUI_SHOW_START_SCREEN)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_menu_header_opacity,                   MENU_ENUM_SUBLABEL_MATERIALUI_MENU_HEADER_OPACITY)
@@ -930,6 +1046,7 @@ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_netplay_use_mitm_server,            
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_netplay_mitm_server,                   MENU_ENUM_SUBLABEL_NETPLAY_MITM_SERVER)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_netplay_custom_mitm_server,            MENU_ENUM_SUBLABEL_NETPLAY_CUSTOM_MITM_SERVER)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_core_lock,                             MENU_ENUM_SUBLABEL_CORE_LOCK)
+DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_core_set_standalone_exempt,            MENU_ENUM_SUBLABEL_CORE_SET_STANDALONE_EXEMPT)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_core_delete,                           MENU_ENUM_SUBLABEL_CORE_DELETE)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_pause_hardcode_mode,                   MENU_ENUM_SUBLABEL_ACHIEVEMENT_PAUSE)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_resume_hardcode_mode,                  MENU_ENUM_SUBLABEL_ACHIEVEMENT_RESUME)
@@ -964,8 +1081,13 @@ DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_gamemode_enable,                MENU
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_brightness_control,             MENU_ENUM_SUBLABEL_BRIGHTNESS_CONTROL)
 
 #if defined(_3DS)
+DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_new3ds_speedup_enable,          MENU_ENUM_SUBLABEL_NEW3DS_SPEEDUP_ENABLE)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_video_3ds_lcd_bottom,           MENU_ENUM_SUBLABEL_VIDEO_3DS_LCD_BOTTOM)
 DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_video_3ds_display_mode,         MENU_ENUM_SUBLABEL_VIDEO_3DS_DISPLAY_MODE)
+#endif
+
+#if defined (WIIU)
+DEFAULT_SUBLABEL_MACRO(action_bind_sublabel_video_wiiu_prefer_drc,          MENU_ENUM_SUBLABEL_VIDEO_WIIU_PREFER_DRC)
 #endif
 
 #if defined(GEKKO)
@@ -1548,17 +1670,18 @@ static int action_bind_sublabel_playlist_entry(
       size_t n = 0;
       char tmp[64];
 
-      tmp[0  ] = '\n';
-      tmp[1  ] = '\0';
-
-      n        = strlcat(tmp, entry->runtime_str, sizeof(tmp));
-
-      tmp[n  ] = '\n';
-      tmp[n+1] = '\0';
-
       /* Runtime/last played strings are now cached in the
        * playlist, so we can add both in one go */
-      n = strlcat(tmp, entry->last_played_str, sizeof(tmp));
+      tmp[0  ] = '\n';
+      tmp[1  ] = '\0';
+      n        = strlcat(tmp, entry->runtime_str, sizeof(tmp));
+
+      if (n < 64 - 1)
+      {
+         tmp[n  ] = '\n';
+         tmp[n+1] = '\0';
+         n        = strlcat(tmp, entry->last_played_str, sizeof(tmp));
+      }
 
       if (n >= 64)
          n = 0; /* Silence GCC warnings... */
@@ -1816,6 +1939,9 @@ int menu_cbs_init_bind_sublabel(menu_file_list_cbs_t *cbs,
             case RARCH_SLOWMOTION_HOLD_KEY:
                BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_input_meta_slowmotion_hold_key);
                return 0;
+            case RARCH_VRR_RUNLOOP_TOGGLE:
+               BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_input_meta_vrr_runloop_toggle);
+               return 0;
             case RARCH_LOAD_STATE_KEY:
                BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_input_meta_load_state_key);
                return 0;
@@ -1968,6 +2094,9 @@ int menu_cbs_init_bind_sublabel(menu_file_list_cbs_t *cbs,
          case MENU_ENUM_LABEL_FILE_BROWSER_CORE:
          case MENU_ENUM_LABEL_CORE_MANAGER_ENTRY:
             BIND_ACTION_SUBLABEL(cbs, menu_action_sublabel_file_browser_core);
+            break;
+         case MENU_ENUM_LABEL_CONTENTLESS_CORE:
+            BIND_ACTION_SUBLABEL(cbs, menu_action_sublabel_contentless_core);
             break;
 #ifdef HAVE_NETWORKING
          case MENU_ENUM_LABEL_CORE_UPDATER_ENTRY:
@@ -2296,6 +2425,9 @@ int menu_cbs_init_bind_sublabel(menu_file_list_cbs_t *cbs,
          case MENU_ENUM_LABEL_CONTENT_SHOW_EXPLORE:
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_menu_explore_tab);
             break;
+         case MENU_ENUM_LABEL_CONTENT_SHOW_CONTENTLESS_CORES:
+            BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_menu_contentless_cores_tab);
+            break;
          case MENU_ENUM_LABEL_XMB_MAIN_MENU_ENABLE_SETTINGS:
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_main_menu_enable_settings);
             break;
@@ -2319,6 +2451,9 @@ int menu_cbs_init_bind_sublabel(menu_file_list_cbs_t *cbs,
             break;
          case MENU_ENUM_LABEL_GOTO_EXPLORE:
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_goto_explore);
+            break;
+         case MENU_ENUM_LABEL_GOTO_CONTENTLESS_CORES:
+            BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_goto_contentless_cores);
             break;
          case MENU_ENUM_LABEL_GOTO_FAVORITES:
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_goto_favorites);
@@ -2636,6 +2771,11 @@ int menu_cbs_init_bind_sublabel(menu_file_list_cbs_t *cbs,
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_ozone_scroll_content_metadata);
 #endif
             break;
+         case MENU_ENUM_LABEL_OZONE_THUMBNAIL_SCALE_FACTOR:
+#ifdef HAVE_OZONE
+            BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_ozone_thumbnail_scale_factor);
+#endif
+            break;
          case MENU_ENUM_LABEL_MATERIALUI_MENU_COLOR_THEME:
          case MENU_ENUM_LABEL_XMB_MENU_COLOR_THEME:
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_menu_color_theme);
@@ -2754,6 +2894,12 @@ int menu_cbs_init_bind_sublabel(menu_file_list_cbs_t *cbs,
             break;
          case MENU_ENUM_LABEL_CORE_INPUT_REMAPPING_OPTIONS:
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_core_input_remapping_options);
+            break;
+         case MENU_ENUM_LABEL_REMAP_FILE_MANAGER_LIST:
+            BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_remap_file_manager_list);
+            break;
+         case MENU_ENUM_LABEL_REMAP_FILE_RESET:
+            BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_remap_file_reset);
             break;
          case MENU_ENUM_LABEL_CORE_CHEAT_OPTIONS:
 #ifdef HAVE_CHEATS
@@ -3392,6 +3538,9 @@ int menu_cbs_init_bind_sublabel(menu_file_list_cbs_t *cbs,
          case MENU_ENUM_LABEL_SLOWMOTION_RATIO:
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_slowmotion_ratio);
             break;
+         case MENU_ENUM_LABEL_RUN_AHEAD_UNSUPPORTED:
+            BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_run_ahead_unsupported);
+            break;
          case MENU_ENUM_LABEL_RUN_AHEAD_ENABLED:
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_run_ahead_enabled);
             break;
@@ -3613,6 +3762,14 @@ int menu_cbs_init_bind_sublabel(menu_file_list_cbs_t *cbs,
          case MENU_ENUM_LABEL_CORE_MANAGER_LIST:
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_core_manager_list);
             break;
+#ifdef HAVE_MIST
+         case MENU_ENUM_LABEL_CORE_MANAGER_STEAM_LIST:
+            BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_core_manager_steam_list);
+            break;
+         case MENU_ENUM_LABEL_MENU_SHOW_CORE_MANAGER_STEAM:
+            BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_menu_show_core_manager_steam);
+            break;
+#endif
          case MENU_ENUM_LABEL_VIDEO_POST_FILTER_RECORD:
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_video_post_filter_record);
             break;
@@ -4301,6 +4458,9 @@ int menu_cbs_init_bind_sublabel(menu_file_list_cbs_t *cbs,
          case MENU_ENUM_LABEL_CORE_LOCK:
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_core_lock);
             break;
+         case MENU_ENUM_LABEL_CORE_SET_STANDALONE_EXEMPT:
+            BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_core_set_standalone_exempt);
+            break;
          case MENU_ENUM_LABEL_CORE_DELETE:
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_core_delete);
             break;
@@ -4355,11 +4515,19 @@ int menu_cbs_init_bind_sublabel(menu_file_list_cbs_t *cbs,
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_brightness_control);
             break;
 #if defined(_3DS)
+         case MENU_ENUM_LABEL_NEW3DS_SPEEDUP_ENABLE:
+            BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_new3ds_speedup_enable);
+            break;
          case MENU_ENUM_LABEL_VIDEO_3DS_LCD_BOTTOM:
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_video_3ds_lcd_bottom);
             break;
          case MENU_ENUM_LABEL_VIDEO_3DS_DISPLAY_MODE:
             BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_video_3ds_display_mode);
+            break;
+#endif
+#if defined(WIIU)
+         case MENU_ENUM_LABEL_VIDEO_WIIU_PREFER_DRC:
+            BIND_ACTION_SUBLABEL(cbs, action_bind_sublabel_video_wiiu_prefer_drc);
             break;
 #endif
 #if defined(GEKKO)
