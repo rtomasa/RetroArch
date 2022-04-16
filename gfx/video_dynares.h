@@ -31,11 +31,6 @@ RETRO_BEGIN_DECLS
 
 void dynares_print_time(void);
 
-int dynares_check_res(
-   char *sys_name, 
-   int width,
-   int height);
-
 void dynares_video_show_info(
    int width,
    int height,

@@ -69,29 +69,6 @@ void dynares_print_time(void)
    RARCH_LOG("[DynaRes]: Current time: %" PRIdMAX ".%03ld seconds since the Epoch\n", (intmax_t)s, ms);
 }
 
-int dynares_check_res(char *sys_name, int width, int height)
-{
-   RARCH_LOG("[DynaRes]: Check: System: %s, resolution: %dx%d\n", sys_name, width, height);
-
-   if (string_is_equal(sys_name, "PCSX-ReARMed"))
-   {
-      int is_not_v_valid = (height >= 230 && height < 240) || height == 478 || height == 120;
-      if (!is_not_v_valid)
-      {
-         return 1;
-      }
-      else
-      {
-         RARCH_LOG("[DynaRes]: Check: Invalid resolution: %dx%d\n", width, height);
-         return 0;
-      }
-   }
-   else
-   {
-      return 1;
-   }
-}
-
 void dynares_video_show_info(int width, int height, int interlaced, float hz)
 {
    char msg[128];
@@ -129,8 +106,6 @@ void dynares_init(unsigned *width, unsigned *height, unsigned base_width, unsign
       *height = base_height;
       /* Support for DOSBox, GBA, NGP, X68K, GBC on 15KHz TV */
       if (*width == 640 && *height == 400) // DOS
-         *height = 480;
-      else if (*height == 432) // PSX
          *height = 480;
       else if (*width == 800 && *height == 600) // DOS
          *height = 480;
@@ -295,8 +270,8 @@ void dynares_init(unsigned *width, unsigned *height, unsigned base_width, unsign
    {
       *width = settings->uints.video_fullscreen_x;
       *height = settings->uints.video_fullscreen_y;
-      v_width = *width;
-      v_height = *height;
+      v_width = settings->video_viewport_custom.width;
+      v_height = settings->video_viewport_custom.height;
    }
    RARCH_LOG("[DynaRes]: Init: Loading DynaRes... \n");
    /* Gen system timing */
@@ -352,31 +327,25 @@ void dynares_loop_check(char *sys_name, unsigned base_width, unsigned base_heigh
    {
       if (fst_load)
       {
-         if (dynares_check_res(sys_name, base_width, base_height))
-         {
-            settings_t *settings = config_get_ptr();
-            RARCH_LOG("[DynaRes]: Loop: %s: Resolution init: %dx%d@%f\n", dynares, base_width, base_height, fps);
-            fst_load = 0;
-            width = base_width;
-            height = base_height;
-            settings->uints.video_aspect_ratio_idx = 21; /* 1:1 (fixed aspect ratio) */
-         }
+         settings_t *settings = config_get_ptr();
+         RARCH_LOG("[DynaRes]: Loop: %s: Resolution init: %dx%d@%f\n", dynares, base_width, base_height, fps);
+         fst_load = 0;
+         width = base_width;
+         height = base_height;
+         settings->uints.video_aspect_ratio_idx = 21; /* 1:1 (fixed aspect ratio) */
       }
       else
       {
          if (width != base_width || height != base_height)
          {
-            if (dynares_check_res(sys_name, base_width, base_height))
-            {
-               width = base_width;
-               height = base_height;
-               RARCH_LOG("[DynaRes]: Loop: %s: Resolution changed: %dx%d@%f\n", dynares, base_width, base_height, fps);
-               settings_t *settings = config_get_ptr();
-               if (settings->bools.dynares_fast_mode)
-                  dynares_video_driver_reinit();
-               else
-                  video_driver_reinit(DRIVERS_CMD_ALL);
-            }
+            width = base_width;
+            height = base_height;
+            RARCH_LOG("[DynaRes]: Loop: %s: Resolution changed: %dx%d@%f\n", dynares, base_width, base_height, fps);
+            settings_t *settings = config_get_ptr();
+            if (settings->bools.dynares_fast_mode)
+               dynares_video_driver_reinit();
+            else
+               video_driver_reinit(DRIVERS_CMD_ALL);
          }
       }
    }
@@ -404,54 +373,51 @@ void dynares_loop_check(char *sys_name, unsigned base_width, unsigned base_heigh
 
 void dynares_set_geometry(char *sys_name, unsigned base_width, unsigned base_height, double fps)
 {
-   if (dynares_check_res(sys_name, base_width, base_height))
+   if (string_is_equal(dynares, "superx"))
    {
-      if (string_is_equal(dynares, "superx"))
+      settings_t *settings = config_get_ptr();
+      int overscan_x = 0;
+      int overscan_y = 0;
+      int v_height = 0;
+      int v_width = 0;
+      /* Dynamic height resolution */
+      if (height != base_height)
       {
-         settings_t *settings = config_get_ptr();
-         int overscan_x = 0;
-         int overscan_y = 0;
-         int v_height = 0;
-         int v_width = 0;
-         /* Dynamic height resolution */
-         if (height != base_height)
-         {
-            height = base_height;
-            RARCH_LOG("[DynaRes]: Geom: %s: Resolution changed: %dx%d\n", dynares, settings->uints.video_fullscreen_x, base_height);
-            if (settings->bools.dynares_fast_mode)
-               dynares_video_driver_reinit();
-            else
-               video_driver_reinit(DRIVERS_CMD_ALL);
-         }
-         /* Dynamic super integer scale (viewport custom) */
-         handheld_full = settings->bools.dynares_handheld_full;
-         if (base_height == 160)
-         {
-            if (handheld_full)
-            {
-               overscan_x = 32;
-               overscan_y = 40;
-            }
-            else
-               overscan_x = base_width * 2;
-         }
-         else if (height == 152) // NGP
-            overscan_x = base_width * 5;
-         else if (height == 144) // GBC
-         {
-            if (handheld_full)
-               overscan_x = base_width;
-            else
-               overscan_x = base_width * 5;
-         }
-         v_width = (settings->uints.video_fullscreen_x / base_width) * base_width - overscan_x;
-         v_height = (settings->uints.video_fullscreen_y / base_height) * base_height - overscan_y;
-         settings->video_viewport_custom.width = v_width;
-         settings->video_viewport_custom.height = v_height;
-         settings->video_viewport_custom.x = (settings->uints.video_fullscreen_x - v_width) / 2;
-         settings->video_viewport_custom.y = (settings->uints.video_fullscreen_y - v_height) / 2;
-         RARCH_LOG("[DynaRes]: Geom: %s: Viewport resolution changed: %ux%u\n", dynares, v_width, v_height);
-         dynares_video_show_info(base_width, base_height, srtiming.interlaced, fps);
+         height = base_height;
+         RARCH_LOG("[DynaRes]: Geom: %s: Resolution changed: %dx%d\n", dynares, settings->uints.video_fullscreen_x, base_height);
+         if (settings->bools.dynares_fast_mode)
+            dynares_video_driver_reinit();
+         else
+            video_driver_reinit(DRIVERS_CMD_ALL);
       }
+      /* Dynamic super integer scale (viewport custom) */
+      handheld_full = settings->bools.dynares_handheld_full;
+      if (base_height == 160)
+      {
+         if (handheld_full)
+         {
+            overscan_x = 32;
+            overscan_y = 40;
+         }
+         else
+            overscan_x = base_width * 2;
+      }
+      else if (height == 152) // NGP
+         overscan_x = base_width * 5;
+      else if (height == 144) // GBC
+      {
+         if (handheld_full)
+            overscan_x = base_width;
+         else
+            overscan_x = base_width * 5;
+      }
+      v_width = (settings->uints.video_fullscreen_x / base_width) * base_width - overscan_x;
+      v_height = (settings->uints.video_fullscreen_y / base_height) * base_height - overscan_y;
+      settings->video_viewport_custom.width = v_width;
+      settings->video_viewport_custom.height = v_height;
+      settings->video_viewport_custom.x = (settings->uints.video_fullscreen_x - v_width) / 2;
+      settings->video_viewport_custom.y = (settings->uints.video_fullscreen_y - v_height) / 2;
+      RARCH_LOG("[DynaRes]: Geom: %s: Viewport resolution changed: %ux%u\n", dynares, v_width, v_height);
+      dynares_video_show_info(base_width, base_height, srtiming.interlaced, fps);
    }
 }
