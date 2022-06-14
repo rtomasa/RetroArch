@@ -18,6 +18,7 @@
 #include "log.h"
 #include <stdio.h>
 #include <locale>
+#include <string/stdstring.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -60,6 +61,10 @@ MODULE_API void sr_set_monitor(const char *preset) {
 
 MODULE_API void sr_set_interlace_force_even(int value) {
 	swr->set_interlace_force_even(value);
+}
+
+MODULE_API void sr_set_v_shift_correct(int value) {
+	swr->set_v_shift_correct(value);
 }
 
 MODULE_API void sr_set_user_mode(int width, int height, int refresh) {
@@ -137,8 +142,7 @@ MODULE_API unsigned char sr_add_mode(int width, int height, double refresh, unsi
 }
 
 
-MODULE_API unsigned char sr_get_timing(int width, int height, double refresh, unsigned char interlace, timing *return_timing) {
-
+MODULE_API unsigned char sr_get_timing(int width, int height, double refresh, char* crt_type, unsigned char interlace, timing *return_timing) {
    log_verbose("Inside sr_get_timing(%dx%d@%f%s)\n", width, height, refresh, interlace > 0? "i":"");
 	display_manager *disp = swr->display();
 	if (disp == nullptr)
@@ -147,8 +151,14 @@ MODULE_API unsigned char sr_get_timing(int width, int height, double refresh, un
 		return 0;
 	}
 	/* Get modeline */
-	modeline return_mode;
-	return_mode = *disp->get_mode(width, height, refresh, (interlace > 0? true : false));
+   
+	modeline *return_mode;
+	return_mode = disp->get_mode(width, height, refresh, (interlace > 0? true : false));
+   if (return_mode == nullptr)
+   {
+      log_error("sr_get_timing: error, mode not supported\n");
+      return -1;
+   }
 	if (disp->got_mode())
 	{
 		log_verbose("sr_get_timing: got mode %dx%d@%f type(%x)\n", disp->width(), disp->height(), disp->v_freq(), disp->best_mode()->type);
@@ -172,7 +182,7 @@ MODULE_API unsigned char sr_get_timing(int width, int height, double refresh, un
 		else if (width < 800)   h_pos = 16;
 		else if (width < 850)   h_pos = 17;
 		else if (width < 2800)  h_pos = 62;
-		if      ((int)refresh == 54) v_pos = 12;
+      if ((int)refresh == 54) v_pos = 0;
 		else if ((int)refresh == 55) v_pos = 10;
 		else if ((int)refresh == 57) v_pos = 6;
 		/* Get modeline values
@@ -180,18 +190,18 @@ MODULE_API unsigned char sr_get_timing(int width, int height, double refresh, un
 		 * Modeline "256x240 NTSC (60Hz)" 5.370 256 269 294 341 240 244 247 262  -hsync -vsync
 		 * Modeline "Description"        FF.FFF hhh hhi hhf hht vvv vvi vvf vvt (options)
 		 */
-		hhh = return_mode.hactive; // h_active_pixels
-		hhi = return_mode.hbegin;
-		hhf = return_mode.hend;
-		hht = return_mode.htotal;
-		vvv = return_mode.vactive; // v_active_pixels
-		vvi = return_mode.vbegin;
-		vvf = return_mode.vend;
-		vvt = return_mode.vtotal;
-		pixel_freq = hht * return_mode.hfreq;
-		interlaced = return_mode.interlace;
-		hsync = !return_mode.hsync; // h_sync_polarity -> 1=+, 0=-
-		vsync = !return_mode.vsync; // v_sync_polarity -> 1=+, 0=-
+		hhh = return_mode->hactive; // h_active_pixels
+		hhi = return_mode->hbegin;
+		hhf = return_mode->hend;
+		hht = return_mode->htotal;
+		vvv = return_mode->vactive; // v_active_pixels
+		vvi = return_mode->vbegin;
+		vvf = return_mode->vend;
+		vvt = return_mode->vtotal;
+		pixel_freq = hht * return_mode->hfreq;
+		interlaced = return_mode->interlace;
+		hsync = !return_mode->hsync; // h_sync_polarity -> 1=+, 0=-
+		vsync = !return_mode->vsync; // v_sync_polarity -> 1=+, 0=-
 		/* Get timing values
 		 *
 		 * MODIFY H POSITION
@@ -215,6 +225,9 @@ MODULE_API unsigned char sr_get_timing(int width, int height, double refresh, un
 		vsync_offset_b = 0;
 		pixel_rep = 0;
 		aspect = 1;
+      /* force h porch even values */
+      if (h_f_porch % 2 == 1) h_f_porch += 1;
+      if (h_b_porch % 2 == 1) h_b_porch += 1;
 		/* Set timing */
 		return_timing->hhh = hhh;
 		return_timing->hsync = hsync;
@@ -321,6 +334,7 @@ MODULE_API srAPI srlib = {
 	sr_switch_to_mode,
 	sr_set_monitor,
    sr_set_interlace_force_even,
+   sr_set_v_shift_correct,
 	sr_set_rotation,
 	sr_set_user_mode,
 	sr_set_log_level,

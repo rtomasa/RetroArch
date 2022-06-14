@@ -294,15 +294,19 @@ This feature has been tested only with Raspberry Pi4 using KMS/DRM and DPI inter
 Please do note that you need to load every single kms video mode before using this feature.
 As of now, only RGB-Pi OS includes such DB out of the box.
 
-## Build on Pi4 (32-bit)
+## Build on Pi4
 
 Install dependencies:
 
 `sudo apt install build-essential git libasound2-dev libavcodec-dev libavdevice-dev libavformat-dev libavresample-dev libdrm-common libdrm-dev libdrm2 libegl1-mesa-dev libfreetype6-dev libgbm-dev libgbm-dev libgbm1 libgles2 libgles2-mesa libgles2-mesa-dev libsdl-image1.2-dev libsdl2-dev libswresample-dev libswscale-dev libudev-dev libv4l-dev libxkbcommon-dev libxml2-dev yasm zlib1g-dev ffmpeg libvulkan-dev libvulkan1 vulkan-tools`
 
-Configure and build:
+Configure and build (32-bit):
 
-`CFLAGS='-march=armv8-a+crc+simd -mcpu=cortex-a72 -mtune=cortex-a72 -mfloat-abi=hard -mfpu=neon-fp-armv8' CXXFLAGS="${CFLAGS}" ./configure  --disable-caca --disable-jack --disable-opengl1 --disable-oss --disable-sdl --disable-sdl2 --disable-videocore --disable-vulkan --disable-wayland --disable-x11 --enable-alsa --enable-egl --enable-floathard --enable-kms --enable-neon --enable-opengles --enable-opengles3 --disable-pulse --enable-udev --disable-ffmpeg`
+`CFLAGS='-march=armv8-a+crc+simd -mcpu=cortex-a72 -mtune=cortex-a72 -mfloat-abi=hard -mfpu=neon-fp-armv8' CXXFLAGS="${CFLAGS}" ./configure  --disable-caca --disable-jack --disable-opengl1 --disable-oss --disable-sdl --disable-sdl2 --disable-videocore --disable-vulkan --disable-wayland --disable-x11 --enable-alsa --enable-egl --enable-floathard --enable-kms --enable-neon --enable-opengles --enable-opengles3_1 --disable-pulse --enable-udev --enable-ffmpeg`
+
+Configure and build (64-bit):
+
+`CFLAGS='-march=armv8-a+crc+simd -mcpu=cortex-a72 -mtune=cortex-a72 -mfloat-abi=hard -mfpu=neon-fp-armv8 -mneon-for-64bits' CXXFLAGS="${CFLAGS}" ./configure  --disable-caca --disable-jack --disable-opengl1 --disable-oss --disable-sdl --disable-sdl2 --disable-videocore --disable-vulkan --disable-wayland --disable-x11 --enable-alsa --enable-egl --enable-floathard --enable-kms --enable-neon --enable-opengles --enable-opengles3_1 --disable-pulse --enable-udev --enable-ffmpeg`
 
 Then make and install:
 

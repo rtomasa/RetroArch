@@ -2849,8 +2849,7 @@ bool runloop_environment_cb(unsigned cmd, void *data)
 
             /* TODO: Figure out what to do, if anything, with 
                recording. */
-            rarch_system_info_t *sys_info = &runloop_st->system;
-            dynares_set_geometry(sys_info->info.library_name, geom->base_width, geom->base_height, video_st->av_info.timing.fps);
+            dynares_set_geometry(geom->base_width, geom->base_height, video_st->av_info.timing.fps);
          }
          else
          {
@@ -6416,9 +6415,8 @@ static enum runloop_state_enum runloop_check_state(
    {
       struct retro_system_av_info *av_info = &video_st->av_info;
       struct retro_game_geometry  *geom    = (struct retro_game_geometry*)&av_info->geometry;
-      rarch_system_info_t *sys_info        = &runloop_st->system;
       
-      dynares_loop_check(sys_info->info.library_name, geom->base_width, geom->base_height, av_info->timing.fps);
+      dynares_loop_check(geom->base_width, geom->base_height, av_info->timing.fps);
    }
 
    /*

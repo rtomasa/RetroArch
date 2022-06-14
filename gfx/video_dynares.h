@@ -31,6 +31,10 @@ RETRO_BEGIN_DECLS
 
 void dynares_print_time(void);
 
+void dynares_check_rotation(
+   unsigned *width,
+   unsigned *height);
+
 void dynares_video_show_info(
    int width,
    int height,
@@ -47,13 +51,11 @@ void dynares_init(
    float *font_size);
 
 void dynares_loop_check(
-   char *sys_name,
    unsigned base_width,
    unsigned base_height,
    double fps);
 
 void dynares_set_geometry(
-   char *sys_name,
    unsigned base_width,
    unsigned base_height,
    double fps);

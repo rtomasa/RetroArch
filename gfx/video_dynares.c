@@ -40,8 +40,10 @@
 
 /* DynaRes params */
 char *dynares;
+char *sys_name;
 unsigned width = 0;
 unsigned height = 0;
+unsigned rotation = 0;
 bool handheld_full;
 char *crt_type;
 char fst_load = 1;
@@ -67,6 +69,22 @@ void dynares_print_time(void)
    }
 
    RARCH_LOG("[DynaRes]: Current time: %" PRIdMAX ".%03ld seconds since the Epoch\n", (intmax_t)s, ms);
+}
+
+void dynares_check_rotation(unsigned *width, unsigned *height)
+{
+   RARCH_LOG("[DynaRes]: Check rotation: System: %s, resolution: %dx%d, rotation: %d\n", sys_name, *width, *height, rotation);
+
+   if (string_is_equal(sys_name, "MAME"))
+   {
+      if (rotation == 1 || rotation == 3)
+      {
+         unsigned tmp = *width;
+         *width = *height;
+         *height = tmp;
+         RARCH_LOG("[DynaRes]: Check rotation: New resolution: %dx%d, rotation: %d\n", *width, *height, rotation);
+      }
+   }
 }
 
 void dynares_video_show_info(int width, int height, int interlaced, float hz)
@@ -98,6 +116,17 @@ void dynares_init(unsigned *width, unsigned *height, unsigned base_width, unsign
    int v_height = 0;
    int overscan_x = 0;
    int overscan_y = 0;
+
+   /* Get core name, rotation and make mame rotation if required */
+   runloop_state_t *runloop_st = runloop_state_get_ptr();
+   rarch_system_info_t *sys_info = &runloop_st->system;
+   sys_name = sys_info->info.library_name;
+   rotation = settings->uints.video_rotation;
+   *width = base_width;
+   *height = base_height;
+   dynares_check_rotation(width, height);
+   base_width = *width;
+   base_height = *height;
 
    if (string_is_equal(dynares, "native"))
    {
@@ -279,9 +308,10 @@ void dynares_init(unsigned *width, unsigned *height, unsigned base_width, unsign
    sr_set_log_level(0);
    sr_set_monitor(crt_type);
    sr_set_interlace_force_even(1);
+   sr_set_v_shift_correct(0);
    sr_set_user_mode(320, 240, 60.0);
    sr_init_disp("auto");
-   sr_get_timing(320, 240, 60.0, 0, &srtiming);
+   sr_get_timing(320, 240, 60.0, crt_type, 0, &srtiming);
    snprintf(sys_timing, sizeof(sys_timing), "%d %d %d %d %d %d %d %d %d %d %d %d %d %f %d %ld %d",
             srtiming.hhh, srtiming.hsync, srtiming.h_f_porch, srtiming.h_b_porch, srtiming.h_total,
             srtiming.vvv, srtiming.vsync, srtiming.v_f_porch, srtiming.v_b_porch, srtiming.v_total,
@@ -291,19 +321,57 @@ void dynares_init(unsigned *width, unsigned *height, unsigned base_width, unsign
    sr_deinit();
    /* Gen game timing */
    sr_init();
-   sr_set_log_level(0);
+   sr_set_log_level(0); // 0-3
    sr_set_monitor(crt_type);
    sr_set_interlace_force_even(1);
    sr_set_user_mode(*width, *height, fps);
+   /*if (string_is_equal(crt_type, "generic_15") && (int)fps == 54)
+      sr_set_v_shift_correct(1);
+   else
+      sr_set_v_shift_correct(0);*/
    sr_init_disp("auto");
-   sr_get_timing(*width, *height, fps, 0, &srtiming);
-   snprintf(gam_timing, sizeof(gam_timing), "%d %d %d %d %d %d %d %d %d %d %d %d %d %f %d %ld %d",
-            srtiming.hhh, srtiming.hsync, srtiming.h_f_porch, srtiming.h_b_porch, srtiming.h_total,
-            srtiming.vvv, srtiming.vsync, srtiming.v_f_porch, srtiming.v_b_porch, srtiming.v_total,
-            srtiming.vsync_offset_a, srtiming.vsync_offset_b, srtiming.pixel_rep,
-            srtiming.fps, srtiming.interlaced, srtiming.pixel_freq, srtiming.aspect);
-   RARCH_LOG("[DynaRes]: Init: %s: Game timing requested: %s\n", dynares, gam_timing);
-   sr_deinit();
+   if(sr_get_timing(*width, *height, fps, crt_type, 0, &srtiming) == 1)
+   {
+      snprintf(gam_timing, sizeof(gam_timing), "%d %d %d %d %d %d %d %d %d %d %d %d %d %f %d %ld %d",
+               srtiming.hhh, srtiming.hsync, srtiming.h_f_porch, srtiming.h_b_porch, srtiming.h_total,
+               srtiming.vvv, srtiming.vsync, srtiming.v_f_porch, srtiming.v_b_porch, srtiming.v_total,
+               srtiming.vsync_offset_a, srtiming.vsync_offset_b, srtiming.pixel_rep,
+               srtiming.fps, srtiming.interlaced, srtiming.pixel_freq, srtiming.aspect);
+      RARCH_LOG("[DynaRes]: Init: %s(%s): Game timing requested: %s\n", dynares, crt_type, gam_timing);
+      sr_deinit();
+   } else {
+      /* 15K/25/31Khz transformation */
+      sr_deinit();
+      sr_init();
+      sr_set_log_level(0); // 0-3
+      sr_set_monitor(crt_type);
+      sr_set_interlace_force_even(1);
+      /*if (string_is_equal(crt_type, "generic_15") && (int)fps == 54)
+         sr_set_v_shift_correct(1);
+      else
+         sr_set_v_shift_correct(0);*/
+      sr_init_disp("auto");
+      sr_get_timing(*width, *height, fps, crt_type, 0, &srtiming);
+      snprintf(gam_timing, sizeof(gam_timing), "%d %d %d %d %d %d %d %d %d %d %d %d %d %f %d %ld %d",
+               srtiming.hhh, srtiming.hsync, srtiming.h_f_porch, srtiming.h_b_porch, srtiming.h_total,
+               srtiming.vvv, srtiming.vsync, srtiming.v_f_porch, srtiming.v_b_porch, srtiming.v_total,
+               srtiming.vsync_offset_a, srtiming.vsync_offset_b, srtiming.pixel_rep,
+               srtiming.fps, srtiming.interlaced, srtiming.pixel_freq, srtiming.aspect);
+      RARCH_LOG("[DynaRes]: Init: %s(%s): Game timing requested: %s\n", dynares, crt_type, gam_timing);
+      RARCH_LOG("[DynaRes]: Init: Game timing transformation (15K/25/31Khz): %u %u %f\n", srtiming.hhh, srtiming.vvv, fps);
+      sr_deinit();
+      if(srtiming.vvv != *height)
+      {
+         *width = srtiming.hhh;
+         *height = srtiming.vvv;
+         v_width = *width;
+         v_height = *height;
+         settings->uints.video_fullscreen_x = *width;
+         settings->uints.video_fullscreen_y = *height;
+         if (string_is_equal(dynares, "superx"))
+            settings->bools.video_smooth = 1;
+      }
+   }
    /* Write timings to file */
    pf = fopen("/home/pi/RGB-Pi/data/timings.dat", "w");
    fputs(sys_timing, pf);
@@ -321,7 +389,7 @@ void dynares_init(unsigned *width, unsigned *height, unsigned base_width, unsign
    dynares_video_show_info(base_width, base_height, srtiming.interlaced, fps);
 }
 
-void dynares_loop_check(char *sys_name, unsigned base_width, unsigned base_height, double fps)
+void dynares_loop_check(unsigned base_width, unsigned base_height, double fps)
 {
    if (string_is_equal(dynares, "native"))
    {
@@ -371,7 +439,7 @@ void dynares_loop_check(char *sys_name, unsigned base_width, unsigned base_heigh
    }
 }
 
-void dynares_set_geometry(char *sys_name, unsigned base_width, unsigned base_height, double fps)
+void dynares_set_geometry(unsigned base_width, unsigned base_height, double fps)
 {
    if (string_is_equal(dynares, "superx"))
    {
