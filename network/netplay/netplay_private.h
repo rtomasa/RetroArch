@@ -2,7 +2,7 @@
  *  Copyright (C) 2010-2014 - Hans-Kristian Arntzen
  *  Copyright (C) 2011-2017 - Daniel De Matteis
  *  Copyright (C) 2016-2017 - Gregor Richards
- *  Copyright (C) 2021-2021 - Roberto V. Rampim
+ *  Copyright (C) 2021-2022 - Roberto V. Rampim
  *
  *  RetroArch is free software: you can redistribute it and/or modify it under the terms
  *  of the GNU General Public License as published by the Free Software Found-
@@ -21,12 +21,7 @@
 
 #include "netplay.h"
 
-#include <net/net_compat.h>
-#include <features/features_cpu.h>
 #include <streams/trans_stream.h>
-
-#include "../../msg_hash.h"
-#include "../../verbosity.h"
 
 #define RARCH_DEFAULT_PORT 55435
 #define RARCH_DEFAULT_NICK "Anonymous"
@@ -49,9 +44,9 @@ typedef uint32_t client_bitmap_t;
  * callbacks are in use, we assign a pseudodevice for it */
 #define RETRO_DEVICE_NETPLAY_KEYBOARD RETRO_DEVICE_SUBCLASS(RETRO_DEVICE_KEYBOARD, 65535)
 
-#define NETPLAY_MAX_STALL_FRAMES       60
-#define NETPLAY_FRAME_RUN_TIME_WINDOW  120
-#define NETPLAY_MAX_REQ_STALL_TIME     60
+#define NETPLAY_MAX_STALL_FRAMES        60
+#define NETPLAY_FRAME_RUN_TIME_WINDOW   120
+#define NETPLAY_MAX_REQ_STALL_TIME      60
 #define NETPLAY_MAX_REQ_STALL_FREQUENCY 120
 
 #define PREV_PTR(x) ((x) == 0 ? netplay->buffer_size - 1 : (x) - 1)
@@ -66,13 +61,15 @@ typedef uint32_t client_bitmap_t;
 #define NETPLAY_QUIRK_PLATFORM_DEPENDENT (1<<4)
 
 /* Mapping of serialization quirks to netplay quirks. */
-#define NETPLAY_QUIRK_MAP_UNDERSTOOD \
-   (RETRO_SERIALIZATION_QUIRK_INCOMPLETE \
-   |RETRO_SERIALIZATION_QUIRK_CORE_VARIABLE_SIZE \
-   |RETRO_SERIALIZATION_QUIRK_MUST_INITIALIZE \
-   |RETRO_SERIALIZATION_QUIRK_SINGLE_SESSION \
-   |RETRO_SERIALIZATION_QUIRK_ENDIAN_DEPENDENT \
-   |RETRO_SERIALIZATION_QUIRK_PLATFORM_DEPENDENT)
+#define NETPLAY_QUIRK_MAP_UNDERSTOOD (\
+   RETRO_SERIALIZATION_QUIRK_INCOMPLETE |\
+   RETRO_SERIALIZATION_QUIRK_CORE_VARIABLE_SIZE |\
+   RETRO_SERIALIZATION_QUIRK_MUST_INITIALIZE |\
+   RETRO_SERIALIZATION_QUIRK_SINGLE_SESSION |\
+   RETRO_SERIALIZATION_QUIRK_ENDIAN_DEPENDENT |\
+   RETRO_SERIALIZATION_QUIRK_PLATFORM_DEPENDENT \
+)
+
 #define NETPLAY_QUIRK_MAP_NO_SAVESTATES \
    (RETRO_SERIALIZATION_QUIRK_INCOMPLETE)
 #define NETPLAY_QUIRK_MAP_NO_TRANSMISSION \
@@ -244,29 +241,6 @@ enum rarch_netplay_share_preference
    NETPLAY_SHARE_ANALOG_BITS = 0xE0,
    NETPLAY_SHARE_ANALOG_MAX = 0x20,
    NETPLAY_SHARE_ANALOG_AVERAGE = 0x40
-};
-
-/* The current status of a connection */
-enum rarch_netplay_connection_mode
-{
-   NETPLAY_CONNECTION_NONE = 0,
-
-   NETPLAY_CONNECTION_DELAYED_DISCONNECT, 
-   /* The connection is dead, but data
-      is still waiting to be forwarded */
-
-   /* Initialization: */
-   NETPLAY_CONNECTION_INIT,         /* Waiting for header */
-   NETPLAY_CONNECTION_PRE_NICK,     /* Waiting for nick */
-   NETPLAY_CONNECTION_PRE_PASSWORD, /* Waiting for password */
-   NETPLAY_CONNECTION_PRE_INFO,     /* Waiting for core/content info */
-   NETPLAY_CONNECTION_PRE_SYNC,     /* Waiting for sync */
-
-   /* Ready: */
-   NETPLAY_CONNECTION_CONNECTED, /* Modes above this are connected */
-   NETPLAY_CONNECTION_SPECTATING, /* Spectator mode */
-   NETPLAY_CONNECTION_SLAVE, /* Playing in slave mode */
-   NETPLAY_CONNECTION_PLAYING /* Normal ready state */
 };
 
 enum rarch_netplay_stall_reason
@@ -905,13 +879,6 @@ int netplay_poll_net_input(netplay_t *netplay, bool block);
  * Handle any slave connections
  */
 void netplay_handle_slaves(netplay_t *netplay);
-
-/**
- * netplay_announce_nat_traversal
- *
- * Announce successful NAT traversal.
- */
-void netplay_announce_nat_traversal(netplay_t *netplay);
 
 /**
  * netplay_init_nat_traversal

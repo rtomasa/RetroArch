@@ -1179,6 +1179,7 @@ bool video_driver_monitor_adjust_system_rates(
       float video_refresh_rate,
       bool vrr_runloop_enable,
       float audio_max_timing_skew,
+      unsigned video_swap_interval,
       double input_fps);
 
 void crt_switch_driver_refresh(void);
@@ -1445,7 +1446,8 @@ extern video_driver_t video_ctr;
 extern video_driver_t video_gcm;
 extern video_driver_t video_switch;
 extern video_driver_t video_d3d8;
-extern video_driver_t video_d3d9;
+extern video_driver_t video_d3d9_cg;
+extern video_driver_t video_d3d9_hlsl;
 extern video_driver_t video_d3d10;
 extern video_driver_t video_d3d11;
 extern video_driver_t video_d3d12;

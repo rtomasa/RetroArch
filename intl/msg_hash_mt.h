@@ -53,6 +53,9 @@
 /* Settings */
 
 
+#ifdef HAVE_MIST
+#endif
+
 /* Settings > Drivers */
 
 
@@ -120,6 +123,7 @@
 
 
 /* Settings > Input > Menu Controls */
+
 
 
 /* Settings > Input > Hotkeys */
@@ -197,6 +201,7 @@
 /* Settings > User Interface > Views > Settings */
 
 
+
 /* Settings > User Interface > Appearance */
 
 
@@ -246,6 +251,13 @@
 
 /* Settings > Directory */
 
+
+#ifdef HAVE_MIST
+/* Settings > Steam */
+
+
+
+#endif
 
 /* Music */
 
@@ -382,6 +394,7 @@
 
 
 /* Notifications */
+
 
 
 /* Lakka */

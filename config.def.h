@@ -53,6 +53,11 @@
 #include "../input/input_overlay.h"
 #endif
 
+/* Required for Steam enum settings */
+#if defined(HAVE_MIST)
+#include "steam/steam.h"
+#endif
+
 #if defined(HW_RVL)
 #define MAX_GAMMA_SETTING 30
 #elif defined(GEKKO)
@@ -219,6 +224,10 @@
 #define DEFAULT_WINDOWED_FULLSCREEN true 
 #endif 
 
+/* Enable automatic switching of the screen refresh rate when using the specified screen mode(s),
+ * based on running core/content */
+#define DEFAULT_AUTOSWITCH_REFRESH_RATE AUTOSWITCH_REFRESH_RATE_EXCLUSIVE_FULLSCREEN
+
 /* Which monitor to prefer. 0 is any monitor, 1 and up selects
  * specific monitors, 1 being the first monitor. */
 #define DEFAULT_MONITOR_INDEX 0
@@ -329,8 +338,13 @@
 /* Video VSYNC (recommended) */
 #define DEFAULT_VSYNC true
 
+/* Vulkan specific */
 #define DEFAULT_MAX_SWAPCHAIN_IMAGES 3
 
+/* D3D1x specific */
+#define DEFAULT_MAX_FRAME_LATENCY 1
+
+/* GL specific */
 #define DEFAULT_ADAPTIVE_VSYNC false
 
 /* Attempts to hard-synchronize CPU and GPU.
@@ -495,6 +509,9 @@
 /* Save configuration file on exit. */
 #define DEFAULT_CONFIG_SAVE_ON_EXIT true
 
+/* Save active input remap file on exit/close content */
+#define DEFAULT_REMAP_SAVE_ON_EXIT true
+
 #define DEFAULT_SHOW_HIDDEN_FILES false
 
 /* Initialise file browser with the last used start directory */
@@ -608,6 +625,8 @@
 
 #define DEFAULT_SETTINGS_SHOW_DIRECTORY true
 
+#define DEFAULT_SETTINGS_SHOW_STEAM true
+
 #define DEFAULT_QUICK_MENU_SHOW_RESUME_CONTENT true
 
 #define DEFAULT_QUICK_MENU_SHOW_RESTART_CONTENT true
@@ -615,6 +634,8 @@
 #define DEFAULT_QUICK_MENU_SHOW_CLOSE_CONTENT true
 
 #define DEFAULT_QUICK_MENU_SHOW_TAKE_SCREENSHOT true
+
+#define DEFAULT_QUICK_MENU_SHOW_SAVESTATE_SUBMENU false
 
 #define DEFAULT_QUICK_MENU_SHOW_SAVE_LOAD_STATE true
 
@@ -1054,9 +1075,9 @@ static const bool audio_enable_menu_bgm    = false;
 #endif
 
 /* Output samplerate. */
-#ifdef GEKKO
+#if defined(GEKKO) || defined(MIYOO)
 #define DEFAULT_OUTPUT_RATE 32000
-#elif defined(_3DS) || defined(RETROFW) || defined(MIYOO)
+#elif defined(_3DS) || defined(RETROFW)
 #define DEFAULT_OUTPUT_RATE 32730
 #else
 #define DEFAULT_OUTPUT_RATE 48000
@@ -1177,8 +1198,9 @@ static const bool audio_enable_menu_bgm    = false;
 #define DEFAULT_AUTOSAVE_INTERVAL 0
 #endif
 
-/* Show only connectable rooms */
+/* Netplay lobby filters */
 #define DEFAULT_NETPLAY_SHOW_ONLY_CONNECTABLE true
+#define DEFAULT_NETPLAY_SHOW_PASSWORDED       true
 
 /* Publicly announce netplay */
 #define DEFAULT_NETPLAY_PUBLIC_ANNOUNCE true
@@ -1219,8 +1241,8 @@ static const bool netplay_use_mitm_server = false;
 static const unsigned netplay_max_connections = 3;
 static const unsigned netplay_max_ping        = 0;
 
-static const unsigned netplay_share_digital = RARCH_NETPLAY_SHARE_DIGITAL_NO_PREFERENCE;
-static const unsigned netplay_share_analog  = RARCH_NETPLAY_SHARE_ANALOG_NO_PREFERENCE;
+static const unsigned netplay_share_digital = RARCH_NETPLAY_SHARE_DIGITAL_NO_SHARING;
+static const unsigned netplay_share_analog  = RARCH_NETPLAY_SHARE_ANALOG_NO_SHARING;
 #endif
 
 /* On save state load, block SRAM from being overwritten.
@@ -1521,6 +1543,11 @@ static const enum resampler_quality audio_resampler_quality_level = RESAMPLER_QU
 
 static const unsigned midi_volume = 100;
 
+#ifdef HAVE_MIST
+/* Steam */
+#define DEFAULT_STEAM_RICH_PRESENCE_FORMAT STEAM_RICH_PRESENCE_FORMAT_CONTENT_SYSTEM
+#endif
+
 /* Only applies to Android 7.0 (API 24) and up */
 static const bool sustained_performance_mode = false;
 
@@ -1649,7 +1676,7 @@ static const bool enable_device_vibration    = false;
 
 #define DEFAULT_AI_SERVICE_TARGET_LANG 0
 
-#define DEFAULT_AI_SERVICE_ENABLE true
+#define DEFAULT_AI_SERVICE_ENABLE false
 
 #define DEFAULT_AI_SERVICE_PAUSE false
 

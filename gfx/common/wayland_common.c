@@ -13,10 +13,14 @@
  *  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
 
 #include <fcntl.h>
 #include <errno.h>
 #include <sys/mman.h>
+#include <sys/syscall.h>
 #include <poll.h>
 #include <unistd.h>
 
@@ -31,6 +35,22 @@
 
 #define DEFAULT_WINDOWED_WIDTH 640
 #define DEFAULT_WINDOWED_HEIGHT 480
+
+#ifndef MFD_CLOEXEC
+#define MFD_CLOEXEC		0x0001U
+#endif
+
+#ifndef MFD_ALLOW_SEALING
+#define MFD_ALLOW_SEALING	0x0002U
+#endif
+
+#ifndef F_ADD_SEALS
+#define F_ADD_SEALS		(1024 + 9)
+#endif
+
+#ifndef F_SEAL_SHRINK
+#define F_SEAL_SHRINK		0x0002
+#endif
 
 void xdg_toplevel_handle_configure_common(gfx_ctx_wayland_data_t *wl,
       void *toplevel,
@@ -143,19 +163,23 @@ void libdecor_frame_handle_commit(struct libdecor_frame *frame,
 void gfx_ctx_wl_get_video_size_common(gfx_ctx_wayland_data_t *wl,
       unsigned *width, unsigned *height)
 {
-   if (!wl->reported_display_size) {
-      wl->reported_display_size = true;
-      output_info_t *oi, *tmp;
-      oi = wl->current_output;
+   if (!wl->reported_display_size)
+   {
+      output_info_t *tmp        = NULL;
+      output_info_t *oi         = wl->current_output;
 
-      // If window is not ready get any monitor
+      wl->reported_display_size = true;
+
+      /* If window is not ready get any monitor */
       if (!oi)
           wl_list_for_each_safe(oi, tmp, &wl->all_outputs, link)
               break;
 
       *width  = oi->width;
       *height = oi->height;
-   } else {
+   }
+   else
+   {
       *width  = wl->width  * wl->buffer_scale;
       *height = wl->height * wl->buffer_scale;
    }
@@ -253,8 +277,8 @@ void gfx_ctx_wl_update_title_common(gfx_ctx_wayland_data_t *wl)
 bool gfx_ctx_wl_get_metrics_common(gfx_ctx_wayland_data_t *wl,
       enum display_metric_types type, float *value)
 {
-   output_info_t *oi, *tmp;
-   oi = wl->current_output;
+   output_info_t *tmp;
+   output_info_t *oi = wl->current_output;
 
    if (!oi)
       wl_list_for_each_safe(oi, tmp, &wl->all_outputs, link)
@@ -283,7 +307,151 @@ bool gfx_ctx_wl_get_metrics_common(gfx_ctx_wayland_data_t *wl,
    return true;
 }
 
-bool gfx_ctx_wl_init_common(void *video_driver,
+static int create_shm_file(off_t size)
+{
+   int fd;
+   int ret;
+   if ((fd = syscall(SYS_memfd_create, SPLASH_SHM_NAME,
+               MFD_CLOEXEC | MFD_ALLOW_SEALING)) >= 0)
+   {
+      fcntl(fd, F_ADD_SEALS, F_SEAL_SHRINK);
+
+      do {
+         ret = posix_fallocate(fd, 0, size);
+      } while (ret == EINTR);
+      if (ret != 0)
+      {
+         close(fd);
+         errno = ret;
+         fd    = -1;
+      }
+   }
+   if (fd < 0)
+   {
+      unsigned retry_count;
+      for (retry_count = 0; retry_count < 100; retry_count++)
+      {
+         char *name;
+         if (asprintf (&name, "%s-%02d", SPLASH_SHM_NAME, retry_count) < 0)
+            continue;
+         fd = shm_open(name, O_RDWR | O_CREAT, 0600);
+         if (fd >= 0)
+         {
+            shm_unlink(name);
+            free(name);
+            ftruncate(fd, size);
+            break;
+         }
+         free(name);
+      }
+   }
+
+   return fd;
+}
+
+
+static shm_buffer_t *create_shm_buffer(gfx_ctx_wayland_data_t *wl, int width,
+   int height,
+   uint32_t format)
+{
+   int fd, ofd;
+   struct wl_shm_pool *pool = NULL;
+   void *data               = NULL;
+   shm_buffer_t *buffer     = NULL;
+   int stride               = width  * 4;
+   int size                 = stride * height;
+
+   if (size <= 0)
+      return NULL;
+
+   fd = create_shm_file(size);
+   if (fd < 0)
+   {
+      RARCH_ERR("[Wayland] [SHM]: Creating a buffer file for %d B failed: %s\n",
+         size, strerror(errno));
+      return NULL;
+   }
+
+   data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+   if (data == MAP_FAILED)
+   {
+      RARCH_ERR("[Wayland] [SHM]: mmap failed: %s\n", strerror(errno));
+      close(fd);
+      return NULL;
+   }
+
+   buffer            = calloc(1, sizeof *buffer);
+
+   pool              = wl_shm_create_pool(wl->shm, fd, size);
+   buffer->wl_buffer = wl_shm_pool_create_buffer(pool, 0,
+      width, height,
+      stride, format);
+   wl_buffer_add_listener(buffer->wl_buffer, &shm_buffer_listener, buffer);
+   wl_shm_pool_destroy(pool);
+
+   close(fd);
+
+   buffer->data      = data;
+   buffer->data_size = size;
+
+   return buffer;
+}
+
+static void shm_buffer_paint_checkerboard(
+      shm_buffer_t *buffer,
+      int width, int height, int scale,
+      size_t chk, uint32_t bg, uint32_t fg)
+{
+   int y, x;
+   uint32_t *pixels = buffer->data;
+   int stride       = width * scale;
+
+   for (y = 0; y < height; y++)
+   {
+      for (x = 0; x < width; x++)
+      {
+         int sx;
+         uint32_t color = (x & chk) ^ (y & chk) ? fg : bg;
+         for (sx = 0; sx < scale; sx++)
+         {
+            int sy;
+            for (sy = 0; sy < scale; sy++)
+            {
+               size_t  off = x * scale + sx
+                     + (y * scale + sy) * stride;
+               pixels[off] = color;
+            }
+         }
+      }
+   }
+}
+
+
+static bool draw_splash_screen(gfx_ctx_wayland_data_t *wl)
+{
+   shm_buffer_t *buffer = create_shm_buffer(wl,
+      wl->width * wl->buffer_scale,
+      wl->height * wl->buffer_scale,
+      WL_SHM_FORMAT_XRGB8888);
+
+   if (!buffer)
+     return false;
+
+   shm_buffer_paint_checkerboard(buffer, wl->width,
+      wl->height, wl->buffer_scale,
+      16, 0xffbcbcbc, 0xff8e8e8e);
+
+   wl_surface_attach(wl->surface, buffer->wl_buffer, 0, 0);
+   wl_surface_set_buffer_scale(wl->surface, wl->buffer_scale);
+   if (wl_surface_get_version(wl->surface) >= WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION)
+      wl_surface_damage_buffer(wl->surface, 0, 0,
+         wl->width * wl->buffer_scale,
+         wl->height * wl->buffer_scale);
+   wl_surface_commit(wl->surface);
+   return true;
+}
+
+bool gfx_ctx_wl_init_common(
       const toplevel_listener_t *toplevel_listener, gfx_ctx_wayland_data_t **wwl)
 {
    int i;
@@ -475,9 +643,6 @@ bool gfx_ctx_wl_set_video_mode_common_size(gfx_ctx_wayland_data_t *wl,
 #endif
 
    return true;
-
-error:
-   return false;
 }
 
 bool gfx_ctx_wl_set_video_mode_common_fullscreen(gfx_ctx_wayland_data_t *wl,
@@ -488,9 +653,9 @@ bool gfx_ctx_wl_set_video_mode_common_fullscreen(gfx_ctx_wayland_data_t *wl,
 
    if (fullscreen)
    {
+      output_info_t *oi, *tmp;
       struct wl_output *output = NULL;
       int output_i             = 0;
-      output_info_t *oi, *tmp;
 
       if (video_monitor_index <= 0 && wl->current_output != NULL)
       {
@@ -508,7 +673,7 @@ bool gfx_ctx_wl_set_video_mode_common_fullscreen(gfx_ctx_wayland_data_t *wl,
          }
       }
 
-      if (output == NULL)
+      if (!output)
          RARCH_LOG("[Wayland] Failed to specify monitor for fullscreen, letting compositor decide\n");
 
 #ifdef HAVE_LIBDECOR_H
@@ -532,9 +697,6 @@ bool gfx_ctx_wl_set_video_mode_common_fullscreen(gfx_ctx_wayland_data_t *wl,
       wl->cursor.visible = true;
 
    return true;
-
-error:
-   return false;
 }
 
 bool gfx_ctx_wl_suppress_screensaver(void *data, bool state)
@@ -614,11 +776,13 @@ static void shm_buffer_handle_release(void *data,
    free(buffer);
 }
 
+#if 0
 static void xdg_surface_handle_configure(void *data, struct xdg_surface *surface,
                                   uint32_t serial)
 {
    xdg_surface_ack_configure(surface, serial);
 }
+#endif
 
 #ifdef HAVE_LIBDECOR_H
 static void libdecor_handle_error(struct libdecor *context,
@@ -627,149 +791,6 @@ static void libdecor_handle_error(struct libdecor *context,
    RARCH_ERR("[Wayland]: libdecor Caught error (%d): %s\n", error, message);
 }
 #endif
-
-int create_shm_file(off_t size)
-{
-   int fd;
-
-   int ret;
-
-   #ifdef HAVE_MEMFD_CREATE
-   fd = memfd_create(SPLASH_SHM_NAME, MFD_CLOEXEC | MFD_ALLOW_SEALING);
-
-   if (fd >= 0) {
-      fcntl(fd, F_ADD_SEALS, F_SEAL_SHRINK);
-
-      do {
-         ret = posix_fallocate(fd, 0, size);
-      } while (ret == EINTR);
-      if (ret != 0) {
-         close(fd);
-         errno = ret;
-         fd = -1;
-      }
-   }
-   if (fd < 0)
-   #endif
-   {
-      for (unsigned retry_count = 0; retry_count < 100; retry_count++)
-      {
-         char *name;
-         if (asprintf (&name, "%s-%02d", SPLASH_SHM_NAME, retry_count) < 0)
-            continue;
-         fd = shm_open(name, O_RDWR | O_CREAT, 0600);
-         if (fd >= 0)
-         {
-            shm_unlink(name);
-            free(name);
-            ftruncate(fd, size);
-            break;
-         }
-         free(name);
-      }
-   }
-
-   return fd;
-}
-
-shm_buffer_t *create_shm_buffer(gfx_ctx_wayland_data_t *wl, int width,
-   int height,
-   uint32_t format)
-{
-   struct wl_shm_pool *pool;
-   int fd, size, stride, ofd;
-   void *data;
-   shm_buffer_t *buffer;
-
-   stride = width * 4;
-   size = stride * height;
-
-   if (size <= 0)
-      return NULL;
-
-   fd = create_shm_file(size);
-   if (fd < 0) {
-      RARCH_ERR("[Wayland] [SHM]: Creating a buffer file for %d B failed: %s\n",
-         size, strerror(errno));
-      return NULL;
-   }
-
-   data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-   if (data == MAP_FAILED) {
-      RARCH_ERR("[Wayland] [SHM]: mmap failed: %s\n", strerror(errno));
-      close(fd);
-      return NULL;
-   }
-
-   buffer = calloc(1, sizeof *buffer);
-
-   pool = wl_shm_create_pool(wl->shm, fd, size);
-   buffer->wl_buffer = wl_shm_pool_create_buffer(pool, 0,
-      width, height,
-      stride, format);
-   wl_buffer_add_listener(buffer->wl_buffer, &shm_buffer_listener, buffer);
-   wl_shm_pool_destroy(pool);
-
-   close(fd);
-
-   buffer->data = data;
-   buffer->data_size = size;
-
-   return buffer;
-}
-
-
-void shm_buffer_paint_checkerboard(shm_buffer_t *buffer,
-      int width, int height, int scale,
-      size_t chk, uint32_t bg, uint32_t fg)
-{
-   uint32_t *pixels = buffer->data;
-   uint32_t color;
-   int y, x, sx, sy;
-   size_t off;
-   int stride = width * scale;
-
-   for (y = 0; y < height; y++) {
-      for (x = 0; x < width; x++) {
-         color = (x & chk) ^ (y & chk) ? fg : bg;
-         for (sx = 0; sx < scale; sx++) {
-            for (sy = 0; sy < scale; sy++) {
-               off = x * scale + sx
-                     + (y * scale + sy) * stride;
-               pixels[off] = color;
-            }
-         }
-      }
-   }
-}
-
-
-bool draw_splash_screen(gfx_ctx_wayland_data_t *wl)
-{
-   shm_buffer_t *buffer;
-
-   buffer = create_shm_buffer(wl,
-      wl->width * wl->buffer_scale,
-      wl->height * wl->buffer_scale,
-      WL_SHM_FORMAT_XRGB8888);
-
-   if (buffer == NULL)
-     return false;
-
-   shm_buffer_paint_checkerboard(buffer, wl->width,
-      wl->height, wl->buffer_scale,
-      16, 0xffbcbcbc, 0xff8e8e8e);
-
-   wl_surface_attach(wl->surface, buffer->wl_buffer, 0, 0);
-   wl_surface_set_buffer_scale(wl->surface, wl->buffer_scale);
-   if (wl_surface_get_version(wl->surface) >= WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION)
-      wl_surface_damage_buffer(wl->surface, 0, 0,
-         wl->width * wl->buffer_scale,
-         wl->height * wl->buffer_scale);
-   wl_surface_commit(wl->surface);
-   return true;
-}
-
 
 const struct wl_buffer_listener shm_buffer_listener = {
    shm_buffer_handle_release,

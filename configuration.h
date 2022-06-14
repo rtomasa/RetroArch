@@ -30,7 +30,6 @@
 #endif
 
 #include "gfx/video_defines.h"
-#include "input/input_defines.h"
 #include "led/led_defines.h"
 
 #ifdef HAVE_LAKKA
@@ -69,8 +68,6 @@
    strlcpy(var, newvar, sizeof(var)); \
 }
 
-#define INPUT_CONFIG_BIND_MAP_GET(i) ((const struct input_bind_map*)&input_config_bind_map[(i)])
-
 enum crt_switch_type
 {
    CRT_SWITCH_NONE = 0,
@@ -89,25 +86,6 @@ enum override_type
 };
 
 RETRO_BEGIN_DECLS
-
-/* Input config. */
-struct input_bind_map
-{
-   const char *base;
-
-   enum msg_hash_enums desc;
-
-   /* Meta binds get input as prefix, not input_playerN".
-    * 0 = libretro related.
-    * 1 = Common hotkey.
-    * 2 = Uncommon/obscure hotkey.
-    */
-   uint8_t meta;
-
-   uint8_t retro_key;
-
-   bool valid;
-};
 
 typedef struct settings
 {
@@ -225,6 +203,7 @@ typedef struct settings
       unsigned video_fullscreen_x;
       unsigned video_fullscreen_y;
       unsigned video_max_swapchain_images;
+      unsigned video_max_frame_latency;
       unsigned video_swap_interval;
       unsigned video_hard_sync_frames;
       unsigned video_frame_delay;
@@ -332,12 +311,17 @@ typedef struct settings
 
       unsigned core_updater_auto_backup_history_size;
       unsigned video_black_frame_insertion;
+      unsigned video_autoswitch_refresh_rate;
       unsigned quit_on_close_content;
 
 #ifdef HAVE_LAKKA
       unsigned cpu_scaling_mode;
       unsigned cpu_min_freq;
       unsigned cpu_max_freq;
+#endif
+
+#ifdef HAVE_MIST
+      unsigned steam_rich_presence_format;
 #endif
    } uints;
 
@@ -745,10 +729,14 @@ typedef struct settings
       bool settings_show_playlists;
       bool settings_show_user;
       bool settings_show_directory;
+#ifdef HAVE_MIST
+      bool settings_show_steam;
+#endif
       bool quick_menu_show_resume_content;
       bool quick_menu_show_restart_content;
       bool quick_menu_show_close_content;
       bool quick_menu_show_take_screenshot;
+      bool quick_menu_show_savestate_submenu;
       bool quick_menu_show_save_load_state;
       bool quick_menu_show_undo_save_load_state;
       bool quick_menu_show_add_to_favorites;
@@ -775,6 +763,7 @@ typedef struct settings
 
       /* Netplay */
       bool netplay_show_only_connectable;
+      bool netplay_show_passworded;
       bool netplay_public_announce;
       bool netplay_start_as_spectator;
       bool netplay_fade_chat;
@@ -837,6 +826,11 @@ typedef struct settings
       /* Driver */
       bool driver_switch_enable;
 
+#ifdef HAVE_MIST
+      /* Steam */
+      bool steam_rich_presence_enable;
+#endif
+
       /* Misc. */
       bool discord_enable;
       bool threaded_data_runloop_enable;
@@ -885,6 +879,7 @@ typedef struct settings
       bool sort_savestates_by_content_enable;
       bool sort_screenshots_by_content_enable;
       bool config_save_on_exit;
+      bool remap_save_on_exit;
       bool show_hidden_files;
       bool use_last_start_directory;
 
@@ -932,6 +927,10 @@ typedef struct settings
       bool gamemode_enable;
 #ifdef _3DS
       bool new3ds_speedup_enable;
+#endif
+
+#ifdef ANDROID
+      bool android_input_disconnect_workaround;
 #endif
    } bools;
 
@@ -1145,8 +1144,6 @@ void input_config_parse_mouse_button(
       const char *btn, void *bind_data);
 
 const char *input_config_get_prefix(unsigned user, bool meta);
-
-extern const struct input_bind_map input_config_bind_map[RARCH_BIND_LIST_END_NULL];
 
 RETRO_END_DECLS
 

@@ -2,7 +2,7 @@
  *  Copyright (C) 2010-2014 - Hans-Kristian Arntzen
  *  Copyright (C) 2011-2017 - Daniel De Matteis
  *  Copyright (C) 2016-2017 - Gregor Richards
- *  Copyright (C) 2021-2021 - Roberto V. Rampim
+ *  Copyright (C) 2021-2022 - Roberto V. Rampim
  *
  *  RetroArch is free software: you can redistribute it and/or modify it under the terms
  *  of the GNU General Public License as published by the Free Software Found-
@@ -24,17 +24,17 @@
 
 #include <boolean.h>
 #include <libretro.h>
+#include <retro_miscellaneous.h>
 
 #ifdef HAVE_CONFIG_H
 #include "../../config.h"
 #endif
 
 #include <net/net_compat.h>
-#include <net/net_ifinfo.h>
-#include <net/net_natt.h>
-#include <retro_miscellaneous.h>
 
-#include "../../core.h"
+#include "../../retroarch_types.h"
+
+#include "../natt.h"
 
 #include "netplay_protocol.h"
 
@@ -58,6 +58,7 @@ enum rarch_netplay_ctl_state
    RARCH_NETPLAY_CTL_ENABLE_SERVER,
    RARCH_NETPLAY_CTL_ENABLE_CLIENT,
    RARCH_NETPLAY_CTL_DISABLE,
+   RARCH_NETPLAY_CTL_REFRESH_CLIENT_INFO,
    RARCH_NETPLAY_CTL_IS_ENABLED,
    RARCH_NETPLAY_CTL_IS_REPLAYING,
    RARCH_NETPLAY_CTL_IS_SERVER,
@@ -73,7 +74,31 @@ enum rarch_netplay_ctl_state
    RARCH_NETPLAY_CTL_DISCONNECT,
    RARCH_NETPLAY_CTL_FINISHED_NAT_TRAVERSAL,
    RARCH_NETPLAY_CTL_DESYNC_PUSH,
-   RARCH_NETPLAY_CTL_DESYNC_POP
+   RARCH_NETPLAY_CTL_DESYNC_POP,
+   RARCH_NETPLAY_CTL_KICK_CLIENT
+};
+
+/* The current status of a connection */
+enum rarch_netplay_connection_mode
+{
+   NETPLAY_CONNECTION_NONE = 0,
+
+   NETPLAY_CONNECTION_DELAYED_DISCONNECT, 
+   /* The connection is dead, but data
+      is still waiting to be forwarded */
+
+   /* Initialization: */
+   NETPLAY_CONNECTION_INIT,         /* Waiting for header */
+   NETPLAY_CONNECTION_PRE_NICK,     /* Waiting for nick */
+   NETPLAY_CONNECTION_PRE_PASSWORD, /* Waiting for password */
+   NETPLAY_CONNECTION_PRE_INFO,     /* Waiting for core/content info */
+   NETPLAY_CONNECTION_PRE_SYNC,     /* Waiting for sync */
+
+   /* Ready: */
+   NETPLAY_CONNECTION_CONNECTED, /* Modes above this are connected */
+   NETPLAY_CONNECTION_SPECTATING, /* Spectator mode */
+   NETPLAY_CONNECTION_SLAVE, /* Playing in slave mode */
+   NETPLAY_CONNECTION_PLAYING /* Normal ready state */
 };
 
 /* Preferences for sharing digital devices */
@@ -115,11 +140,20 @@ enum rarch_netplay_discovery_ctl_state
 
 typedef struct netplay netplay_t;
 
+typedef struct netplay_client_info
+{
+   uint32_t protocol;
+   int32_t ping;
+   int id;
+   enum rarch_netplay_connection_mode mode;
+   char name[NETPLAY_NICK_LEN];
+} netplay_client_info_t;
+
 struct ad_packet
 {
    uint32_t header;
-   int      content_crc;
-   int      port;
+   int32_t  content_crc;
+   int32_t  port;
    uint32_t has_password;
    char     nick[NETPLAY_NICK_LEN];
    char     frontend[NETPLAY_HOST_STR_LEN];
@@ -237,8 +271,10 @@ typedef struct
    struct netplay_rooms *rooms_data;
    /* Used while Netplay is running */
    netplay_t *data;
+   netplay_client_info_t *client_info;
    /* Chat messages */
    struct netplay_chat *chat;
+   size_t client_info_count;
 #ifdef HAVE_NETPLAYDISCOVERY
    size_t discovered_hosts_allocated;
    /* LAN discovery sockets */
@@ -257,8 +293,6 @@ typedef struct
    /* Only used before init_netplay */
    bool netplay_enabled;
    bool netplay_is_client;
-   /* Used to avoid recursive netplay calls */
-   bool in_netplay;
    bool has_set_netplay_mode;
    bool has_set_netplay_ip_address;
    bool has_set_netplay_ip_port;
@@ -364,18 +398,6 @@ bool netplay_is_alive(netplay_t *netplay);
 bool netplay_should_skip(netplay_t *netplay);
 
 /**
- * netplay_post_frame:
- * @netplay              : pointer to netplay object
- *
- * Post-frame for Netplay.
- * We check if we have new input and replay from recorded input.
- * Call this after running retro_run().
- **/
-void netplay_post_frame(netplay_t *netplay);
-
-void deinit_netplay(void);
-
-/**
  * init_netplay
  * @server               : server address to connect to (client only)
  * @port                 : TCP port to host on/connect to
@@ -390,6 +412,8 @@ void deinit_netplay(void);
 bool init_netplay(const char *server, unsigned port, const char *mitm_session);
 
 bool init_netplay_deferred(const char *server, unsigned port, const char *mitm_session);
+
+void deinit_netplay(void);
 
 void video_frame_net(const void *data, unsigned width,
       unsigned height, size_t pitch);
@@ -413,5 +437,6 @@ bool netplay_discovery_driver_ctl(
 bool netplay_decode_hostname(const char *hostname,
       char *address, unsigned *port, char *session, size_t len);
 bool netplay_is_lan_address(struct sockaddr_in *addr);
+bool netplay_6to4(struct sockaddr_storage *addr);
 
 #endif

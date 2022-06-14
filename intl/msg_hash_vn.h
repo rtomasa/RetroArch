@@ -933,6 +933,9 @@ MSG_HASH(
    "Thay đổi thư mục mặc định đặt file."
    )
 
+#ifdef HAVE_MIST
+#endif
+
 /* Settings > Drivers */
 
 MSG_HASH(
@@ -1069,6 +1072,10 @@ MSG_HASH(
 
 /* Settings > Video > Synchronization */
 
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_VIDEO_SWAP_INTERVAL_AUTO,
+   "Tự động"
+   )
 
 /* Settings > Audio */
 
@@ -1216,6 +1223,7 @@ MSG_HASH(
    )
 
 /* Settings > Input > Menu Controls */
+
 
 
 /* Settings > Input > Hotkeys */
@@ -1405,10 +1413,6 @@ MSG_HASH(
    MENU_ENUM_LABEL_VALUE_UI_COMPANION_ENABLE,
    "Kích hoạt UI Companion"
    )
-MSG_HASH(
-   MENU_ENUM_LABEL_VALUE_UI_MENUBAR_ENABLE,
-   "Menubar"
-   )
 
 /* Settings > User Interface > Menu Item Visibility */
 
@@ -1439,6 +1443,7 @@ MSG_HASH(
 
 
 /* Settings > User Interface > Views > Settings */
+
 
 
 /* Settings > User Interface > Appearance */
@@ -1615,6 +1620,25 @@ MSG_HASH(
    "Danh mục cache"
    )
 
+#ifdef HAVE_MIST
+/* Settings > Steam */
+
+
+
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_STEAM_RICH_PRESENCE_FORMAT_CONTENT,
+   "Mục nội dung"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_STEAM_RICH_PRESENCE_FORMAT_CORE,
+   "Tên của Core"
+   )
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_STEAM_RICH_PRESENCE_FORMAT_SYSTEM,
+   "Tên hệ thống"
+   )
+#endif
+
 /* Music */
 
 /* Music > Quick Menu */
@@ -1703,10 +1727,6 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_UNDO_LOAD_STATE,
    "Undo Tải State"
-   )
-MSG_HASH(
-   MENU_ENUM_LABEL_VALUE_CORE_OPTIONS,
-   "Options\" \"Tùy chọn"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_CORE_INPUT_REMAPPING_OPTIONS,
@@ -1904,10 +1924,6 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_SUBLABEL_XMB_THEME,
    "Select a different theme for the icon. Changes will take effect after you restart the program."
-   )
-MSG_HASH(
-   MENU_ENUM_LABEL_VALUE_XMB_SHADOWS_ENABLE,
-   "Kích hoạt Icon Shadows"
    )
 
 /* XMB: Settings Options */
@@ -2151,6 +2167,7 @@ MSG_HASH(
    MSG_WAITING_FOR_CLIENT,
    "Đang đợi máy khách  ..."
    )
+
 MSG_HASH(
    MSG_AUDIO_VOLUME,
    "Âm lượng âm thanh"

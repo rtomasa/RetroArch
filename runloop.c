@@ -106,6 +106,9 @@
 #include "play_feature_delivery/play_feature_delivery.h"
 #endif
 
+#ifdef HAVE_PRESENCE
+#include "network/presence.h"
+#endif
 #ifdef HAVE_DISCORD
 #include "network/discord.h"
 #endif
@@ -2091,6 +2094,24 @@ bool runloop_environment_cb(unsigned cmd, void *data)
                                  break;
                            }
                            break;
+                        case RETRO_DEVICE_ID_JOYPAD_R2:
+                           switch (desc->index)
+                           {
+                              case RETRO_DEVICE_INDEX_ANALOG_BUTTON:
+                                 system->input_desc_btn[retro_port]
+                                    [retro_id] = desc->description;
+                                 break;
+                           }
+                           break;
+                        case RETRO_DEVICE_ID_JOYPAD_L2:
+                           switch (desc->index)
+                           {
+                              case RETRO_DEVICE_INDEX_ANALOG_BUTTON:
+                                 system->input_desc_btn[retro_port]
+                                    [retro_id] = desc->description;
+                                 break;
+                           }
+                           break;
                      }
                      break;
                }
@@ -3570,6 +3591,7 @@ static void uninit_libretro_symbols(
    input_game_focus_free();
    runloop_fastmotion_override_free();
    runloop_core_options_cb_free();
+   runloop_st->video_swap_interval_auto          = 1;
    camera_st->active                             = false;
    location_st->active                           = false;
 
@@ -5015,7 +5037,7 @@ void runloop_event_deinit_core(void)
          || !string_is_empty(runloop_st->name.remapfile)
       )
    {
-      input_remapping_deinit(true);
+      input_remapping_deinit(settings->bools.remap_save_on_exit);
       input_remapping_set_defaults(true);
    }
    else
@@ -5189,6 +5211,76 @@ float runloop_get_fastforward_ratio(
          && (fastmotion_override->ratio >= 0.0f))
       return fastmotion_override->ratio;
    return settings->floats.fastforward_ratio;
+}
+
+void runloop_set_video_swap_interval(
+      bool vrr_runloop_enable,
+      bool crt_switching_active,
+      unsigned swap_interval_config,
+      float audio_max_timing_skew,
+      float video_refresh_rate,
+      double input_fps)
+{
+   runloop_state_t *runloop_st = &runloop_state;
+   float core_hz               = input_fps;
+   float timing_hz             = crt_switching_active ?
+         input_fps : video_refresh_rate;
+   float swap_ratio;
+   unsigned swap_integer;
+   float timing_skew;
+
+   /* If automatic swap interval selection is
+    * disabled, just record user-set value */
+   if (swap_interval_config != 0)
+   {
+      runloop_st->video_swap_interval_auto =
+            swap_interval_config;
+      return;
+   }
+
+   /* > If VRR is enabled, swap interval is irrelevant,
+    *   just set to 1
+    * > If core fps is higher than display refresh rate,
+    *   set swap interval to 1
+    * > If core fps or display refresh rate are zero,
+    *   set swap interval to 1 */
+   if (vrr_runloop_enable ||
+       (core_hz > timing_hz) ||
+       (core_hz <= 0.0f) ||
+       (timing_hz <= 0.0f))
+   {
+      runloop_st->video_swap_interval_auto = 1;
+      return;
+   }
+
+   /* Check whether display refresh rate is an integer
+    * multiple of core fps (within timing skew tolerance) */
+   swap_ratio = timing_hz / core_hz;
+   swap_integer = (unsigned)(swap_ratio + 0.5f);
+
+   /* > Sanity check: swap interval must be in the
+    *   range [1,4] - if we are outside this, then
+    *   bail... */
+   if ((swap_integer < 1) || (swap_integer > 4))
+   {
+      runloop_st->video_swap_interval_auto = 1;
+      return;
+   }
+
+   timing_skew = fabs(1.0f - core_hz / (timing_hz / (float)swap_integer));
+
+   runloop_st->video_swap_interval_auto =
+         (timing_skew <= audio_max_timing_skew) ?
+               swap_integer : 1;
+}
+
+unsigned runloop_get_video_swap_interval(
+      unsigned swap_interval_config)
+{
+   runloop_state_t *runloop_st = &runloop_state;
+   return (swap_interval_config == 0) ?
+         runloop_st->video_swap_interval_auto :
+         swap_interval_config;
 }
 
 unsigned int retroarch_get_rotation(void)
@@ -5459,8 +5551,8 @@ void runloop_runahead_clear_variables(runloop_state_t *runloop_st)
 
 void runloop_pause_checks(void)
 {
-#ifdef HAVE_DISCORD
-   discord_userdata_t userdata;
+#ifdef HAVE_PRESENCE
+   presence_userdata_t userdata;
 #endif
    runloop_state_t *runloop_st    = &runloop_state;
    bool is_paused                 = runloop_st->paused;
@@ -5485,9 +5577,9 @@ void runloop_pause_checks(void)
       if (!is_idle)
          video_driver_cached_frame();
 
-#ifdef HAVE_DISCORD
-      userdata.status = DISCORD_PRESENCE_GAME_PAUSED;
-      command_event(CMD_EVENT_DISCORD_UPDATE, &userdata);
+#ifdef HAVE_PRESENCE
+      userdata.status = PRESENCE_GAME_PAUSED;
+      command_event(CMD_EVENT_PRESENCE_UPDATE, &userdata);
 #endif
 
 #ifndef HAVE_LAKKA_SWITCH
@@ -6164,11 +6256,11 @@ static bool display_menu_libretro(
 
    if (runloop_idle)
    {
-#ifdef HAVE_DISCORD
-      discord_userdata_t userdata;
-      userdata.status = DISCORD_PRESENCE_GAME_PAUSED;
+#ifdef HAVE_PRESENCE
+      presence_userdata_t userdata;
+      userdata.status = PRESENCE_GAME_PAUSED;
 
-      command_event(CMD_EVENT_DISCORD_UPDATE, &userdata);
+      command_event(CMD_EVENT_PRESENCE_UPDATE, &userdata);
 #endif
       return false;
    }
@@ -6242,7 +6334,7 @@ static enum runloop_state_enum runloop_check_state(
    bool widgets_active                 = dispwidget_get_ptr()->active;
 #endif
 #ifdef HAVE_CHEEVOS
-   bool cheevos_hardcore_active        = rcheevos_hardcore_active();
+   bool cheevos_hardcore_active        = false;
 #endif
 
 #if defined(HAVE_TRANSLATE) && defined(HAVE_GFX_WIDGETS)
@@ -6950,6 +7042,10 @@ static enum runloop_state_enum runloop_check_state(
       bool trig_frameadvance        = false;
       bool pause_pressed            = BIT256_GET(current_bits, RARCH_PAUSE_TOGGLE);
 #ifdef HAVE_CHEEVOS
+      /* make sure not to evaluate this before calling menu_driver_iterate
+       * as that may change its value */
+      cheevos_hardcore_active = rcheevos_hardcore_active();
+
       if (cheevos_hardcore_active)
       {
          static int unpaused_frames = 0;
@@ -7618,14 +7714,32 @@ int runloop_iterate(void)
    {
       if (settings->bools.video_frame_delay_auto)
       {
+         static bool slowmotion_prev  = false;
+         static unsigned skip_frames  = 0;
          float refresh_rate           = settings->floats.video_refresh_rate;
-         unsigned video_swap_interval = settings->uints.video_swap_interval;
+         unsigned video_swap_interval = runloop_get_video_swap_interval(
+               settings->uints.video_swap_interval);
          unsigned video_bfi           = settings->uints.video_black_frame_insertion;
          unsigned frame_time_interval = 8;
          bool frame_time_update       =
                /* Skip some starting frames for stabilization */
                video_st->frame_count > frame_time_interval &&
                video_st->frame_count % frame_time_interval == 0;
+
+         /* A few frames need to get ignored after slowmotion is disabled */
+         if (!runloop_st->slowmotion && slowmotion_prev)
+            skip_frames = frame_time_interval * 2;
+
+         if (skip_frames)
+            skip_frames--;
+
+         slowmotion_prev = runloop_st->slowmotion;
+         /* Always skip when slowmotion is active */
+         if (slowmotion_prev)
+            skip_frames = 1;
+
+         if (skip_frames)
+            frame_time_update = false;
 
          /* Black frame insertion + swap interval multiplier */
          refresh_rate = (refresh_rate / (video_bfi + 1.0f) / video_swap_interval);
@@ -7637,7 +7751,7 @@ int runloop_iterate(void)
          if (video_st->frame_delay_target != video_frame_delay)
          {
             video_st->frame_delay_target = video_frame_delay_effective = video_frame_delay;
-            RARCH_LOG("[Video]: Frame delay reset to %d.\n", video_frame_delay);
+            RARCH_LOG("[Video]: Frame delay reset to %d ms.\n", video_frame_delay);
          }
 
          if (video_frame_delay_effective > 0 && frame_time_update)
@@ -7650,7 +7764,7 @@ int runloop_iterate(void)
             if (vfda.decrease > 0)
             {
                video_frame_delay_effective -= vfda.decrease;
-               RARCH_LOG("[Video]: Frame delay decrease by %d to %d due to frame time: %d > %d.\n",
+               RARCH_LOG("[Video]: Frame delay decrease by %d ms to %d ms due to frame time: %d > %d.\n",
                      vfda.decrease, video_frame_delay_effective, vfda.time, vfda.target);
             }
          }
@@ -7702,9 +7816,8 @@ int runloop_iterate(void)
 #ifdef HAVE_CHEATS
    cheat_manager_apply_retro_cheats();
 #endif
-#ifdef HAVE_DISCORD
-   if (discord_st->inited && discord_st->ready)
-      discord_update(DISCORD_PRESENCE_GAME);
+#ifdef HAVE_PRESENCE
+   presence_update(PRESENCE_GAME);
 #endif
 
    /* Restores analog D-pad binds temporarily overridden. */

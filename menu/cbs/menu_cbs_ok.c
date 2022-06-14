@@ -302,6 +302,10 @@ static enum msg_hash_enums action_ok_dl_to_enum(unsigned lbl)
          return MENU_ENUM_LABEL_DEFERRED_DROPDOWN_BOX_LIST_INPUT_DESCRIPTION;
       case ACTION_OK_DL_DROPDOWN_BOX_LIST_INPUT_DESCRIPTION_KBD:
          return MENU_ENUM_LABEL_DEFERRED_DROPDOWN_BOX_LIST_INPUT_DESCRIPTION_KBD;
+#ifdef HAVE_NETWORKING
+      case ACTION_OK_DL_DROPDOWN_BOX_LIST_NETPLAY_MITM_SERVER:
+         return MENU_ENUM_LABEL_DEFERRED_DROPDOWN_BOX_LIST_NETPLAY_MITM_SERVER;
+#endif
       case ACTION_OK_DL_MIXER_STREAM_SETTINGS_LIST:
          return MENU_ENUM_LABEL_DEFERRED_MIXER_STREAM_SETTINGS_LIST;
       case ACTION_OK_DL_ACCOUNTS_LIST:
@@ -408,6 +412,10 @@ static enum msg_hash_enums action_ok_dl_to_enum(unsigned lbl)
          return MENU_ENUM_LABEL_DEFERRED_UPDATER_SETTINGS_LIST;
       case ACTION_OK_DL_NETWORK_HOSTING_SETTINGS_LIST:
          return MENU_ENUM_LABEL_DEFERRED_NETWORK_HOSTING_SETTINGS_LIST;
+      case ACTION_OK_DL_NETPLAY_KICK_LIST:
+         return MENU_ENUM_LABEL_DEFERRED_NETPLAY_KICK_LIST;
+      case ACTION_OK_DL_NETPLAY_LOBBY_FILTERS_LIST:
+         return MENU_ENUM_LABEL_DEFERRED_NETPLAY_LOBBY_FILTERS_LIST;
       case ACTION_OK_DL_SUBSYSTEM_SETTINGS_LIST:
          return MENU_ENUM_LABEL_DEFERRED_SUBSYSTEM_SETTINGS_LIST;
       case ACTION_OK_DL_NETWORK_SETTINGS_LIST:
@@ -489,6 +497,8 @@ static enum msg_hash_enums action_ok_dl_to_enum(unsigned lbl)
       case ACTION_OK_DL_CORE_MANAGER_LIST:
          return MENU_ENUM_LABEL_DEFERRED_CORE_MANAGER_LIST;
 #ifdef HAVE_MIST
+      case ACTION_OK_DL_STEAM_SETTINGS_LIST:
+         return MENU_ENUM_LABEL_DEFERRED_STEAM_SETTINGS_LIST;
       case ACTION_OK_DL_CORE_MANAGER_STEAM_LIST:
          return MENU_ENUM_LABEL_DEFERRED_CORE_MANAGER_STEAM_LIST;
 #endif
@@ -806,6 +816,17 @@ int generic_action_ok_displaylist_push(const char *path,
          info.enum_idx      = MENU_ENUM_LABEL_DEFERRED_DROPDOWN_BOX_LIST_INPUT_DESCRIPTION_KBD;
          dl_type            = DISPLAYLIST_GENERIC;
          break;
+#ifdef HAVE_NETWORKING
+      case ACTION_OK_DL_DROPDOWN_BOX_LIST_NETPLAY_MITM_SERVER:
+         info.type          = type;
+         info.directory_ptr = idx;
+         info_path          = path;
+         info_label         = msg_hash_to_str(
+               MENU_ENUM_LABEL_DEFERRED_DROPDOWN_BOX_LIST_NETPLAY_MITM_SERVER);
+         info.enum_idx      = MENU_ENUM_LABEL_DEFERRED_DROPDOWN_BOX_LIST_NETPLAY_MITM_SERVER;
+         dl_type            = DISPLAYLIST_GENERIC;
+         break;
+#endif
       case ACTION_OK_DL_USER_BINDS_LIST:
          info.type          = type;
          info.directory_ptr = idx;
@@ -1213,6 +1234,13 @@ int generic_action_ok_displaylist_push(const char *path,
          info_label         = label;
          dl_type            = DISPLAYLIST_FILE_BROWSER_SELECT_FILE;
          break;
+      case ACTION_OK_DL_SAVESTATE_LIST:
+         info.type          = type;
+         info.directory_ptr = idx;
+         info_path          = path;
+         info_label         = label;
+         dl_type            = DISPLAYLIST_GENERIC;
+         break;
       case ACTION_OK_DL_CORE_OPTIONS_LIST:
          info.type          = type;
          info.directory_ptr = idx;
@@ -1542,6 +1570,8 @@ int generic_action_ok_displaylist_push(const char *path,
       case ACTION_OK_DL_UPDATER_SETTINGS_LIST:
       case ACTION_OK_DL_NETWORK_SETTINGS_LIST:
       case ACTION_OK_DL_NETWORK_HOSTING_SETTINGS_LIST:
+      case ACTION_OK_DL_NETPLAY_KICK_LIST:
+      case ACTION_OK_DL_NETPLAY_LOBBY_FILTERS_LIST:
       case ACTION_OK_DL_SUBSYSTEM_SETTINGS_LIST:
       case ACTION_OK_DL_BLUETOOTH_SETTINGS_LIST:
       case ACTION_OK_DL_WIFI_SETTINGS_LIST:
@@ -1583,6 +1613,7 @@ int generic_action_ok_displaylist_push(const char *path,
       case ACTION_OK_DL_MANUAL_CONTENT_SCAN_LIST:
       case ACTION_OK_DL_CORE_MANAGER_LIST:
 #ifdef HAVE_MIST
+      case ACTION_OK_DL_STEAM_SETTINGS_LIST:
       case ACTION_OK_DL_CORE_MANAGER_STEAM_LIST:
 #endif
       case ACTION_OK_DL_CORE_OPTION_OVERRIDE_LIST:
@@ -3609,6 +3640,49 @@ static int action_ok_remap_file_reset(const char *path,
          msg_hash_to_str(MSG_REMAP_FILE_RESET),
          1, 100, true,
          NULL, MESSAGE_QUEUE_ICON_DEFAULT, MESSAGE_QUEUE_CATEGORY_INFO);
+   return 0;
+}
+
+static int action_ok_remap_file_flush(const char *path,
+      const char *label, unsigned type, size_t idx, size_t entry_idx)
+{
+   runloop_state_t *runloop_st = runloop_state_get_ptr();
+   const char *path_remapfile  = runloop_st->name.remapfile;
+   const char *remapfile       = NULL;
+   bool success                = false;
+   char msg[256];
+
+   msg[0] = '\0';
+
+   /* Check if a remap file is active */
+   if (!string_is_empty(path_remapfile))
+   {
+      /* Update existing remap file */
+      success = input_remapping_save_file(path_remapfile);
+
+      /* Get remap file name for display purposes */
+      remapfile = path_basename(path_remapfile);
+   }
+
+   if (string_is_empty(remapfile))
+      remapfile = msg_hash_to_str(MENU_ENUM_LABEL_VALUE_UNKNOWN);
+
+   /* Log result */
+   RARCH_LOG(success ?
+         "[Remaps]: Saved input remapping options to \"%s\".\n" :
+               "[Remaps]: Failed to save input remapping options to \"%s\".\n",
+            path_remapfile ? path_remapfile : "UNKNOWN");
+
+   snprintf(msg, sizeof(msg), "%s \"%s\"",
+         success ?
+               msg_hash_to_str(MSG_REMAP_FILE_FLUSHED) :
+                     msg_hash_to_str(MSG_REMAP_FILE_FLUSH_FAILED),
+         remapfile);
+
+   runloop_msg_queue_push(
+         msg, 1, 100, true,
+         NULL, MESSAGE_QUEUE_ICON_DEFAULT, MESSAGE_QUEUE_CATEGORY_INFO);
+
    return 0;
 }
 
@@ -5698,6 +5772,8 @@ DEFAULT_ACTION_OK_FUNC(action_ok_configurations_list, ACTION_OK_DL_CONFIGURATION
 DEFAULT_ACTION_OK_FUNC(action_ok_saving_list, ACTION_OK_DL_SAVING_SETTINGS_LIST)
 DEFAULT_ACTION_OK_FUNC(action_ok_network_list, ACTION_OK_DL_NETWORK_SETTINGS_LIST)
 DEFAULT_ACTION_OK_FUNC(action_ok_network_hosting_list, ACTION_OK_DL_NETWORK_HOSTING_SETTINGS_LIST)
+DEFAULT_ACTION_OK_FUNC(action_ok_netplay_kick_list, ACTION_OK_DL_NETPLAY_KICK_LIST)
+DEFAULT_ACTION_OK_FUNC(action_ok_netplay_lobby_filters_list, ACTION_OK_DL_NETPLAY_LOBBY_FILTERS_LIST)
 DEFAULT_ACTION_OK_FUNC(action_ok_subsystem_list, ACTION_OK_DL_SUBSYSTEM_SETTINGS_LIST)
 DEFAULT_ACTION_OK_FUNC(action_ok_database_manager_list, ACTION_OK_DL_DATABASE_MANAGER_LIST)
 #ifdef HAVE_BLUETOOTH
@@ -5829,10 +5905,12 @@ DEFAULT_ACTION_OK_FUNC(action_ok_push_manual_content_scan_list, ACTION_OK_DL_MAN
 DEFAULT_ACTION_OK_FUNC(action_ok_manual_content_scan_dat_file, ACTION_OK_DL_MANUAL_CONTENT_SCAN_DAT_FILE)
 DEFAULT_ACTION_OK_FUNC(action_ok_push_core_manager_list, ACTION_OK_DL_CORE_MANAGER_LIST)
 #ifdef HAVE_MIST
+DEFAULT_ACTION_OK_FUNC(action_ok_steam_settings_list, ACTION_OK_DL_STEAM_SETTINGS_LIST)
 DEFAULT_ACTION_OK_FUNC(action_ok_push_core_manager_steam_list, ACTION_OK_DL_CORE_MANAGER_STEAM_LIST)
 #endif
 DEFAULT_ACTION_OK_FUNC(action_ok_push_core_option_override_list, ACTION_OK_DL_CORE_OPTION_OVERRIDE_LIST)
 DEFAULT_ACTION_OK_FUNC(action_ok_push_remap_file_manager_list, ACTION_OK_DL_REMAP_FILE_MANAGER_LIST)
+DEFAULT_ACTION_OK_FUNC(action_ok_push_savestate_list, ACTION_OK_DL_SAVESTATE_LIST)
 DEFAULT_ACTION_OK_FUNC(action_ok_push_core_options_list, ACTION_OK_DL_CORE_OPTIONS_LIST)
 
 static int action_ok_open_uwp_permission_settings(const char *path,
@@ -5937,7 +6015,7 @@ static void netplay_refresh_rooms_cb(retro_task_t *task,
    unsigned menu_type           = 0;
    enum msg_hash_enums enum_idx = MSG_UNKNOWN;
    net_driver_state_t *net_st   = networking_state_get_ptr();
-   http_transfer_data_t *data   = task_data;
+   http_transfer_data_t *data   = (http_transfer_data_t*)task_data;
    bool refresh                 = false;
 
    menu_entries_get_last_stack(&path, &label, &menu_type, &enum_idx, NULL);
@@ -5961,7 +6039,7 @@ static void netplay_refresh_rooms_cb(retro_task_t *task,
       return;
    }
 
-   new_data = realloc(data->data, data->len + 1);
+   new_data              = (char*)realloc(data->data, data->len + 1);
    if (!new_data)
       return;
    data->data            = new_data;
@@ -5980,7 +6058,7 @@ static void netplay_refresh_rooms_cb(retro_task_t *task,
       netplay_rooms_parse(data->data);
 
       net_st->room_count = netplay_rooms_get_count();
-      net_st->room_list  = calloc(net_st->room_count,
+      net_st->room_list  = (struct netplay_room*)calloc(net_st->room_count,
          sizeof(*net_st->room_list));
 
       for (i = 0; i < net_st->room_count; i++)
@@ -6043,7 +6121,7 @@ static void netplay_refresh_lan_cb(retro_task_t *task,
       int i;
 
       net_st->room_count = hosts->size;
-      net_st->room_list  = calloc(net_st->room_count,
+      net_st->room_list  = (struct netplay_room*)calloc(net_st->room_count,
          sizeof(*net_st->room_list));
 
       for (i = 0; i < net_st->room_count; i++)
@@ -6092,6 +6170,28 @@ static int action_ok_push_netplay_refresh_lan(const char *path,
    return 0;
 }
 #endif
+
+static int action_ok_push_netplay_kick(const char *path, const char *label,
+      unsigned type, size_t idx, size_t entry_idx)
+{
+   char msg[256];
+   netplay_client_info_t client;
+
+   client.id = (int)strtol(label, NULL, 10);
+   strlcpy(client.name, path, sizeof(client.name));
+
+   if (netplay_driver_ctl(RARCH_NETPLAY_CTL_KICK_CLIENT, &client))
+      snprintf(msg, sizeof(msg),
+         msg_hash_to_str(MSG_NETPLAY_KICKED_CLIENT_S), client.name);
+   else
+      snprintf(msg, sizeof(msg),
+         msg_hash_to_str(MSG_NETPLAY_FAILED_TO_KICK_CLIENT_S), client.name);
+
+   runloop_msg_queue_push(msg, 1, 180, true, NULL,
+      MESSAGE_QUEUE_ICON_DEFAULT, MESSAGE_QUEUE_CATEGORY_INFO);
+
+   return action_cancel_pop_default(NULL, NULL, 0, 0);
+}
 #endif
 
 DEFAULT_ACTION_OK_DL_PUSH(action_ok_content_collection_list, FILEBROWSER_SELECT_COLLECTION, ACTION_OK_DL_CONTENT_COLLECTION_LIST, NULL)
@@ -6740,6 +6840,28 @@ static int action_ok_push_dropdown_item_input_description_kbd(
 
    return action_cancel_pop_default(NULL, NULL, 0, 0);
 }
+
+#ifdef HAVE_NETWORKING
+static int action_ok_push_dropdown_item_netplay_mitm_server(const char *path,
+      const char *label, unsigned type, size_t idx, size_t entry_idx)
+{
+   const char *menu_path        = NULL;
+   enum msg_hash_enums enum_idx;
+   rarch_setting_t     *setting;
+
+   menu_entries_get_last_stack(&menu_path, NULL, NULL, NULL, NULL);
+   enum_idx = (enum msg_hash_enums)atoi(menu_path);
+   setting  = menu_setting_find_enum(enum_idx);
+
+   if (!setting)
+      return menu_cbs_exit();
+
+   strlcpy(setting->value.target.string,
+           label, setting->size);
+
+   return action_cancel_pop_default(NULL, NULL, 0, 0);
+}
+#endif
 
 static int action_ok_push_default(const char *path,
       const char *label, unsigned type, size_t idx, size_t entry_idx)
@@ -8160,6 +8282,7 @@ static int menu_cbs_init_bind_ok_compare_label(menu_file_list_cbs_t *cbs,
 #endif
          {MENU_ENUM_LABEL_LOAD_DISC,                           action_ok_push_load_disc_list},
          {MENU_ENUM_LABEL_SHADER_OPTIONS,                      action_ok_push_default},
+         {MENU_ENUM_LABEL_SAVESTATE_LIST,                      action_ok_push_savestate_list},
          {MENU_ENUM_LABEL_CORE_OPTIONS,                        action_ok_push_core_options_list},
          {MENU_ENUM_LABEL_CORE_OPTION_OVERRIDE_LIST,           action_ok_push_core_option_override_list},
          {MENU_ENUM_LABEL_REMAP_FILE_MANAGER_LIST,             action_ok_push_remap_file_manager_list},
@@ -8206,6 +8329,7 @@ static int menu_cbs_init_bind_ok_compare_label(menu_file_list_cbs_t *cbs,
          {MENU_ENUM_LABEL_REMAP_FILE_REMOVE_CONTENT_DIR,       action_ok_remap_file_remove_content_dir},
          {MENU_ENUM_LABEL_REMAP_FILE_REMOVE_GAME,              action_ok_remap_file_remove_game},
          {MENU_ENUM_LABEL_REMAP_FILE_RESET,                    action_ok_remap_file_reset},
+         {MENU_ENUM_LABEL_REMAP_FILE_FLUSH,                    action_ok_remap_file_flush},
          {MENU_ENUM_LABEL_PLAYLISTS_TAB,                       action_ok_content_collection_list},
          {MENU_ENUM_LABEL_BROWSE_URL_LIST,                     action_ok_browse_url_list},
          {MENU_ENUM_LABEL_CORE_LIST,                           action_ok_core_list},
@@ -8250,6 +8374,8 @@ static int menu_cbs_init_bind_ok_compare_label(menu_file_list_cbs_t *cbs,
          {MENU_ENUM_LABEL_CONNECT_NETPLAY_ROOM,                action_ok_netplay_connect_room},
 #endif
          {MENU_ENUM_LABEL_NETWORK_HOSTING_SETTINGS,            action_ok_network_hosting_list},
+         {MENU_ENUM_LABEL_NETPLAY_KICK,                        action_ok_netplay_kick_list},
+         {MENU_ENUM_LABEL_NETPLAY_LOBBY_FILTERS,               action_ok_netplay_lobby_filters_list},
          {MENU_ENUM_LABEL_SUBSYSTEM_SETTINGS,                  action_ok_subsystem_list},
          {MENU_ENUM_LABEL_NETWORK_SETTINGS,                    action_ok_network_list},
          {MENU_ENUM_LABEL_LAKKA_SERVICES,                      action_ok_lakka_services},
@@ -8262,6 +8388,7 @@ static int menu_cbs_init_bind_ok_compare_label(menu_file_list_cbs_t *cbs,
          {MENU_ENUM_LABEL_PLAYLIST_MANAGER_DEFAULT_CORE,       action_ok_playlist_default_core},
          {MENU_ENUM_LABEL_CORE_MANAGER_LIST,                   action_ok_push_core_manager_list},
 #ifdef HAVE_MIST
+         {MENU_ENUM_LABEL_STEAM_SETTINGS,                      action_ok_steam_settings_list},
          {MENU_ENUM_LABEL_CORE_MANAGER_STEAM_LIST,             action_ok_push_core_manager_steam_list},
          {MENU_ENUM_LABEL_CORE_STEAM_INSTALL,                  action_ok_core_steam_install},
          {MENU_ENUM_LABEL_CORE_STEAM_UNINSTALL,                action_ok_core_steam_uninstall},
@@ -8509,6 +8636,11 @@ static int menu_cbs_init_bind_ok_compare_type(menu_file_list_cbs_t *cbs,
          case MENU_SETTING_DROPDOWN_ITEM_INPUT_DESCRIPTION_KBD:
             BIND_ACTION_OK(cbs, action_ok_push_dropdown_item_input_description_kbd);
             break;
+#ifdef HAVE_NETWORKING
+         case MENU_SETTING_DROPDOWN_ITEM_NETPLAY_MITM_SERVER:
+            BIND_ACTION_OK(cbs, action_ok_push_dropdown_item_netplay_mitm_server);
+            break;
+#endif
          case MENU_SETTING_ACTION_CORE_DISK_OPTIONS:
             BIND_ACTION_OK(cbs, action_ok_push_default);
             break;
@@ -8737,6 +8869,11 @@ static int menu_cbs_init_bind_ok_compare_type(menu_file_list_cbs_t *cbs,
 #ifdef HAVE_WIFI
             BIND_ACTION_OK(cbs, action_ok_wifi);
 #endif
+#endif
+            break;
+         case MENU_NETPLAY_KICK:
+#ifdef HAVE_NETWORKING
+            BIND_ACTION_OK(cbs, action_ok_push_netplay_kick);
 #endif
             break;
          case FILE_TYPE_CURSOR:

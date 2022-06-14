@@ -1129,6 +1129,9 @@ MSG_HASH(
    "Módosítsa az alapértelmezett könyvtárakat, ahol a fájlok találhatók."
    )
 
+#ifdef HAVE_MIST
+#endif
+
 /* Settings > Drivers */
 
 MSG_HASH(
@@ -1541,10 +1544,6 @@ MSG_HASH(
    MENU_ENUM_LABEL_VALUE_VIDEO_ASPECT_RATIO_INDEX,
    "Képarány"
    )
-MSG_HASH(
-   MENU_ENUM_LABEL_VALUE_VIDEO_ASPECT_RATIO,
-   "Egyedi Képarány"
-   )
 #if defined(DINGUX)
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_VIDEO_DINGUX_IPU_KEEP_ASPECT,
@@ -1698,6 +1697,7 @@ MSG_HASH(
 /* Settings > Input > Menu Controls */
 
 
+
 /* Settings > Input > Hotkeys */
 
 MSG_HASH(
@@ -1845,6 +1845,7 @@ MSG_HASH(
 /* Settings > User Interface > Views > Settings */
 
 
+
 /* Settings > User Interface > Appearance */
 
 MSG_HASH(
@@ -1971,6 +1972,17 @@ MSG_HASH(
    "Lejátszási listák"
    )
 
+#ifdef HAVE_MIST
+/* Settings > Steam */
+
+
+
+MSG_HASH(
+   MENU_ENUM_LABEL_VALUE_STEAM_RICH_PRESENCE_FORMAT_CONTENT,
+   "Tartalom"
+   )
+#endif
+
 /* Music */
 
 /* Music > Quick Menu */
@@ -2083,10 +2095,6 @@ MSG_HASH(
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_ADD_TO_FAVORITES,
    "Kedvencekhez ad"
-   )
-MSG_HASH(
-   MENU_ENUM_LABEL_VALUE_CORE_OPTIONS,
-   "Beállítások"
    )
 MSG_HASH(
    MENU_ENUM_LABEL_VALUE_ACHIEVEMENT_LIST,
@@ -2595,6 +2603,11 @@ MSG_HASH(
    MSG_NETPLAY_YOU_HAVE_JOINED_AS_PLAYER_N,
    "Csatlakoztál mint %u"
    )
+MSG_HASH(
+   MSG_NETPLAY_STATUS_PLAYING,
+   "Lejátszás"
+   )
+
 MSG_HASH(
    MSG_AUDIO_VOLUME,
    "Hangerő"

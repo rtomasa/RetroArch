@@ -1,5 +1,32 @@
 # Future
 
+# 1.10.3
+- ANDROID: Decouple Play Core dependency to bring app into compliance for F-Droid
+- ANDROID: Allow audio playback capture on android
+- AI/SERVICE: Disable AI Service setting by default
+- BLUETOOTH/LAKKA: bluetoothctl: add / modify pairing steps
+- CHEEVOS: Disallow manual frame delay setting in Hardcore Mode
+- DATABASE: Serial scanning for Wii now includes WBFS
+- INPUT: Allow proper descriptor declaration for analog triggers
+- INPUT/MAPPING: Fix offset + crash when clearing input port binds
+- INPUT/MAPPING: Fix saving of 'Analog to Digital Type' when configuration overrides are used
+- INPUT/MAPPING: Fix saving of 'Analog to Digital Type' when configuration overrides are used
+- LOCALIZATION: Add Valencian language option
+- LOCALIZATION: Updates
+- MENU/SETTINGS: Move 'Show Menu Bar' under 'Windowed Mode' settings
+- MENU/SETTINGS: Add sublabels for 'Subsystems' and 'Input Deadzone/Sensitivity'
+- MENU/SETTINGS: Move 'On-Screen Notifications' to top
+- MENU/XMB: Unified the shadow alpha value to a slightly darker one for better readability
+- MENU/XMB: Corrected the option label and sublabel for actual behavior
+- MIYOO: Enable ALSA audio driver and default to it
+- PSP: Take out extra languages/localization, adds about 4/5MB to the binary, and RAM is limited on PSP (32MB and 64MB RAM models)
+- STATIC PLATFORMS: Populate all history list metadata when launching content from playlists
+- STEAM: Introduce Steam Rich Presence
+- VIDEO: Fast-Forward Frameskip improvement
+- VIDEO/THREADED: Stability fixes
+- WINDOWS/WINRAW: Fix multiple light guns
+- WIIU: Fix USB get_device_name(), don't truncate to three chars
+
 # 1.10.2
 - 3DS: Add a menu toggle for switching between old and new 3DS speeds, located in the 'Power Management' menu. Enabled by default, hidden on old 3DS devices.
 - AUDIO/MIXER: Free audio voices properly

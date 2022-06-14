@@ -1149,6 +1149,9 @@ MSG_HASH(
    "Cambia os directorios predeterminados onde se atopan os ficheiros."
    )
 
+#ifdef HAVE_MIST
+#endif
+
 /* Settings > Drivers */
 
 MSG_HASH(
@@ -1586,6 +1589,7 @@ MSG_HASH(
 /* Settings > Input > Menu Controls */
 
 
+
 /* Settings > Input > Hotkeys */
 
 MSG_HASH(
@@ -1701,6 +1705,7 @@ MSG_HASH(
 /* Settings > User Interface > Views > Settings */
 
 
+
 /* Settings > User Interface > Appearance */
 
 
@@ -1774,6 +1779,13 @@ MSG_HASH(
    MENU_ENUM_LABEL_VALUE_PLAYLIST_DIRECTORY,
    "Listaxes de reprodución"
    )
+
+#ifdef HAVE_MIST
+/* Settings > Steam */
+
+
+
+#endif
 
 /* Music */
 
@@ -2146,6 +2158,7 @@ MSG_HASH(
 
 
 /* Notifications */
+
 
 MSG_HASH(
    MSG_CORE_DOES_NOT_SUPPORT_SAVESTATES,
