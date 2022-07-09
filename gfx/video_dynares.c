@@ -373,7 +373,7 @@ void dynares_init(unsigned *width, unsigned *height, unsigned base_width, unsign
       }
    }
    /* Write timings to file */
-   pf = fopen("/home/pi/RGB-Pi/data/timings.dat", "w");
+   pf = fopen("/opt/rgbpi/ui/data/timings.dat", "w");
    fputs(sys_timing, pf);
    fputc('\n', pf);
    fputs(gam_timing, pf);

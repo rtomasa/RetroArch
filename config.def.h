@@ -292,6 +292,7 @@
 #define DEFAULT_HANDHELD_FULL false
 #define DEFAULT_VIDEO_INFO false
 #define DEFAULT_FAST_MODE false
+#define DEFAULT_RESTRICT_UI false
 #endif
 
 #if defined(HAVE_WINDOW_OFFSET)

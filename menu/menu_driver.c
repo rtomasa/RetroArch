@@ -5715,6 +5715,14 @@ unsigned menu_event(
    input_driver_t *current_input                   = input_st->current_driver;
    const input_device_driver_t
       *joypad                                      = input_st->primary_joypad;
+   /* RGB-Pi Restrict menu actions */
+   const file_list_t *list       = menu_st->entries.list ?
+         MENU_LIST_GET(menu_st->entries.list, 0) : NULL;
+   menu_file_list_cbs_t *cbs     = list
+         ? (menu_file_list_cbs_t*)list->list[list->size - 1].actiondata
+         : NULL;
+   const char* current_menu;
+   const char* quick_menu;
 #ifdef HAVE_MFI
    const input_device_driver_t *sec_joypad         =
       input_st->secondary_joypad;
@@ -6055,16 +6063,29 @@ unsigned menu_event(
          ret = MENU_ACTION_SCROLL_DOWN;
       else if (ok_trigger)
          ret = MENU_ACTION_OK;
-      else if (BIT256_GET_PTR(p_trigger_input, menu_cancel_btn))
-         ret = MENU_ACTION_CANCEL;
-      else if (BIT256_GET_PTR(p_trigger_input, RETRO_DEVICE_ID_JOYPAD_X))
-         ret = MENU_ACTION_SEARCH;
+      else if (BIT256_GET_PTR(p_trigger_input, menu_cancel_btn)) {
+          /* Get Current Menu Entry */
+         //char current_label[128];
+         //get_current_menu_label(menu_st, current_label, sizeof(current_label));
+         if (settings->bools.rgbpi_restrict_ui)
+         {
+            current_menu = cbs->action_title_cache;
+            quick_menu = msg_hash_to_str(MENU_ENUM_LABEL_VALUE_CONTENT_SETTINGS);
+            bool is_quick_menu = string_is_equal(current_menu, quick_menu);
+            if (!is_quick_menu)
+               ret = MENU_ACTION_CANCEL;
+         }
+         else
+            ret = MENU_ACTION_CANCEL;
+      }
+      /*else if (BIT256_GET_PTR(p_trigger_input, RETRO_DEVICE_ID_JOYPAD_X))
+         ret = MENU_ACTION_SEARCH;*/
       else if (BIT256_GET_PTR(p_trigger_input, RETRO_DEVICE_ID_JOYPAD_Y))
          ret = MENU_ACTION_SCAN;
       else if (BIT256_GET_PTR(p_trigger_input, RETRO_DEVICE_ID_JOYPAD_START))
          ret = MENU_ACTION_START;
-      else if (BIT256_GET_PTR(p_trigger_input, RETRO_DEVICE_ID_JOYPAD_SELECT))
-         ret = MENU_ACTION_INFO;
+      /*else if (BIT256_GET_PTR(p_trigger_input, RETRO_DEVICE_ID_JOYPAD_SELECT))
+         ret = MENU_ACTION_INFO;*/
       else if (BIT256_GET_PTR(p_trigger_input, RARCH_MENU_TOGGLE))
          ret = MENU_ACTION_TOGGLE;
 
