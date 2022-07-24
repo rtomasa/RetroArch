@@ -562,6 +562,7 @@ typedef struct settings
       bool dynares_handheld_full;
       bool dynares_video_info;
       bool dynares_fast_mode;
+      bool dynares_flicker_reduction;
       bool rgbpi_restrict_ui;
 
       /* Accessibility */

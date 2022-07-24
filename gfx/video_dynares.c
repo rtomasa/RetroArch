@@ -1,11 +1,13 @@
 /*  DynaRes
  *  Copyright (C) 2021 rTomas.
  *  Available retroarch.cfg parameters:
- *  dynares_mode          = disabled, native, superx, custom, fixed
- *  dynares_crt_type      = "generic_15"
- *  dynares_video_info    = "true"
- *  dynares_handheld_full = "true"
- *  dynares_fast_mode     = "true"
+ *  dynares_mode              = disabled, native, superx, custom, fixed
+ *  dynares_crt_type          = "generic_15"
+ *  dynares_video_info        = "true/false"
+ *  dynares_handheld_full     = "true/false"
+ *  dynares_fast_mode         = "true/false"
+ *  dynares_flicker_reduction = "true/false"
+ *  rgbpi_restrict_ui         = "true/false"
  *
  *  RetroArch - A frontend for libretro.
  *  Copyright (C) 2010-2014 - Hans-Kristian Arntzen
@@ -71,19 +73,22 @@ void dynares_print_time(void)
    RARCH_LOG("[DynaRes]: Current time: %" PRIdMAX ".%03ld seconds since the Epoch\n", (intmax_t)s, ms);
 }
 
+int dynares_is_mame_rotated()
+{
+   return string_is_equal(sys_name, "MAME") && (rotation == 1 || rotation == 3);
+}
+
+
 void dynares_check_rotation(unsigned *width, unsigned *height)
 {
    RARCH_LOG("[DynaRes]: Check rotation: System: %s, resolution: %dx%d, rotation: %d\n", sys_name, *width, *height, rotation);
 
-   if (string_is_equal(sys_name, "MAME"))
+   if (dynares_is_mame_rotated())
    {
-      if (rotation == 1 || rotation == 3)
-      {
-         unsigned tmp = *width;
-         *width = *height;
-         *height = tmp;
-         RARCH_LOG("[DynaRes]: Check rotation: New resolution: %dx%d, rotation: %d\n", *width, *height, rotation);
-      }
+      unsigned tmp = *width;
+      *width = *height;
+      *height = tmp;
+      RARCH_LOG("[DynaRes]: Check rotation: New resolution: %dx%d, rotation: %d\n", *width, *height, rotation);
    }
 }
 
@@ -92,10 +97,21 @@ void dynares_video_show_info(int width, int height, int interlaced, float hz)
    char msg[128];
    settings_t *settings = config_get_ptr();
 
-   char* mode = "p";
+   char* mode = "x";
 
    if(interlaced)
+   {
       mode = "i";
+      if (settings->bools.dynares_flicker_reduction)
+         settings->bools.video_smooth = 1;
+      else
+         settings->bools.video_smooth = 0;
+   }
+   else
+   {
+      mode = "p";
+      settings->bools.video_smooth = 0;
+   }
 
    snprintf(msg, sizeof(msg),
             "%ux%u%s %.3fHz.", width, height, mode, hz);
@@ -370,6 +386,8 @@ void dynares_init(unsigned *width, unsigned *height, unsigned base_width, unsign
          settings->uints.video_fullscreen_y = *height;
          if (string_is_equal(dynares, "superx"))
             settings->bools.video_smooth = 1;
+         else
+            settings->bools.video_smooth = 0;
       }
    }
    /* Write timings to file */
@@ -449,14 +467,26 @@ void dynares_set_geometry(unsigned base_width, unsigned base_height, double fps)
       int v_height = 0;
       int v_width = 0;
       /* Dynamic height resolution */
-      if (height != base_height)
+      if (dynares_is_mame_rotated())
       {
-         height = base_height;
-         RARCH_LOG("[DynaRes]: Geom: %s: Resolution changed: %dx%d\n", dynares, settings->uints.video_fullscreen_x, base_height);
-         if (settings->bools.dynares_fast_mode)
-            dynares_video_driver_reinit();
-         else
+         if (height != base_height)
+         {
+            height = base_width;
+            RARCH_LOG("[DynaRes]: Geom: %s: Resolution changed: %dx%d\n", dynares, settings->uints.video_fullscreen_x, base_height);
             video_driver_reinit(DRIVERS_CMD_ALL);
+         }
+      }
+      else
+      {
+         if (height != base_height)
+         {
+            height = base_height;
+            RARCH_LOG("[DynaRes]: Geom: %s: Resolution changed: %dx%d\n", dynares, settings->uints.video_fullscreen_x, base_height);
+            if (settings->bools.dynares_fast_mode)
+               dynares_video_driver_reinit();
+            else
+               video_driver_reinit(DRIVERS_CMD_ALL);
+         }
       }
       /* Dynamic super integer scale (viewport custom) */
       handheld_full = settings->bools.dynares_handheld_full;
@@ -479,8 +509,16 @@ void dynares_set_geometry(unsigned base_width, unsigned base_height, double fps)
          else
             overscan_x = base_width * 5;
       }
-      v_width = (settings->uints.video_fullscreen_x / base_width) * base_width - overscan_x;
-      v_height = (settings->uints.video_fullscreen_y / base_height) * base_height - overscan_y;
+      if (dynares_is_mame_rotated())
+      {
+         v_width = (settings->uints.video_fullscreen_x / base_height) * base_height - overscan_x;
+         v_height = (settings->uints.video_fullscreen_y / base_width) * base_width - overscan_y;
+      }
+      else
+      {
+         v_width = (settings->uints.video_fullscreen_x / base_width) * base_width - overscan_x;
+         v_height = (settings->uints.video_fullscreen_y / base_height) * base_height - overscan_y;
+      }
       settings->video_viewport_custom.width = v_width;
       settings->video_viewport_custom.height = v_height;
       settings->video_viewport_custom.x = (settings->uints.video_fullscreen_x - v_width) / 2;

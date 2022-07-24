@@ -35,6 +35,8 @@ void dynares_check_rotation(
    unsigned *width,
    unsigned *height);
 
+int dynares_is_mame_rotated(void);
+
 void dynares_video_show_info(
    int width,
    int height,
