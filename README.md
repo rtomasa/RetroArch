@@ -365,7 +365,7 @@ Configure and build (32-bit):
 
 Configure and build (64-bit):
 
-`CFLAGS='-march=armv8-a+crc+simd -mcpu=cortex-a72 -mtune=cortex-a72' CXXFLAGS="${CFLAGS}" ./configure --disable-caca --disable-jack --disable-opengl1 --disable-oss --disable-sdl --disable-sdl2 --disable-videocore --disable-vulkan --disable-wayland --disable-x11 --enable-alsa --enable-egl --enable-kms --enable-opengles --enable-opengles3 --disable-pulse --enable-udev --enable-ffmpeg`
+`CFLAGS='-march=armv8-a+crc+simd -mcpu=cortex-a72 -mtune=cortex-a72' CXXFLAGS="${CFLAGS}" ./configure --disable-caca --disable-sixel --disable-jack --disable-oss --disable-sdl --disable-sdl2 --disable-videocore --disable-wayland --disable-x11 --enable-alsa --enable-egl --enable-kms --disable-opengl1 --disable-opengl --enable-opengl_core --enable-opengles --enable-vulkan --disable-pulse --enable-udev --disable-ffmpeg --disable-xmb --disable-ozone --disable-materialui --disable-discord --disable-bluetooth --disable-gfx_widgets --disable-xrandr --disable-online_updater --disable-translate --disable-cdrom --enable-dynares`
 
 Then make and install:
 
