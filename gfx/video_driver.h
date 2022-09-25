@@ -1239,7 +1239,7 @@ void video_driver_reinit(int flags);
 
 void dynares_video_driver_reinit(void);
 
-void video_driver_get_window_title(char *buf, unsigned len);
+size_t video_driver_get_window_title(char *buf, unsigned len);
 
 bool *video_driver_get_threaded(void);
 
