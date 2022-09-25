@@ -54,9 +54,6 @@ typedef struct
 
 static void free_autoconfig_handle(autoconfig_handle_t *autoconfig_handle)
 {
-   if (!autoconfig_handle)
-      return;
-
    if (autoconfig_handle->dir_autoconfig)
    {
       free(autoconfig_handle->dir_autoconfig);
@@ -82,13 +79,8 @@ static void free_autoconfig_handle(autoconfig_handle_t *autoconfig_handle)
 static void input_autoconfigure_free(retro_task_t *task)
 {
    autoconfig_handle_t *autoconfig_handle = NULL;
-
-   if (!task)
-      return;
-
-   autoconfig_handle = (autoconfig_handle_t*)task->state;
-
-   free_autoconfig_handle(autoconfig_handle);
+   if (task && (autoconfig_handle = (autoconfig_handle_t*)task->state))
+      free_autoconfig_handle(autoconfig_handle);
 }
 
 /******************************/
@@ -244,9 +236,7 @@ static bool input_autoconfigure_scan_config_files_external(
          continue;
 
       /* Load autoconfig file */
-      config = config_file_new_from_path_to_string(config_file_path);
-
-      if (!config)
+      if (!(config = config_file_new_from_path_to_string(config_file_path)))
          continue;
 
       /* Check for a match */
@@ -369,9 +359,7 @@ static void cb_input_autoconfigure_connect(
    if (!task)
       return;
 
-   autoconfig_handle = (autoconfig_handle_t*)task->state;
-
-   if (!autoconfig_handle)
+   if (!(autoconfig_handle = (autoconfig_handle_t*)task->state))
       return;
 
    /* Use local copy of port index for brevity... */
@@ -445,7 +433,7 @@ static void input_autoconfigure_connect_handler(retro_task_t *task)
    autoconfig_handle_t *autoconfig_handle = NULL;
    bool match_found                       = false;
    const char *device_display_name        = NULL;
-   char task_title[NAME_MAX_LENGTH];
+   char task_title[NAME_MAX_LENGTH + 16];
 
    task_title[0] = '\0';
 
@@ -469,10 +457,8 @@ static void input_autoconfigure_connect_handler(retro_task_t *task)
    /* Scan in order of preference:
     * - External autoconfig files
     * - Internal autoconfig definitions */
-   match_found = input_autoconfigure_scan_config_files_external(
-         autoconfig_handle);
-
-   if (!match_found)
+   if (!(match_found = input_autoconfigure_scan_config_files_external(
+         autoconfig_handle)))
       match_found = input_autoconfigure_scan_config_files_internal(
          autoconfig_handle);
 
@@ -537,27 +523,52 @@ static void input_autoconfigure_connect_handler(retro_task_t *task)
       {
          /* A valid autoconfig was applied */
          if (!autoconfig_handle->suppress_notifcations)
-            snprintf(task_title, sizeof(task_title), "%s %s %u",
-                  device_display_name,
+         {
+            size_t _len        = strlcpy(task_title,
+                  device_display_name, sizeof(task_title));
+            task_title[_len  ] = ' ';
+            task_title[++_len] = '\0';
+            _len               = strlcat(task_title, 
                   msg_hash_to_str(MSG_DEVICE_CONFIGURED_IN_PORT),
+                  sizeof(task_title));
+            task_title[_len  ] = ' ';
+            task_title[++_len] = '\0';
+            snprintf(task_title + _len, sizeof(task_title) - _len, "%u",
                   autoconfig_handle->port + 1);
+         }
       }
       /* Device is autoconfigured, but a (most likely
        * incorrect) fallback definition was used... */
       else
-         snprintf(task_title, sizeof(task_title), "%s (%u/%u) %s",
-               device_display_name,
+      {
+         size_t _len        = strlcpy(task_title,
+               device_display_name, sizeof(task_title));
+         task_title[_len  ] = ' ';
+         task_title[++_len] = '(';
+         task_title[++_len] = '\0';
+         snprintf(task_title + _len, sizeof(task_title) - _len, "%u/%u) ",
                autoconfig_handle->device_info.vid,
-               autoconfig_handle->device_info.pid,
-               msg_hash_to_str(MSG_DEVICE_NOT_CONFIGURED_FALLBACK));
+               autoconfig_handle->device_info.pid);
+         strlcat(task_title,
+               msg_hash_to_str(MSG_DEVICE_NOT_CONFIGURED_FALLBACK),
+               sizeof(task_title));
+      }
    }
    /* Autoconfig failed */
    else
-      snprintf(task_title, sizeof(task_title), "%s (%u/%u) %s",
-            device_display_name,
+   {
+      size_t _len        = strlcpy(task_title,
+            device_display_name, sizeof(task_title));
+      task_title[_len  ] = ' ';
+      task_title[++_len] = '(';
+      task_title[++_len] = '\0';
+      snprintf(task_title + _len, sizeof(task_title) - _len, "%u/%u) ",
             autoconfig_handle->device_info.vid,
-            autoconfig_handle->device_info.pid,
-            msg_hash_to_str(MSG_DEVICE_NOT_CONFIGURED));
+            autoconfig_handle->device_info.pid);
+      strlcat(task_title,
+            msg_hash_to_str(MSG_DEVICE_NOT_CONFIGURED),
+            sizeof(task_title));
+   }
 
    /* Update task title */
    task_free_title(task);
@@ -589,7 +600,7 @@ static bool autoconfigure_connect_finder(retro_task_t *task, void *user_data)
    return (*port == autoconfig_handle->port);
 }
 
-void input_autoconfigure_connect(
+bool input_autoconfigure_connect(
       const char *name,
       const char *display_name,
       const char *driver,
@@ -621,9 +632,7 @@ void input_autoconfigure_connect(
       goto error;
 
    /* Configure handle */
-   autoconfig_handle = (autoconfig_handle_t*)malloc(sizeof(autoconfig_handle_t));
-
-   if (!autoconfig_handle)
+   if (!(autoconfig_handle = (autoconfig_handle_t*)malloc(sizeof(autoconfig_handle_t))))
       goto error;
 
    autoconfig_handle->port                         = port;
@@ -669,10 +678,9 @@ void input_autoconfigure_connect(
       if (driver_valid)
       {
          char dir_driver_autoconfig[PATH_MAX_LENGTH];
-         dir_driver_autoconfig[0] = '\0';
-
          /* Generate driver-specific autoconfig directory */
-         fill_pathname_join(dir_driver_autoconfig, dir_autoconfig,
+         fill_pathname_join_special(dir_driver_autoconfig,
+               dir_autoconfig,
                autoconfig_handle->device_info.joypad_driver,
                sizeof(dir_driver_autoconfig));
 
@@ -730,7 +738,7 @@ void input_autoconfigure_connect(
 
    task_queue_push(task);
 
-   return;
+   return true;
 
 error:
 
@@ -740,8 +748,10 @@ error:
       task = NULL;
    }
 
-   free_autoconfig_handle(autoconfig_handle);
+   if (autoconfig_handle)
+      free_autoconfig_handle(autoconfig_handle);
    autoconfig_handle = NULL;
+   return false;
 }
 
 /****************************/
@@ -758,9 +768,7 @@ static void cb_input_autoconfigure_disconnect(
    if (!task)
       return;
 
-   autoconfig_handle = (autoconfig_handle_t*)task->state;
-
-   if (!autoconfig_handle)
+   if (!(autoconfig_handle = (autoconfig_handle_t*)task->state))
       return;
 
    /* Use local copy of port index for brevity... */
@@ -781,29 +789,38 @@ static void cb_input_autoconfigure_disconnect(
 
 static void input_autoconfigure_disconnect_handler(retro_task_t *task)
 {
+   size_t _len;
    autoconfig_handle_t *autoconfig_handle = NULL;
-   char task_title[NAME_MAX_LENGTH];
+   char task_title[NAME_MAX_LENGTH + 16];
 
    task_title[0] = '\0';
 
    if (!task)
       goto task_finished;
 
-   autoconfig_handle = (autoconfig_handle_t*)task->state;
-
-   if (!autoconfig_handle)
+   if (!(autoconfig_handle = (autoconfig_handle_t*)task->state))
       goto task_finished;
 
    /* Set task title */
+   _len               = strlcpy(task_title, 
+         msg_hash_to_str(MSG_DEVICE_DISCONNECTED_FROM_PORT),
+         sizeof(task_title));
+   task_title[_len  ] = ' '; 
+   task_title[++_len] = '\0'; 
+   _len              += snprintf(task_title + _len,
+         sizeof(task_title) - _len, "%u",
+         autoconfig_handle->port + 1);
    if (!string_is_empty(autoconfig_handle->device_info.name))
-      snprintf(task_title, sizeof(task_title), "%s %u (%s)",
-            msg_hash_to_str(MSG_DEVICE_DISCONNECTED_FROM_PORT),
-            autoconfig_handle->port + 1,
-            autoconfig_handle->device_info.name);
-   else
-      snprintf(task_title, sizeof(task_title), "%s %u",
-            msg_hash_to_str(MSG_DEVICE_DISCONNECTED_FROM_PORT),
-            autoconfig_handle->port + 1);
+   {
+      task_title[_len  ] = ' ';
+      task_title[_len+1] = '(';
+      task_title[_len+2] = '\0';
+      _len               = strlcat(task_title,
+            autoconfig_handle->device_info.name,
+            sizeof(task_title));
+      task_title[_len  ] = ')';
+      task_title[_len+1] = '\0';
+   }
 
    task_free_title(task);
    if (!autoconfig_handle->suppress_notifcations)
@@ -826,8 +843,7 @@ static bool autoconfigure_disconnect_finder(retro_task_t *task, void *user_data)
    if (task->handler != input_autoconfigure_disconnect_handler)
       return false;
 
-   autoconfig_handle = (autoconfig_handle_t*)task->state;
-   if (!autoconfig_handle)
+   if (!(autoconfig_handle = (autoconfig_handle_t*)task->state))
       return false;
 
    port = (unsigned*)user_data;

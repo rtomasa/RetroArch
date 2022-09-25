@@ -273,6 +273,7 @@ endif
 
 OBJ += \
        $(LIBRETRO_COMM_DIR)/compat/fopen_utf8.o \
+       $(LIBRETRO_COMM_DIR)/compat/compat_strldup.o \
        $(LIBRETRO_COMM_DIR)/lists/file_list.o \
        $(LIBRETRO_COMM_DIR)/lists/dir_list.o \
        $(LIBRETRO_COMM_DIR)/file/retro_dirent.o \
@@ -281,6 +282,7 @@ OBJ += \
        $(LIBRETRO_COMM_DIR)/streams/file_stream_transforms.o \
        $(LIBRETRO_COMM_DIR)/streams/interface_stream.o \
        $(LIBRETRO_COMM_DIR)/streams/memory_stream.o \
+       $(LIBRETRO_COMM_DIR)/streams/network_stream.o \
        $(LIBRETRO_COMM_DIR)/vfs/vfs_implementation.o
 
 OBJ += \
@@ -1871,7 +1873,6 @@ ifeq ($(HAVE_BUILTINGLSLANG), 1)
       $(wildcard $(DEPS_DIR)/glslang/glslang/glslang/MachineIndependent/*.cpp) \
       $(wildcard $(DEPS_DIR)/glslang/glslang/glslang/MachineIndependent/preprocessor/*.cpp) \
       $(DEPS_DIR)/glslang/glslang/glslang/OSDependent/$(GLSLANG_PLATFORM)/ossource.cpp
-
    ifneq ($(findstring Win32,$(OS)),)
       DEFINES += -DENABLE_HLSL
       GLSLANG_SOURCES += $(wildcard $(DEPS_DIR)/glslang/glslang/hlsl/*.cpp)
@@ -1882,6 +1883,8 @@ else ifeq ($(HAVE_GLSLANG),1)
 
    # The order of these libs are somewhat specific
    LIBS += $(GLSLANG_LIBS) \
+           $(GLSLANG_MACHINEINDEPENDENT_LIBS) \
+           $(GLSLANG_GENERICCODEGEN_LIBS) \
            $(GLSLANG_OSDEPENDENT_LIBS) \
            $(GLSLANG_OGLCOMPILER_LIBS) \
            $(GLSLANG_HLSL_LIBS) \
@@ -1892,6 +1895,7 @@ endif
 
 ifeq ($(HAVE_GLSLANG_COMMON), 1)
    DEFINES += -DHAVE_GLSLANG
+   OBJ += $(GLSLANG_SOURCES_C:.c=.o)
    OBJ += $(GLSLANG_SOURCES:.cpp=.o)
 endif
 
@@ -2123,7 +2127,8 @@ ifeq ($(HAVE_NETWORKING), 1)
       OBJ += $(LIBRETRO_COMM_DIR)/net/net_socket_ssl_mbed.o
    endif
 
-   ifneq ($(HAVE_SOCKET_LEGACY),1)
+   ifeq ($(HAVE_IFINFO), 1)
+      DEFINES += -DHAVE_IFINFO
       OBJ += $(LIBRETRO_COMM_DIR)/net/net_ifinfo.o
    endif
 

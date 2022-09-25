@@ -1123,6 +1123,17 @@ static void vulkan_deinit_menu(vk_t *vk)
    }
 }
 
+#ifdef VULKAN_HDR_SWAPCHAIN
+static void vulkan_destroy_hdr_buffer(VkDevice device, struct vk_image *img)
+{
+   vkDestroyImageView(device, img->view, NULL);
+   vkDestroyImage(device, img->image, NULL);
+   vkDestroyFramebuffer(device, img->framebuffer, NULL);
+   vkFreeMemory(device, img->memory, NULL);
+   memset(img, 0, sizeof(*img));
+}
+#endif
+
 static void vulkan_free(void *data)
 {
    vk_t *vk = (vk_t*)data;
@@ -1159,7 +1170,9 @@ static void vulkan_free(void *data)
          vulkan_filter_chain_free((vulkan_filter_chain_t*)vk->filter_chain);
 
 #ifdef VULKAN_HDR_SWAPCHAIN
-   video_driver_unset_hdr_support();
+      vulkan_destroy_buffer(vk->context->device, &vk->hdr.ubo);
+      vulkan_destroy_hdr_buffer(vk->context->device, &vk->main_buffer);
+      video_driver_unset_hdr_support();
 #endif /* VULKAN_HDR_SWAPCHAIN */
 
       if (vk->ctx_driver && vk->ctx_driver->destroy)
@@ -1757,7 +1770,13 @@ static bool vulkan_set_shader(void *data,
 static void vulkan_set_projection(vk_t *vk,
       struct video_ortho *ortho, bool allow_rotate)
 {
-   math_matrix_4x4 rot;
+   float radians, cosine, sine;
+   static math_matrix_4x4 rot     = {
+      {  0.0f,     0.0f,    0.0f,    0.0f ,
+         0.0f,     0.0f,    0.0f,    0.0f ,
+         0.0f,     0.0f,    0.0f,    0.0f ,
+         0.0f,     0.0f,    0.0f,    1.0f }
+   };
 
    /* Calculate projection. */
    matrix_4x4_ortho(vk->mvp_no_rot, ortho->left, ortho->right,
@@ -1769,7 +1788,13 @@ static void vulkan_set_projection(vk_t *vk,
       return;
    }
 
-   matrix_4x4_rotate_z(rot, M_PI * vk->rotation / 180.0f);
+   radians                 = M_PI * vk->rotation / 180.0f;
+   cosine                  = cosf(radians);
+   sine                    = sinf(radians);
+   MAT_ELEM_4X4(rot, 0, 0) = cosine;
+   MAT_ELEM_4X4(rot, 0, 1) = -sine;
+   MAT_ELEM_4X4(rot, 1, 0) = sine;
+   MAT_ELEM_4X4(rot, 1, 1) = cosine;
    matrix_4x4_multiply(vk->mvp, rot, vk->mvp_no_rot);
 }
 
@@ -2065,9 +2090,8 @@ static bool vulkan_frame(void *data, const void *frame,
    bool overlay_behind_menu                      = video_info->overlay_behind_menu;
 
 #ifdef VULKAN_HDR_SWAPCHAIN
-   struct video_shader* shader_preset           = vulkan_filter_chain_get_preset(vk->filter_chain); 
-   VkFormat main_buffer_format                  = shader_preset && shader_preset->passes ? vulkan_filter_chain_get_pass_rt_format(vk->filter_chain, shader_preset->passes - 1) : VK_FORMAT_R8G8B8A8_UNORM;
-   bool use_main_buffer                         = main_buffer_format != vk->context->swapchain_format; 
+   bool use_main_buffer                          = vk->context->hdr_enable &&
+      (!vk->filter_chain || !vulkan_filter_chain_emits_hdr10(vk->filter_chain));
 #endif /* VULKAN_HDR_SWAPCHAIN */
 
    /* Bookkeeping on start of frame. */
@@ -2305,7 +2329,7 @@ static bool vulkan_frame(void *data, const void *frame,
 #endif
 
 #ifdef VULKAN_HDR_SWAPCHAIN
-   if(vk->context->hdr_enable && use_main_buffer)
+   if (use_main_buffer)
       backbuffer = &vk->main_buffer;
 #endif /* VULKAN_HDR_SWAPCHAIN */
 
@@ -2415,7 +2439,7 @@ static bool vulkan_frame(void *data, const void *frame,
 
 #ifdef VULKAN_HDR_SWAPCHAIN
       /* Copy over back buffer to swap chain render targets */
-      if (vk->context->hdr_enable && use_main_buffer)
+      if (use_main_buffer)
       {
          backbuffer = &vk->backbuffers[swapchain_index];
 
@@ -2448,8 +2472,8 @@ static bool vulkan_frame(void *data, const void *frame,
 
          VULKAN_IMAGE_LAYOUT_TRANSITION(vk->cmd, vk->main_buffer.image,
                VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-               VK_ACCESS_COLOR_ATTACHMENT_READ_BIT, VK_ACCESS_SHADER_READ_BIT,
-               VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT,
+               VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
+               VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
                VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);   
 
          /* Begin render pass and set up viewport */
@@ -2482,7 +2506,7 @@ static bool vulkan_frame(void *data, const void *frame,
 
             image_info.sampler              = vk->samplers.nearest;
             image_info.imageView            = vk->main_buffer.view;
-            image_info.imageLayout          = VK_IMAGE_LAYOUT_GENERAL;
+            image_info.imageLayout          = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
             write.sType                     = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
             write.pNext                     = NULL;
@@ -2513,6 +2537,8 @@ static bool vulkan_frame(void *data, const void *frame,
             viewport.y             = 0.0f;
             viewport.width         = vk->context->swapchain_width;
             viewport.height        = vk->context->swapchain_height;
+            viewport.minDepth      = 0.0f;
+            viewport.maxDepth      = 1.0f;
 
             sci.offset.x           = (int32_t)viewport.x;
             sci.offset.y           = (int32_t)viewport.y;
@@ -2739,8 +2765,6 @@ static bool vulkan_frame(void *data, const void *frame,
 
       if (vk->context->hdr_enable)
       {
-         struct vk_image* img;
-
 #ifdef HAVE_THREADS
          slock_lock(vk->context->queue_lock);
 #endif
@@ -2748,16 +2772,8 @@ static bool vulkan_frame(void *data, const void *frame,
 #ifdef HAVE_THREADS
          slock_unlock(vk->context->queue_lock);
 #endif
-         img = &vk->main_buffer;
 
-         if (img->framebuffer)
-            vkDestroyFramebuffer(vk->context->device, img->framebuffer, NULL);
-         if (img->view)
-            vkDestroyImageView(vk->context->device, img->view, NULL);
-         if (img->image)
-            vkDestroyImage(vk->context->device, img->image, NULL);
-         if (img->memory)
-            vkFreeMemory(vk->context->device, img->memory, NULL);
+         vulkan_destroy_hdr_buffer(vk->context->device, &vk->main_buffer);
       }
 #endif /* VULKAN_HDR_SWAPCHAIN */
 
@@ -2772,7 +2788,7 @@ static bool vulkan_frame(void *data, const void *frame,
       if (!(vk->hdr.support = vk->context->swapchain_colour_space == VK_COLOR_SPACE_HDR10_ST2084_EXT))
          vk->context->hdr_enable                = false;
 
-      if(vk->context->hdr_enable)
+      if (vk->context->hdr_enable)
       {
          VkMemoryRequirements mem_reqs;
          VkImageCreateInfo image_info;
@@ -2787,7 +2803,7 @@ static bool vulkan_frame(void *data, const void *frame,
          image_info.pNext                = NULL;
          image_info.flags                = 0;
          image_info.imageType            = VK_IMAGE_TYPE_2D;
-         image_info.format               = main_buffer_format;
+         image_info.format               = vk->context->swapchain_format;
          image_info.extent.width         = video_width;
          image_info.extent.height        = video_height;
          image_info.extent.depth         = 1;
@@ -2797,13 +2813,15 @@ static bool vulkan_frame(void *data, const void *frame,
          image_info.tiling               = VK_IMAGE_TILING_OPTIMAL;
          image_info.usage                = VK_IMAGE_USAGE_SAMPLED_BIT |
             VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-            VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+            VK_IMAGE_USAGE_TRANSFER_DST_BIT |
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
          image_info.sharingMode          = VK_SHARING_MODE_EXCLUSIVE;
          image_info.queueFamilyIndexCount= 0;
          image_info.pQueueFamilyIndices  = NULL;
-         image_info.initialLayout        = VK_IMAGE_LAYOUT_GENERAL; /* VK_IMAGE_LAYOUT_UNDEFINED; */
+         image_info.initialLayout        = VK_IMAGE_LAYOUT_UNDEFINED;
 
          vkCreateImage(vk->context->device, &image_info, NULL, &vk->main_buffer.image);
+         vulkan_debug_mark_image(vk->context->device, vk->main_buffer.image);
          vkGetImageMemoryRequirements(vk->context->device, vk->main_buffer.image, &mem_reqs);
          alloc.sType                     = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
          alloc.pNext                     = NULL;
@@ -2814,6 +2832,7 @@ static bool vulkan_frame(void *data, const void *frame,
                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
 
          vkAllocateMemory(vk->context->device, &alloc, NULL, &vk->main_buffer.memory);
+         vulkan_debug_mark_memory(vk->context->device, vk->main_buffer.memory);
 
          vkBindImageMemory(vk->context->device, vk->main_buffer.image, vk->main_buffer.memory, 0);
 
@@ -2823,7 +2842,7 @@ static bool vulkan_frame(void *data, const void *frame,
          view.flags                           = 0;
          view.image                           = vk->main_buffer.image;
          view.viewType                        = VK_IMAGE_VIEW_TYPE_2D;
-         view.format                          = main_buffer_format;
+         view.format                          = image_info.format;
          view.components.r                    = VK_COMPONENT_SWIZZLE_R;
          view.components.g                    = VK_COMPONENT_SWIZZLE_G;
          view.components.b                    = VK_COMPONENT_SWIZZLE_B;

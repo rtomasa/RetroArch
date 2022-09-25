@@ -441,8 +441,14 @@ static void d3d12_set_filtering(void* data, unsigned index, bool smooth, bool ct
 
 static void d3d12_gfx_set_rotation(void* data, unsigned rotation)
 {
-   math_matrix_4x4  rot;
    math_matrix_4x4* mvp;
+   static math_matrix_4x4 rot  = {
+      { 0.0f,     0.0f,    0.0f,    0.0f ,
+        0.0f,     0.0f,    0.0f,    0.0f ,
+        0.0f,     0.0f,    0.0f,    0.0f ,
+        0.0f,     0.0f,    0.0f,    1.0f }
+   };
+   float radians, cosine, sine;
    D3D12_RANGE      read_range;
    d3d12_video_t*   d3d12      = (d3d12_video_t*)data;
 
@@ -452,13 +458,19 @@ static void d3d12_gfx_set_rotation(void* data, unsigned rotation)
    d3d12_gfx_sync(d3d12);
    d3d12->frame.rotation = rotation;
 
-   matrix_4x4_rotate_z(rot, d3d12->frame.rotation * (M_PI / 2.0f));
+   radians                 = d3d12->frame.rotation * (M_PI / 2.0f);
+   cosine                  = cosf(radians);
+   sine                    = sinf(radians);
+   MAT_ELEM_4X4(rot, 0, 0) = cosine;
+   MAT_ELEM_4X4(rot, 0, 1) = -sine;
+   MAT_ELEM_4X4(rot, 1, 0) = sine;
+   MAT_ELEM_4X4(rot, 1, 1) = cosine;
    matrix_4x4_multiply(d3d12->mvp, rot, d3d12->mvp_no_rot);
 
    read_range.Begin            = 0;
    read_range.End              = 0;
    D3D12Map(d3d12->frame.ubo, 0, &read_range, (void**)&mvp);
-   *mvp = d3d12->mvp;
+   *mvp                        = d3d12->mvp;
    D3D12Unmap(d3d12->frame.ubo, 0, NULL);
 }
 
@@ -675,21 +687,18 @@ static bool d3d12_gfx_set_shader(void* data, enum rarch_shader_type type, const 
             { "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(d3d12_vertex_t, texcoord),
               D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
          };
-         static const char vs_ext[] = ".vs.hlsl";
-         static const char ps_ext[] = ".ps.hlsl";
-         char              vs_path[PATH_MAX_LENGTH] = {0};
-         char              ps_path[PATH_MAX_LENGTH] = {0};
-         const char*       slang_path = d3d12->shader_preset->pass[i].source.path;
-         const char*       vs_src     = d3d12->shader_preset->pass[i].source.string.vertex;
-         const char*       ps_src     = d3d12->shader_preset->pass[i].source.string.fragment;
-
+         char vs_path[PATH_MAX_LENGTH];
+         char ps_path[PATH_MAX_LENGTH];
+         const char *slang_path = d3d12->shader_preset->pass[i].source.path;
+         const char *vs_src     = d3d12->shader_preset->pass[i].source.string.vertex;
+         const char *ps_src     = d3d12->shader_preset->pass[i].source.string.fragment;
          strlcpy(vs_path, slang_path, sizeof(vs_path));
          strlcpy(ps_path, slang_path, sizeof(ps_path));
-         strlcat(vs_path, vs_ext, sizeof(vs_path));
-         strlcat(ps_path, ps_ext, sizeof(ps_path));
+         strlcat(vs_path, ".vs.hlsl", sizeof(vs_path));
+         strlcat(ps_path, ".ps.hlsl", sizeof(ps_path));
 
-         if (!d3d_compile(vs_src, 0, vs_path,"main","vs_5_0", &vs_code)){ }
-         if (!d3d_compile(ps_src, 0, ps_path,"main","ps_5_0", &ps_code)){ }
+         if (!d3d_compile(vs_src, 0, vs_path, "main", "vs_5_0", &vs_code)){ }
+         if (!d3d_compile(ps_src, 0, ps_path, "main", "ps_5_0", &ps_code)){ }
 
          desc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
          if (i == d3d12->shader_preset->passes - 1)
@@ -1259,7 +1268,8 @@ static bool d3d12_init_swapchain(d3d12_video_t* d3d12,
 #endif
    desc.SwapEffect           = DXGI_SWAP_EFFECT_FLIP_DISCARD;
    desc.Flags                = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-   desc.Flags               |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+   if (d3d12->chain.waitable_swapchains)
+      desc.Flags            |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 
 #ifdef __WINRT__
    hr = DXGICreateSwapChainForCoreWindow(d3d12->factory, d3d12->queue.handle, corewindow, &desc, NULL, &d3d12->chain.handle);
@@ -1272,11 +1282,20 @@ static bool d3d12_init_swapchain(d3d12_video_t* d3d12,
       return false;
    }
 
-   if ((d3d12->chain.frameLatencyWaitableObject = DXGIGetFrameLatencyWaitableObject(d3d12->chain.handle)))
+   if (d3d12->chain.waitable_swapchains &&
+         (d3d12->chain.frameLatencyWaitableObject = DXGIGetFrameLatencyWaitableObject(d3d12->chain.handle)))
    {
       settings_t* settings = config_get_ptr();
       UINT max_latency     = settings->uints.video_max_frame_latency;
       UINT cur_latency     = 0;
+
+      if (max_latency == 0)
+      {
+         d3d12->chain.wait_for_vblank = true;
+         max_latency                  = 1;
+      }
+      else
+         d3d12->chain.wait_for_vblank = false;
 
       DXGISetMaximumFrameLatency(d3d12->chain.handle, max_latency);
       DXGIGetMaximumFrameLatency(d3d12->chain.handle, &cur_latency);
@@ -1363,7 +1382,7 @@ static void d3d12_init_base(d3d12_video_t* d3d12)
 #ifdef __WINRT__
    DXGICreateFactory2(&d3d12->factory);
 #else
-   DXGICreateFactory(&d3d12->factory);
+   DXGICreateFactory1(&d3d12->factory);
 #endif
    {
       settings_t *settings = config_get_ptr();
@@ -1387,14 +1406,10 @@ static void d3d12_init_base(d3d12_video_t* d3d12)
          if (FAILED(DXGIEnumAdapters2(d3d12->factory, i, &adapter)))
             break;
 #else
-         if (FAILED(DXGIEnumAdapters(d3d12->factory, i, &adapter)))
+         if (FAILED(DXGIEnumAdapters1(d3d12->factory, i, &adapter)))
             break;
 #endif
-#ifdef __cplusplus
-         adapter->GetDesc(adapter, &desc);
-#else
          adapter->lpVtbl->GetDesc(adapter, &desc);
-#endif
 
          utf16_to_char_string((const uint16_t*)desc.Description, str, sizeof(str));
 
@@ -1770,6 +1785,8 @@ static void *d3d12_gfx_init(const video_info_t* video,
    d3d12->hdr.max_fall                    = 0.0f;
 #endif
 
+   d3d12->chain.waitable_swapchains       = settings->bools.video_waitable_swapchains;
+
    d3d_input_driver(settings->arrays.input_driver, settings->arrays.input_joypad_driver, input, input_data);
 
    d3d12_init_base(d3d12);
@@ -2024,6 +2041,7 @@ static bool d3d12_gfx_frame(
    d3d12_texture_t* texture       = NULL;
    d3d12_video_t*   d3d12         = (d3d12_video_t*)data;
    bool vsync                     = d3d12->chain.vsync;
+   bool wait_for_vblank           = d3d12->chain.wait_for_vblank;
    unsigned sync_interval         = (vsync) ? d3d12->chain.swap_interval : 0;
    unsigned present_flags         = (vsync) ? 0 : DXGI_PRESENT_ALLOW_TEARING;
    const char *stat_text          = video_info->stat_text;
@@ -2154,7 +2172,7 @@ static bool d3d12_gfx_frame(
             d3d12->hdr.max_fall);
 #endif
    }
-   else
+   else if (d3d12->chain.waitable_swapchains)
    {
       WaitForSingleObjectEx(
             d3d12->chain.frameLatencyWaitableObject,
@@ -2659,6 +2677,13 @@ static bool d3d12_gfx_frame(
    win32_update_title();
 #endif
    DXGIPresent(d3d12->chain.handle, sync_interval, present_flags);
+
+   if (vsync && wait_for_vblank)
+   {
+      IDXGIOutput *pOutput;
+      DXGIGetContainingOutput(d3d12->chain.handle, &pOutput);
+      DXGIWaitForVBlank(pOutput);
+   }
 
    return true;
 }

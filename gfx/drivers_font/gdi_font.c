@@ -37,12 +37,12 @@
 
 typedef struct
 {
-   const font_renderer_driver_t *gdi_font_driver;
-   void *gdi_font_data;
+   const font_renderer_driver_t *font_driver;
+   void *font_data;
    gdi_t *gdi;
 } gdi_raster_t;
 
-static void *gdi_init_font(void *data,
+static void *gdi_font_init(void *data,
       const char *font_path, float font_size,
       bool is_threaded)
 {
@@ -54,8 +54,8 @@ static void *gdi_init_font(void *data,
    font->gdi = (gdi_t*)data;
 
    if (!font_renderer_create_default(
-            &font->gdi_font_driver,
-            &font->gdi_font_data, font_path, font_size))
+            &font->font_driver,
+            &font->font_data, font_path, font_size))
    {
       RARCH_WARN("Couldn't initialize font renderer.\n");
       return NULL;
@@ -64,35 +64,31 @@ static void *gdi_init_font(void *data,
    return font;
 }
 
-static void gdi_render_free_font(void *data, bool is_threaded)
+static void gdi_font_free(void *data, bool is_threaded)
 {
-   (void)data;
-   (void)is_threaded;
+  gdi_raster_t *font = (gdi_raster_t*)data;
+
+  if (!font)
+     return;
+
+  if (font->font_driver && font->font_data && font->font_driver->free)
+     font->font_driver->free(font->font_data);
+
+  free(font);
 }
 
-static int gdi_get_message_width(void *data, const char *msg,
-      unsigned msg_len, float scale)
-{
-   return 0;
-}
-
-static const struct font_glyph *gdi_font_get_glyph(
-      void *data, uint32_t code)
-{
-   return NULL;
-}
-
-static void gdi_render_msg(
+static void gdi_font_render_msg(
       void *userdata,
       void *data,
       const char *msg,
       const struct font_params *params)
 {
+   int i;
    char* msg_local;
+   size_t msg_len;
    float x, y, scale, drop_mod, drop_alpha;
-   int drop_x, drop_y, msg_strlen;
-   unsigned i;
-   unsigned newX, newY, newDropX, newDropY;
+   int drop_x, drop_y;
+   unsigned new_x, new_y, new_drop_x, new_drop_y;
    unsigned align;
    unsigned red, green, blue;
    gdi_t *gdi                       = (gdi_t*)userdata;
@@ -142,32 +138,32 @@ static void gdi_render_msg(
    }
 
    msg_local                  = utf8_to_local_string_alloc(msg);
-   msg_strlen                 = strlen(msg_local);
+   msg_len                    = strlen(msg_local);
 
-   GetTextExtentPoint32(font->gdi->memDC, msg_local, msg_strlen, &text_size);
+   GetTextExtentPoint32(font->gdi->memDC, msg_local, (int)msg_len, &text_size);
 
    switch (align)
    {
       case TEXT_ALIGN_LEFT:
-         newX     = x * width * scale;
-         newDropX = drop_x * width * scale;
+         new_x      = x * width * scale;
+         new_drop_x = drop_x * width * scale;
          break;
       case TEXT_ALIGN_RIGHT:
-         newX     = (x * width * scale) - text_size.cx;
-         newDropX = (drop_x * width * scale) - text_size.cx;
+         new_x      = (x * width * scale) - text_size.cx;
+         new_drop_x = (drop_x * width * scale) - text_size.cx;
          break;
       case TEXT_ALIGN_CENTER:
-         newX     = (x * width * scale) - (text_size.cx / 2);
-         newDropX = (drop_x * width * scale) - (text_size.cx / 2);
+         new_x      = (x * width * scale) - (text_size.cx / 2);
+         new_drop_x = (drop_x * width * scale) - (text_size.cx / 2);
          break;
       default:
-         newX     = 0;
-         newDropX = 0;
+         new_x      = 0;
+         new_drop_x = 0;
          break;
    }
 
-   newY               = height - (y * height * scale)      - text_size.cy;
-   newDropY           = height - (drop_y * height * scale) - text_size.cy;
+   new_y              = height - (y * height * scale)      - text_size.cy;
+   new_drop_y         = height - (drop_y * height * scale) - text_size.cy;
 
    font->gdi->bmp_old = (HBITMAP)SelectObject(font->gdi->memDC, font->gdi->bmp);
 
@@ -186,7 +182,8 @@ static void gdi_render_msg(
       SetTextColor(font->gdi->memDC, RGB(drop_red, drop_green, drop_blue));
 
       for (i = 0; i < msg_list.size; i++)
-         TextOut(font->gdi->memDC, newDropX, newDropY + (text_size.cy * i),
+         TextOut(font->gdi->memDC, new_drop_x,
+               new_drop_y + (text_size.cy * i),
                msg_list.elems[i].data,
                strlen(msg_list.elems[i].data));
    }
@@ -194,7 +191,7 @@ static void gdi_render_msg(
    SetTextColor(font->gdi->memDC, RGB(red, green, blue));
 
    for (i = 0; i < msg_list.size; i++)
-      TextOut(font->gdi->memDC, newX, newY + (text_size.cy * i),
+      TextOut(font->gdi->memDC, new_x, new_y + (text_size.cy * i),
             msg_list.elems[i].data,
             strlen(msg_list.elems[i].data));
 
@@ -205,13 +202,13 @@ static void gdi_render_msg(
 }
 
 font_renderer_t gdi_font = {
-   gdi_init_font,
-   gdi_render_free_font,
-   gdi_render_msg,
-   "gdi font",
-   gdi_font_get_glyph,        /* get_glyph */
+   gdi_font_init,
+   gdi_font_free,
+   gdi_font_render_msg,
+   "gdi_font",
+   NULL,                      /* get_glyph */
    NULL,                      /* bind_block */
    NULL,                      /* flush */
-   gdi_get_message_width,     /* get_message_width */
+   NULL,                      /* get_message_width */
    NULL                       /* get_line_metrics */
 };

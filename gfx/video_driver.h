@@ -870,6 +870,7 @@ typedef struct
    uintptr_t window;
 
    size_t frame_cache_pitch;
+   size_t window_title_len;
 
 #ifdef HAVE_VIDEO_FILTER
    unsigned state_scale;

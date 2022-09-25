@@ -197,6 +197,8 @@ typedef struct
    float                 clearcolor[4];
    unsigned              swap_interval;
    bool                  vsync;
+   bool                  waitable_swapchains;
+   bool                  wait_for_vblank;
    bool                  resize_chain;
    bool                  keep_aspect;
    bool                  resize_viewport;
@@ -214,7 +216,7 @@ typedef struct
 #ifdef __WINRT__
    DXGIFactory2 factory;
 #else
-   DXGIFactory factory;
+   DXGIFactory1 factory;
 #endif
    DXGIAdapter adapter;
 

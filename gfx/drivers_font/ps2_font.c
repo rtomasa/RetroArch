@@ -36,11 +36,14 @@ typedef struct
    void* font_data;
 } ps2_font_t;
 
-static void* ps2_font_init_font(void* data, const char* font_path,
+static void* ps2_font_init(void* data, const char* font_path,
       float font_size, bool is_threaded)
 {
-   const struct font_atlas* atlas = NULL;
    uint32_t j;
+   int text_size, clut_size;
+   uint8_t *tex8;
+   uint32_t *clut32;
+   const struct font_atlas* atlas = NULL;
    ps2_font_t* font = (ps2_font_t*)calloc(1, sizeof(*font));
 
    if (!font)
@@ -55,32 +58,32 @@ static void* ps2_font_init_font(void* data, const char* font_path,
       return NULL;
    }
 
-   atlas = font->font_driver->get_atlas(font->font_data);
-   font->texture = (GSTEXTURE*)calloc(1, sizeof(GSTEXTURE));
-   font->texture->Width = atlas->width;
-   font->texture->Height = atlas->height;
-   font->texture->PSM = GS_PSM_T8;
+   atlas                  = font->font_driver->get_atlas(font->font_data);
+   font->texture          = (GSTEXTURE*)calloc(1, sizeof(GSTEXTURE));
+   font->texture->Width   = atlas->width;
+   font->texture->Height  = atlas->height;
+   font->texture->PSM     = GS_PSM_T8;
    font->texture->ClutPSM = GS_PSM_CT32;
-   font->texture->Filter = GS_FILTER_NEAREST;
+   font->texture->Filter  = GS_FILTER_NEAREST;
 
-   // Convert to 8bit texture
-   int textSize = gsKit_texture_size_ee(atlas->width, atlas->height, GS_PSM_T8);
-   uint8_t *tex8 = malloc(textSize);
+   /* Convert to 8bit texture */
+   text_size           = gsKit_texture_size_ee(atlas->width, atlas->height, GS_PSM_T8);
+   tex8                = (uint8_t*)malloc(text_size);
    for (j = 0; j <  atlas->width * atlas->height; j++ )
-      tex8[j] = atlas->buffer[j] & 0x000000FF;
-   font->texture->Mem = (u32 *)tex8;
+      tex8[j]          = atlas->buffer[j] & 0x000000FF;
+   font->texture->Mem  = (u32 *)tex8;
 
-   // Create 8bit CLUT
-   int clutSize = gsKit_texture_size_ee(16, 16, GS_PSM_CT32);
-   uint32_t *clut32 = malloc(clutSize);
-   for (j = 0; j < 256; j++ )
-      clut32[j] = 0x01010101 * j;
+   /* Create 8bit CLUT */
+   clut_size           = gsKit_texture_size_ee(16, 16, GS_PSM_CT32);
+   clut32              = (uint32_t*)malloc(clut_size);
+   for (j = 0; j < 256; j++)
+      clut32[j]        = 0x01010101 * j;
    font->texture->Clut = (u32 *)clut32;
 
    return font;
 }
 
-static void ps2_font_free_font(void* data, bool is_threaded)
+static void ps2_font_free(void* data, bool is_threaded)
 {
    ps2_font_t* font = (ps2_font_t*)data;
 
@@ -101,10 +104,10 @@ static void ps2_font_free_font(void* data, bool is_threaded)
 }
 
 static int ps2_font_get_message_width(void* data, const char* msg,
-                                      unsigned msg_len, float scale)
+      size_t msg_len, float scale)
 {
+   int i;
    const struct font_glyph* glyph_q = NULL;
-   unsigned i;
    int delta_x      = 0;
    ps2_font_t* font = (ps2_font_t*)data;
 
@@ -137,21 +140,22 @@ static int ps2_font_get_message_width(void* data, const char* msg,
 
 static void ps2_font_render_line(
       ps2_video_t *ps2,
-      ps2_font_t* font, const char* msg, unsigned msg_len,
+      ps2_font_t* font, const char* msg, size_t msg_len,
       float scale, const unsigned int color, float pos_x,
       float pos_y,
       unsigned width, unsigned height, unsigned text_align)
 {
-   unsigned i;
+   int i;
    const struct font_glyph* glyph_q = NULL;
    int x            = roundf(pos_x * width);
    int y            = roundf((1.0f - pos_y) * height);
    int delta_x      = 0;
    int delta_y      = 0;
-   int colorR, colorG, colorB, colorA;
-
-   if (!ps2)
-      return;
+   /* We need to >> 1, because GS_SETREG_RGBAQ expects 0x80 as max color */
+   int color_a      = (int)(((color & 0xFF000000) >> 24) >> 2);
+   int color_b      = (int)(((color & 0x00FF0000) >> 16) >> 1);
+   int color_g      = (int)(((color & 0x0000FF00) >> 8)  >> 1);
+   int color_r      = (int)(((color & 0x000000FF) >> 0)  >> 1);
 
    /* Enable Alpha for font */
    gsKit_set_primalpha(ps2->gsGlobal, GS_SETREG_ALPHA(0, 1, 0, 1, 0), 0);
@@ -169,11 +173,6 @@ static void ps2_font_render_line(
          break;
    }
 
-   /* We need to >> 1, because GS_SETREG_RGBAQ expect 0x80 as max color */
-   colorA  = (int)(((color & 0xFF000000) >> 24) >> 2);
-   colorB  = (int)(((color & 0x00FF0000) >> 16) >> 1);
-   colorG  = (int)(((color & 0x0000FF00) >> 8) >> 1);
-   colorR  = (int)(((color & 0x000000FF) >> 0) >> 1);
    glyph_q = font->font_driver->get_glyph(font->font_data, '?');
 
    for (i = 0; i < msg_len; i++)
@@ -202,8 +201,7 @@ static void ps2_font_render_line(
       height = glyph->height;
 
       /* The -0.5 is needed to achieve pixel perfect. 
-       * More info here (PS2 uses
-       * same logic as Direct3D 9)
+       * More info here (PS2 GSKit uses same logic as Direct3D9)
        * https://docs.microsoft.com/en-us/windows/win32/direct3d10/d3d10-graphics-programming-guide-resources-coordinates
       */
       x1     = -0.5f + x + (off_x + delta_x) * scale;
@@ -225,7 +223,7 @@ static void ps2_font_render_line(
             u2,                /* U2 */
             v2,                /* V2 */
             5,                 /* Z  */
-            GS_SETREG_RGBAQ(colorR,colorG,colorB,colorA,0x00));
+            GS_SETREG_RGBAQ(color_r, color_g, color_b, color_a, 0x00));
 
       delta_x += glyph->advance_x;
       delta_y += glyph->advance_y;
@@ -260,8 +258,8 @@ static void ps2_font_render_message(
    for (;;)
    {
       const char* delim = strchr(msg, '\n');
-      unsigned msg_len  = delim ?
-         (unsigned)(delim - msg) : strlen(msg);
+      size_t msg_len    = delim ?
+         (delim - msg) : strlen(msg);
 
       /* Draw the line */
       ps2_font_render_line(ps2, font, msg, msg_len,
@@ -369,14 +367,14 @@ static bool ps2_font_get_line_metrics(void* data, struct font_line_metrics **met
    ps2_font_t* font = (ps2_font_t*)data;
    if (font && font->font_driver && font->font_data)
       return font->font_driver->get_line_metrics(font->font_data, metrics);
-   return -1;
+   return false;
 }
 
 font_renderer_t ps2_font = {
-   ps2_font_init_font,
-   ps2_font_free_font,
+   ps2_font_init,
+   ps2_font_free,
    ps2_font_render_msg,
-   "PS2 font",
+   "ps2_font",
    ps2_font_get_glyph,
    NULL,                      /* bind_block */
    NULL,                      /* flush */

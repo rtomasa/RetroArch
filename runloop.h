@@ -233,7 +233,7 @@ struct runloop
 #endif
 
    char runtime_content_path_basename[8192];
-   char current_library_name[256];
+   char current_library_name[NAME_MAX_LENGTH];
    char current_library_version[256];
    char current_valid_extensions[256];
    char subsystem_path[256];
@@ -288,11 +288,11 @@ struct runloop
    bool has_variable_update;
    bool input_is_dirty;
    bool runahead_save_state_size_known;
-   bool request_fast_savestate;
    bool runahead_available;
    bool runahead_secondary_core_available;
    bool runahead_force_input_dirty;
 #endif
+   bool request_special_savestate;
 #ifdef HAVE_PATCH
    bool patch_blocked;
 #endif

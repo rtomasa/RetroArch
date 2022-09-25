@@ -433,14 +433,26 @@ static void d3d11_set_filtering(void* data, unsigned index,
 
 static void d3d11_gfx_set_rotation(void* data, unsigned rotation)
 {
-   math_matrix_4x4 rot;
+   float radians, cosine, sine;
    D3D11_MAPPED_SUBRESOURCE mapped_ubo;
-   d3d11_video_t*  d3d11 = (d3d11_video_t*)data;
+   static math_matrix_4x4 rot     = {
+      { 0.0f,     0.0f,    0.0f,    0.0f ,
+        0.0f,     0.0f,    0.0f,    0.0f ,
+        0.0f,     0.0f,    0.0f,    0.0f ,
+        0.0f,     0.0f,    0.0f,    1.0f }
+   };
+   d3d11_video_t*  d3d11   = (d3d11_video_t*)data;
 
    if (!d3d11)
       return;
 
-   matrix_4x4_rotate_z(rot, rotation * (M_PI / 2.0f));
+   radians                 = rotation * (M_PI / 2.0f);
+   cosine                  = cosf(radians);
+   sine                    = sinf(radians);
+   MAT_ELEM_4X4(rot, 0, 0) = cosine;
+   MAT_ELEM_4X4(rot, 0, 1) = -sine;
+   MAT_ELEM_4X4(rot, 1, 0) = sine;
+   MAT_ELEM_4X4(rot, 1, 1) = cosine;
    matrix_4x4_multiply(d3d11->mvp, rot, d3d11->ubo_values.mvp);
 
    d3d11->context->lpVtbl->Map(
@@ -628,18 +640,16 @@ static bool d3d11_gfx_set_shader(void* data, enum rarch_shader_type type, const 
             { "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(d3d11_vertex_t, texcoord),
                D3D11_INPUT_PER_VERTEX_DATA, 0 },
          };
-         static const char vs_ext[] = ".vs.hlsl";
-         static const char ps_ext[] = ".ps.hlsl";
-         char              vs_path[PATH_MAX_LENGTH] = {0};
-         char              ps_path[PATH_MAX_LENGTH] = {0};
-         const char*       slang_path = d3d11->shader_preset->pass[i].source.path;
-         const char*       vs_src     = d3d11->shader_preset->pass[i].source.string.vertex;
-         const char*       ps_src     = d3d11->shader_preset->pass[i].source.string.fragment;
+         char vs_path[PATH_MAX_LENGTH];
+         char ps_path[PATH_MAX_LENGTH];
+         const char *slang_path = d3d11->shader_preset->pass[i].source.path;
+         const char *vs_src     = d3d11->shader_preset->pass[i].source.string.vertex;
+         const char *ps_src     = d3d11->shader_preset->pass[i].source.string.fragment;
 
          strlcpy(vs_path, slang_path, sizeof(vs_path));
          strlcpy(ps_path, slang_path, sizeof(ps_path));
-         strlcat(vs_path, vs_ext, sizeof(vs_path));
-         strlcat(ps_path, ps_ext, sizeof(ps_path));
+         strlcat(vs_path, ".vs.hlsl", sizeof(vs_path));
+         strlcat(ps_path, ".ps.hlsl", sizeof(ps_path));
 
          if (!d3d11_init_shader(
                   d3d11->device, vs_src, 0, vs_path, "main", NULL, NULL, desc, countof(desc),
@@ -988,7 +998,8 @@ static bool d3d11_init_swapchain(d3d11_video_t* d3d11,
    d3d11->has_flip_model                   = true;
    d3d11->has_allow_tearing                = true;
    desc.Flags                              = DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING;
-   desc.Flags                             |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+   if (d3d11->waitable_swapchains)
+      desc.Flags                          |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
    desc.SwapEffect                         = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 #endif
 
@@ -999,7 +1010,8 @@ static bool d3d11_init_swapchain(d3d11_video_t* d3d11,
                &desc, NULL, (IDXGISwapChain1**)&d3d11->swapChain)))
       return false;
 #else
-   desc.Flags                             |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+   if (d3d11->waitable_swapchains)
+      desc.Flags                          |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
    desc.SwapEffect                         = DXGI_SWAP_EFFECT_DISCARD;
 
    adapter->lpVtbl->GetParent(
@@ -1064,11 +1076,20 @@ static bool d3d11_init_swapchain(d3d11_video_t* d3d11,
 
 #endif    /* __WINRT__ */
 
-   if ((d3d11->frameLatencyWaitableObject = DXGIGetFrameLatencyWaitableObject(d3d11->swapChain)))
+   if (d3d11->waitable_swapchains &&
+         (d3d11->frameLatencyWaitableObject = DXGIGetFrameLatencyWaitableObject(d3d11->swapChain)))
    {
       settings_t* settings = config_get_ptr();
       UINT max_latency     = settings->uints.video_max_frame_latency;
       UINT cur_latency     = 0;
+
+      if (max_latency == 0)
+      {
+         d3d11->wait_for_vblank = true;
+         max_latency            = 1;
+      }
+      else
+         d3d11->wait_for_vblank = false;
 
       DXGISetMaximumFrameLatency(d3d11->swapChain, max_latency);
       DXGIGetMaximumFrameLatency(d3d11->swapChain, &cur_latency);
@@ -1172,7 +1193,7 @@ static void *d3d11_gfx_init(const video_info_t* video,
 #ifdef __WINRT__
    DXGICreateFactory2(&d3d11->factory);
 #else
-   DXGICreateFactory(&d3d11->factory);
+   DXGICreateFactory1(&d3d11->factory);
 #endif
 #ifdef HAVE_DXGI_HDR
    d3d11->hdr.enable                      = settings->bools.video_hdr_enable;
@@ -1181,6 +1202,8 @@ static void *d3d11_gfx_init(const video_info_t* video,
    d3d11->hdr.max_cll                     = 0.0f;
    d3d11->hdr.max_fall                    = 0.0f;
 #endif
+
+   d3d11->waitable_swapchains             = settings->bools.video_waitable_swapchains;
 
 #ifdef __WINRT__
    if (!d3d11_init_swapchain(d3d11,
@@ -1628,7 +1651,7 @@ static void *d3d11_gfx_init(const video_info_t* video,
          if (FAILED(DXGIEnumAdapters2(d3d11->factory, i, &d3d11->adapter)))
             break;
 #else
-         if (FAILED(DXGIEnumAdapters(d3d11->factory, i, &d3d11->adapter)))
+         if (FAILED(DXGIEnumAdapters1(d3d11->factory, i, &d3d11->adapter)))
             break;
 #endif
 
@@ -1816,6 +1839,7 @@ static bool d3d11_gfx_frame(
    d3d11_video_t* d3d11           = (d3d11_video_t*)data;
    D3D11DeviceContext context     = d3d11->context;
    bool vsync                     = d3d11->vsync;
+   bool wait_for_vblank           = d3d11->wait_for_vblank;
    unsigned present_flags         = (vsync || !d3d11->has_allow_tearing) ? 0 : DXGI_PRESENT_ALLOW_TEARING;
    const char *stat_text          = video_info->stat_text;
    unsigned video_width           = video_info->width;
@@ -1840,7 +1864,8 @@ static bool d3d11_gfx_frame(
    {
       UINT swapchain_flags        = d3d11->has_allow_tearing 
          ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
-      swapchain_flags            |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
+      if (d3d11->waitable_swapchains)
+         swapchain_flags         |= DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT;
 #ifdef HAVE_DXGI_HDR
       d3d11->hdr.enable           = video_hdr_enable;
 
@@ -1916,7 +1941,7 @@ static bool d3d11_gfx_frame(
             d3d11->hdr.max_fall);
 #endif
    }
-   else
+   else if (d3d11->waitable_swapchains)
    {
       WaitForSingleObjectEx(
             d3d11->frameLatencyWaitableObject,
@@ -2374,6 +2399,14 @@ static bool d3d11_gfx_frame(
 #endif
 
    DXGIPresent(d3d11->swapChain, d3d11->swap_interval, present_flags);
+
+   if (vsync && wait_for_vblank)
+   {
+      IDXGIOutput *pOutput;
+      DXGIGetContainingOutput(d3d11->swapChain, &pOutput);
+      DXGIWaitForVBlank(pOutput);
+   }
+
    Release(rtv);
 
    return true;

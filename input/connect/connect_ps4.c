@@ -142,8 +142,8 @@ static void* hidpad_ps4_init(void *data, uint32_t slot, hid_driver_t *driver)
       goto error;
 
    device->connection = connection;
-   device->slot       = slot;
    device->driver     = driver;
+   device->slot       = slot;
 
 #if 0
    /* TODO - unsure of this */

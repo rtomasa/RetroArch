@@ -80,43 +80,19 @@ static bool trigger_spurious_error(void)
 
 #ifdef VULKAN_DEBUG
 static VKAPI_ATTR VkBool32 VKAPI_CALL vulkan_debug_cb(
-      VkDebugReportFlagsEXT flags,
-      VkDebugReportObjectTypeEXT objectType,
-      uint64_t object,
-      size_t location,
-      int32_t messageCode,
-      const char *pLayerPrefix,
-      const char *pMessage,
+      VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+      VkDebugUtilsMessageTypeFlagsEXT messageType,
+      const VkDebugUtilsMessengerCallbackDataEXT *pCallbackData,
       void *pUserData)
 {
-   (void)objectType;
-   (void)object;
-   (void)location;
-   (void)messageCode;
+   const char *name;
    (void)pUserData;
 
-   if (flags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
+   if (messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT &&
+         messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT)
    {
-      RARCH_ERR("[Vulkan]: Error: %s: %s\n",
-            pLayerPrefix, pMessage);
+      RARCH_ERR("[Vulkan]: Validation Error: %s\n", pCallbackData->pMessage);
    }
-#if 0
-   else if (flags & VK_DEBUG_REPORT_WARNING_BIT_EXT)
-   {
-      RARCH_WARN("[Vulkan]: Warning: %s: %s\n",
-            pLayerPrefix, pMessage);
-   }
-   else if (flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
-   {
-      RARCH_LOG("[Vulkan]: Performance warning: %s: %s\n",
-            pLayerPrefix, pMessage);
-   }
-   else
-   {
-      RARCH_LOG("[Vulkan]: Information: %s: %s\n",
-            pLayerPrefix, pMessage);
-   }
-#endif
 
    return VK_FALSE;
 }
@@ -174,7 +150,7 @@ static VkResult vulkan_emulated_mailbox_acquire_next_image_blocking(
       struct vulkan_emulated_mailbox *mailbox,
       unsigned *index)
 {
-   VkResult res;
+   VkResult res = VK_SUCCESS;
 
    slock_lock(mailbox->lock);
 
@@ -382,6 +358,40 @@ static unsigned vulkan_num_miplevels(unsigned width, unsigned height)
    return levels;
 }
 
+static void vulkan_debug_mark_object(VkDevice device,
+      VkObjectType object_type, uint64_t object_handle, const char *name, unsigned count)
+{
+   if (vkSetDebugUtilsObjectNameEXT)
+   {
+      char merged_name[1024];
+      snprintf(merged_name, sizeof(merged_name), "%s (%u)", name, count);
+
+      VkDebugUtilsObjectNameInfoEXT info = { VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT };
+      info.objectType = object_type;
+      info.objectHandle = object_handle;
+      info.pObjectName = merged_name;
+      vkSetDebugUtilsObjectNameEXT(device, &info);
+   }
+}
+
+void vulkan_debug_mark_buffer(VkDevice device, VkBuffer buffer)
+{
+   static unsigned object_count;
+   vulkan_debug_mark_object(device, VK_OBJECT_TYPE_BUFFER, (uint64_t)buffer, "RetroArch buffer", ++object_count);
+}
+
+void vulkan_debug_mark_image(VkDevice device, VkImage image)
+{
+   static unsigned object_count;
+   vulkan_debug_mark_object(device, VK_OBJECT_TYPE_IMAGE, (uint64_t)image, "RetroArch image", ++object_count);
+}
+
+void vulkan_debug_mark_memory(VkDevice device, VkDeviceMemory memory)
+{
+   static unsigned object_count;
+   vulkan_debug_mark_object(device, VK_OBJECT_TYPE_DEVICE_MEMORY, (uint64_t)memory, "RetroArch memory", ++object_count);
+}
+
 struct vk_texture vulkan_create_texture(vk_t *vk,
       struct vk_texture *old,
       unsigned width, unsigned height,
@@ -483,6 +493,7 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
    if (type != VULKAN_TEXTURE_STAGING && type != VULKAN_TEXTURE_READBACK)
    {
       vkCreateImage(device, &info, NULL, &tex.image);
+      vulkan_debug_mark_image(device, tex.image);
 #if 0
       vulkan_track_alloc(tex.image);
 #endif
@@ -493,6 +504,7 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
       /* Linear staging textures are not guaranteed to be supported,
        * use buffers instead. */
       vkCreateBuffer(device, &buffer_info, NULL, &tex.buffer);
+      vulkan_debug_mark_buffer(device, tex.buffer);
       vkGetBufferMemoryRequirements(device, tex.buffer, &mem_reqs);
    }
    alloc.allocationSize = mem_reqs.size;
@@ -538,6 +550,7 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
 
             buffer_info.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
             vkCreateBuffer(device, &buffer_info, NULL, &tex.buffer);
+            vulkan_debug_mark_buffer(device, tex.buffer);
             vkGetBufferMemoryRequirements(device, tex.buffer, &mem_reqs);
 
             alloc.allocationSize  = mem_reqs.size;
@@ -586,6 +599,7 @@ struct vk_texture vulkan_create_texture(vk_t *vk,
    else
    {
       vkAllocateMemory(device, &alloc, NULL, &tex.memory);
+      vulkan_debug_mark_memory(device, tex.memory);
       tex.memory_size = alloc.allocationSize;
       tex.memory_type = alloc.memoryTypeIndex;
    }
@@ -1163,6 +1177,7 @@ struct vk_buffer vulkan_create_buffer(
    info.queueFamilyIndexCount = 0;
    info.pQueueFamilyIndices   = NULL;
    vkCreateBuffer(context->device, &info, NULL, &buffer.buffer);
+   vulkan_debug_mark_buffer(context->device, buffer.buffer);
 
    vkGetBufferMemoryRequirements(context->device, buffer.buffer, &mem_reqs);
 
@@ -1175,6 +1190,7 @@ struct vk_buffer vulkan_create_buffer(
            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT
          | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
    vkAllocateMemory(context->device, &alloc, NULL, &buffer.memory);
+   vulkan_debug_mark_memory(context->device, buffer.memory);
    vkBindBufferMemory(context->device, buffer.buffer, buffer.memory, 0);
 
    buffer.size                = size;
@@ -1646,36 +1662,26 @@ static bool vulkan_context_init_device(gfx_ctx_vulkan_data_t *vk)
 
    {
       char device_str[128];
-      char driver_version[64];
-      char api_version[64];
       char version_str[128];
-      int pos       = 0;
-      device_str[0] = driver_version[0] = api_version[0] = version_str[0] = '\0';
+      size_t len            = strlcpy(device_str, vk->context.gpu_properties.deviceName, sizeof(device_str));
+      device_str[len  ]     = ' ';
+      device_str[++len]     = '\0';
 
-      strlcpy(device_str, vk->context.gpu_properties.deviceName, sizeof(device_str));
-      strlcat(device_str, " ", sizeof(device_str));
+      len                  += snprintf(device_str + len, sizeof(device_str) - len, "%u", VK_VERSION_MAJOR(vk->context.gpu_properties.driverVersion));
+      device_str[len  ]     = '.';
+      device_str[++len]     = '\0';
+      len                  += snprintf(device_str + len, sizeof(device_str) - len, "%u", VK_VERSION_MINOR(vk->context.gpu_properties.driverVersion));
+      device_str[len  ]     = '.';
+      device_str[++len]     = '\0';
+      snprintf(device_str + len, sizeof(device_str) - len, "%u", VK_VERSION_PATCH(vk->context.gpu_properties.driverVersion));
 
-      pos += snprintf(driver_version + pos, sizeof(driver_version) - pos, "%u", VK_VERSION_MAJOR(vk->context.gpu_properties.driverVersion));
-      strlcat(driver_version, ".", sizeof(driver_version));
-      pos++;
-      pos += snprintf(driver_version + pos, sizeof(driver_version) - pos, "%u", VK_VERSION_MINOR(vk->context.gpu_properties.driverVersion));
-      pos++;
-      strlcat(driver_version, ".", sizeof(driver_version));
-      pos += snprintf(driver_version + pos, sizeof(driver_version) - pos, "%u", VK_VERSION_PATCH(vk->context.gpu_properties.driverVersion));
-
-      strlcat(device_str, driver_version, sizeof(device_str));
-
-      pos = 0;
-
-      pos += snprintf(api_version + pos, sizeof(api_version) - pos, "%u", VK_VERSION_MAJOR(vk->context.gpu_properties.apiVersion));
-      strlcat(api_version, ".", sizeof(api_version));
-      pos++;
-      pos += snprintf(api_version + pos, sizeof(api_version) - pos, "%u", VK_VERSION_MINOR(vk->context.gpu_properties.apiVersion));
-      pos++;
-      strlcat(api_version, ".", sizeof(api_version));
-      pos += snprintf(api_version + pos, sizeof(api_version) - pos, "%u", VK_VERSION_PATCH(vk->context.gpu_properties.apiVersion));
-
-      strlcat(version_str, api_version, sizeof(device_str));
+      len                   = snprintf(version_str      , sizeof(version_str)      , "%u", VK_VERSION_MAJOR(vk->context.gpu_properties.apiVersion));
+      version_str[len  ]    = '.';
+      version_str[++len]    = '\0';
+      len                  += snprintf(version_str + len, sizeof(version_str) - len, "%u", VK_VERSION_MINOR(vk->context.gpu_properties.apiVersion));
+      version_str[len  ]    = '.';
+      version_str[++len]    = '\0';
+      snprintf(version_str + len, sizeof(version_str) - len, "%u", VK_VERSION_PATCH(vk->context.gpu_properties.apiVersion));
 
       video_driver_set_gpu_device_string(device_str);
       video_driver_set_gpu_api_version_string(version_str);
@@ -1786,9 +1792,9 @@ bool vulkan_context_init(gfx_ctx_vulkan_data_t *vk,
       enum vulkan_wsi_type type)
 {
    unsigned i;
-   VkResult res;
    PFN_vkGetInstanceProcAddr GetInstanceProcAddr;
    const char *instance_extensions[4];
+   VkResult res                         = VK_SUCCESS;
    bool use_instance_ext                = false;
    VkInstanceCreateInfo info            = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
    VkApplicationInfo app                = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
@@ -1797,7 +1803,7 @@ bool vulkan_context_init(gfx_ctx_vulkan_data_t *vk,
       (struct retro_hw_render_context_negotiation_interface_vulkan*)video_driver_get_context_negotiation_interface();
 #ifdef VULKAN_DEBUG
    static const char *instance_layers[] = { "VK_LAYER_KHRONOS_validation" };
-   instance_extensions[ext_count++]     = "VK_EXT_debug_report";
+   instance_extensions[ext_count++]     = "VK_EXT_debug_utils";
 #endif
 
    if (iface && iface->interface_type != RETRO_HW_RENDER_CONTEXT_NEGOTIATION_INTERFACE_VULKAN)
@@ -1933,24 +1939,29 @@ bool vulkan_context_init(gfx_ctx_vulkan_data_t *vk,
 
 #ifdef VULKAN_DEBUG
    VULKAN_SYMBOL_WRAPPER_LOAD_INSTANCE_EXTENSION_SYMBOL(vk->context.instance,
-         vkCreateDebugReportCallbackEXT);
+         vkCreateDebugUtilsMessengerEXT);
    VULKAN_SYMBOL_WRAPPER_LOAD_INSTANCE_EXTENSION_SYMBOL(vk->context.instance,
-         vkDebugReportMessageEXT);
+         vkDestroyDebugUtilsMessengerEXT);
    VULKAN_SYMBOL_WRAPPER_LOAD_INSTANCE_EXTENSION_SYMBOL(vk->context.instance,
-         vkDestroyDebugReportCallbackEXT);
+         vkSetDebugUtilsObjectNameEXT);
 
    {
-      VkDebugReportCallbackCreateInfoEXT info =
-      { VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT };
-      info.flags =
-         VK_DEBUG_REPORT_ERROR_BIT_EXT |
-         VK_DEBUG_REPORT_WARNING_BIT_EXT |
-         VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT;
-      info.pfnCallback = vulkan_debug_cb;
+      VkDebugUtilsMessengerCreateInfoEXT info =
+      { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
+      info.messageSeverity =
+         VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+         VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+      info.messageType =
+         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+         VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+      info.pfnUserCallback = vulkan_debug_cb;
 
       if (vk->context.instance)
-         vkCreateDebugReportCallbackEXT(vk->context.instance, &info, NULL,
+      {
+         vkCreateDebugUtilsMessengerEXT(vk->context.instance, &info, NULL,
                &vk->context.debug_callback);
+      }
    }
    RARCH_LOG("[Vulkan]: Enabling Vulkan debug layers.\n");
 #endif
@@ -1967,6 +1978,7 @@ bool vulkan_context_init(gfx_ctx_vulkan_data_t *vk,
    if (res != VK_SUCCESS)
    {
       RARCH_ERR("Failed to create Vulkan instance (%d).\n", res);
+      RARCH_ERR("If VULKAN_DEBUG=1 is enabled, make sure Vulkan validation layers are installed.\n");
       return false;
    }
 
@@ -2531,7 +2543,7 @@ void vulkan_context_destroy(gfx_ctx_vulkan_data_t *vk,
 
 #ifdef VULKAN_DEBUG
    if (vk->context.debug_callback)
-      vkDestroyDebugReportCallbackEXT(vk->context.instance, vk->context.debug_callback, NULL);
+      vkDestroyDebugUtilsMessengerEXT(vk->context.instance, vk->context.debug_callback, NULL);
 #endif
 
    if (video_driver_is_video_cache_context())
@@ -2678,9 +2690,9 @@ static void vulkan_create_wait_fences(gfx_ctx_vulkan_data_t *vk)
 void vulkan_acquire_next_image(gfx_ctx_vulkan_data_t *vk)
 {
    unsigned index;
-   VkResult err;
    VkFenceCreateInfo fence_info;
    VkSemaphoreCreateInfo sem_info;
+   VkResult err                   = VK_SUCCESS;
    VkFence fence                  = VK_NULL_HANDLE;
    VkSemaphore semaphore          = VK_NULL_HANDLE;
    bool is_retrying               = false;
@@ -2899,19 +2911,15 @@ bool vulkan_create_swapchain(gfx_ctx_vulkan_data_t *vk,
                !vk->emulating_mailbox 
             &&  vk->mailbox.swapchain != VK_NULL_HANDLE)
       {
-         VkResult res;
+         VkResult res = VK_SUCCESS;
          /* We are tearing down, and entering a state 
           * where we are supposed to have
           * acquired an image, so block until we have acquired. */
-         if (vk->context.has_acquired_swapchain)
-            res    = VK_SUCCESS;
-         else
-         {
+         if (!vk->context.has_acquired_swapchain)
             if (vk->mailbox.swapchain != VK_NULL_HANDLE)
                res = vulkan_emulated_mailbox_acquire_next_image_blocking(
                      &vk->mailbox,
                      &vk->context.current_swapchain_index);
-         }
 
          vulkan_emulated_mailbox_deinit(&vk->mailbox);
 

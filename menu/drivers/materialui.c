@@ -49,11 +49,14 @@
 
 #include "../../core_info.h"
 #include "../../configuration.h"
-#include "../../verbosity.h"
 #include "../../tasks/tasks_internal.h"
 #include "../../runtime_file.h"
 #include "../../file_path_special.h"
 #include "../../list_special.h"
+
+#ifdef HAVE_CHEEVOS
+#include "../../cheevos/cheevos_menu.h"
+#endif
 
 /* Defines the 'device independent pixel' base
  * unit reference size for all UI elements.
@@ -170,7 +173,8 @@ enum materialui_node_icon_type
    MUI_ICON_TYPE_INTERNAL,
    MUI_ICON_TYPE_MENU_EXPLORE,
    MUI_ICON_TYPE_PLAYLIST,
-   MUI_ICON_TYPE_MENU_CONTENTLESS_CORE
+   MUI_ICON_TYPE_MENU_CONTENTLESS_CORE,
+   MUI_ICON_TYPE_ACHIEVEMENT
 };
 
 /* Defines all standard menu textures */
@@ -568,8 +572,10 @@ typedef struct materialui_handle
       materialui_font_data_t hint;  /* ptr alignment */
    } font_data;
 
-   void (*word_wrap)(char *dst, size_t dst_size, const char *src,
-      int line_width, int wideglyph_width, unsigned max_lines);
+   void (*word_wrap)(
+         char *dst, size_t dst_size,
+         const char *src, size_t src_len,
+         int line_width, int wideglyph_width, unsigned max_lines);
 
    /* Thumbnail helpers */
    gfx_thumbnail_path_data_t *thumbnail_path_data;
@@ -658,6 +664,8 @@ typedef struct materialui_handle
    enum materialui_landscape_layout_optimization_type
          last_landscape_layout_optimization;
    enum materialui_list_view_type list_view_type;
+   char sysicons_path[PATH_MAX_LENGTH];
+   char icons_path[PATH_MAX_LENGTH];
    char msgbox[1024];
    char menu_title[255];
    char fullscreen_thumbnail_label[255];
@@ -2205,14 +2213,8 @@ static void materialui_context_reset_playlist_icons(
       materialui_handle_t *mui)
 {
    size_t i;
-   char icon_path[PATH_MAX_LENGTH];
-   icon_path[0] = '\0';
-   /* Get icon directory */
-   fill_pathname_application_special(
-         icon_path, sizeof(icon_path),
-         APPLICATION_SPECIAL_DIRECTORY_ASSETS_SYSICONS);
 
-   if (string_is_empty(icon_path))
+   if (string_is_empty(mui->sysicons_path))
       return;
 
    /* Load icons
@@ -2226,7 +2228,7 @@ static void materialui_context_reset_playlist_icons(
          continue;
 
       gfx_display_reset_textures_list(
-            image_file, icon_path,
+            image_file, mui->sysicons_path,
             &mui->textures.playlist.icons[i].image,
             TEXTURE_FILTER_MIPMAP_LINEAR, NULL, NULL);
    }
@@ -2302,11 +2304,10 @@ static void materialui_refresh_playlist_icon_list(
 
    for (i = 0; i < file_list->size; i++)
    {
+      size_t _len;
       const char *path          = file_list->elems[i].data;
       const char *playlist_file = NULL;
-      char image_file[PATH_MAX_LENGTH];
-
-      image_file[0] = '\0';
+      char image_file[256];
 
       /* We used malloc() to create the icons
        * array - ensure struct members are
@@ -2337,12 +2338,12 @@ static void materialui_refresh_playlist_icon_list(
          continue;
 
       /* Playlist is valid - generate image file name */
-      strlcpy(image_file, playlist_file, sizeof(image_file));
-      path_remove_extension(image_file);
-      strlcat(image_file, FILE_PATH_PNG_EXTENSION, sizeof(image_file));
-
-      if (string_is_empty(image_file))
-         continue;
+      _len                  = strlcpy(image_file,
+            playlist_file, sizeof(image_file));
+      /* Manually rename extension 'lpl' to 'png' in string */
+      image_file[_len-3]    = 'p';
+      image_file[_len-2]    = 'n';
+      image_file[_len-1]    = 'g';
 
       /* All good - cache paths */
       mui->textures.playlist.icons[i].playlist_file = strdup(playlist_file);
@@ -2399,26 +2400,15 @@ static uintptr_t materialui_get_playlist_icon(
 static void materialui_context_reset_textures(materialui_handle_t *mui)
 {
    bool has_all_assets = true;
-   char icon_path[PATH_MAX_LENGTH];
    unsigned i;
-
-   icon_path[0] = '\0';
-
-   fill_pathname_application_special(
-         icon_path, sizeof(icon_path),
-         APPLICATION_SPECIAL_DIRECTORY_ASSETS_MATERIALUI_ICONS);
 
    /* Loop through all textures */
    for (i = 0; i < MUI_TEXTURE_LAST; i++)
    {
       if (!gfx_display_reset_textures_list(
-            materialui_texture_path(i), icon_path, &mui->textures.list[i],
+            materialui_texture_path(i), mui->icons_path, &mui->textures.list[i],
             TEXTURE_FILTER_MIPMAP_LINEAR, NULL, NULL))
-      {
-         RARCH_WARN("[GLUI]: Asset missing: \"%s%s%s\".\n", icon_path,
-               PATH_DEFAULT_SLASH(), materialui_texture_path(i));
          has_all_assets = false;
-      }
    }
 
    /* Warn user if assets are missing */
@@ -2646,7 +2636,8 @@ static void materialui_render_messagebox(
 
    /* Split message into lines */
    (mui->word_wrap)(
-         wrapped_message, sizeof(wrapped_message), message,
+         wrapped_message, sizeof(wrapped_message),
+         message, strlen(message),
          usable_width / (int)mui->font_data.list.glyph_width,
          mui->font_data.list.wideglyph_width, 0);
 
@@ -2673,9 +2664,8 @@ static void materialui_render_messagebox(
 
       if (!string_is_empty(line))
       {
-         int width = font_driver_get_message_width(
-               mui->font_data.list.font, line, (unsigned)strlen(line), 1);
-
+         int width     = font_driver_get_message_width(
+               mui->font_data.list.font, line, strlen(line), 1.0f);
          longest_width = (width > longest_width) ?
                width : longest_width;
       }
@@ -2809,7 +2799,8 @@ static unsigned materialui_count_sublabel_lines(
          (has_icon ? (int)mui->icon_size : 0);
 
    (mui->word_wrap)(
-         wrapped_sublabel_str, sizeof(wrapped_sublabel_str), entry.sublabel,
+         wrapped_sublabel_str, sizeof(wrapped_sublabel_str),
+         entry.sublabel, strlen(entry.sublabel),
          sublabel_width_max / (int)mui->font_data.hint.glyph_width,
          mui->font_data.hint.wideglyph_width, 0);
 
@@ -3487,14 +3478,21 @@ static bool materialui_render_process_entry_playlist_desktop(
                last_played_str = mui->status_bar.last_played_fallback_str;
 
             /* Generate metadata string */
-            snprintf(mui->status_bar.str, sizeof(mui->status_bar.str),
-                  "%s %s%s%s%s%s",
+            strlcpy(mui->status_bar.str,
                   msg_hash_to_str(MENU_ENUM_LABEL_VALUE_PLAYLIST_SUBLABEL_CORE),
-                  core_name,
-                  MUI_TICKER_SPACER,
-                  runtime_str,
-                  MUI_TICKER_SPACER,
-                  last_played_str);
+                  sizeof(mui->status_bar.str));
+            strlcat(mui->status_bar.str, " ",
+                  sizeof(mui->status_bar.str));
+            strlcat(mui->status_bar.str, core_name,
+                  sizeof(mui->status_bar.str));
+            strlcat(mui->status_bar.str, MUI_TICKER_SPACER,
+                  sizeof(mui->status_bar.str));
+            strlcat(mui->status_bar.str, runtime_str,
+                  sizeof(mui->status_bar.str));
+            strlcat(mui->status_bar.str, MUI_TICKER_SPACER,
+                  sizeof(mui->status_bar.str));
+            strlcat(mui->status_bar.str, last_played_str,
+                  sizeof(mui->status_bar.str));
 
             /* All metadata is cached */
             mui->status_bar.cached = true;
@@ -3983,7 +3981,6 @@ static void materialui_render_menu_entry_default(
       int x_offset)
 {
    math_matrix_4x4 mymat;
-   gfx_display_ctx_rotate_draw_t rotate_draw;
    const char *entry_value                           = NULL;
    const char *entry_label                           = NULL;
    unsigned entry_type                               = 0;
@@ -4001,15 +3998,11 @@ static void materialui_render_menu_entry_default(
    bool draw_text_outside                            = (x_offset != 0);
    gfx_display_t *p_disp                             = disp_get_ptr();
 
+   if (!p_disp->dispctx->handles_transform)
    {
-      rotate_draw.matrix       = &mymat;
-      rotate_draw.rotation     = 0.0f;
-      rotate_draw.scale_x      = 1.0f;
-      rotate_draw.scale_y      = 1.0f;
-      rotate_draw.scale_z      = 1;
-      rotate_draw.scale_enable = true;
-
-      gfx_display_rotate_z(p_disp, &rotate_draw, userdata);
+      float cosine     = 1.0f; /* cos(rad)  = cos(0)  = 1.0f */
+      float sine       = 0.0f; /* sine(rad) = sine(0) = 0.0f */
+      gfx_display_rotate_z(p_disp, &mymat, cosine, sine, userdata);
    }
 
    /* Initial ticker configuration
@@ -4050,9 +4043,11 @@ static void materialui_render_menu_entry_default(
          if (!entry->checked)
             icon_texture = mui->textures.list[node->icon_texture_index];
          break;
+#if defined(HAVE_LIBRETRODB)
       case MUI_ICON_TYPE_MENU_EXPLORE:
          icon_texture = menu_explore_get_entry_icon(entry_type);
          break;
+#endif
       case MUI_ICON_TYPE_MENU_CONTENTLESS_CORE:
          icon_texture = menu_contentless_cores_get_entry_icon(entry->label);
          break;
@@ -4060,6 +4055,52 @@ static void materialui_render_menu_entry_default(
          icon_texture = materialui_get_playlist_icon(
                mui, node->icon_texture_index);
          break;
+#ifdef HAVE_CHEEVOS
+      case MUI_ICON_TYPE_ACHIEVEMENT:
+         icon_texture = rcheevos_menu_get_badge_texture(node->icon_texture_index);
+         if (icon_texture)
+         {
+            /* draw the icon ourselves - the draw_icon below tints it to match the theme */
+            static float color_white[16] = {
+               1.0f, 1.0f, 1.0f, 1.0f,
+               1.0f, 1.0f, 1.0f, 1.0f,
+               1.0f, 1.0f, 1.0f, 1.0f,
+               1.0f, 1.0f, 1.0f, 1.0f,
+            };
+            materialui_draw_icon(
+                  userdata, p_disp,
+                  video_width,
+                  video_height,
+                  mui->icon_size,
+                  (uintptr_t)icon_texture,
+                  entry_x + (int)mui->landscape_optimization.entry_margin,
+                  entry_y + (node->entry_height / 2.0f) - (mui->icon_size / 2.0f),
+                  0,
+                  1,
+                  color_white,
+                  &mymat);
+
+            entry_margin += mui->icon_size;
+            usable_width -= mui->icon_size;
+
+            icon_texture = 0; /* prevent drawing tinted icon */
+         }
+         else
+         {
+            char buffer[64];
+            if (!rcheevos_menu_get_state(node->icon_texture_index, buffer, sizeof(buffer)))
+            {
+               /* no state means its a header - show the info icon */
+               icon_texture = mui->textures.list[MUI_TEXTURE_INFO];
+            }
+            else
+            {
+               /* placeholder badge image was not found, show generic menu icon */
+               icon_texture = mui->textures.list[MUI_TEXTURE_IMAGE];
+            }
+         }
+         break;
+#endif
       default:
          switch (entry_file_type)
          {
@@ -4130,8 +4171,10 @@ static void materialui_render_menu_entry_default(
       sublabel_y   = entry_y + vertical_margin + mui->font_data.list.line_height + (int)mui->sublabel_gap + mui->font_data.hint.line_ascender;
 
       /* Wrap sublabel string */
-      (mui->word_wrap)(wrapped_sublabel, sizeof(wrapped_sublabel), entry->sublabel,
-            (int)((usable_width - (int)mui->sublabel_padding) / mui->font_data.hint.glyph_width),
+      (mui->word_wrap)(wrapped_sublabel, sizeof(wrapped_sublabel),
+            entry->sublabel, strlen(entry->sublabel),
+            (int)((usable_width - (int)mui->sublabel_padding) 
+               / mui->font_data.hint.glyph_width),
             mui->font_data.hint.wideglyph_width, 0);
 
       /* Draw sublabel string
@@ -4343,7 +4386,6 @@ static void materialui_render_menu_entry_playlist_list(
 {
    bool draw_divider;
    math_matrix_4x4 mymat;
-   gfx_display_ctx_rotate_draw_t rotate_draw;
    const char *entry_label    = NULL;
    int entry_x                = x_offset + node->x;
    int entry_y                = header_height - mui->scroll_y + node->y;
@@ -4355,15 +4397,11 @@ static void materialui_render_menu_entry_playlist_list(
    settings_t *settings       = config_get_ptr();
    gfx_display_t *p_disp      = disp_get_ptr();
 
+   if (!p_disp->dispctx->handles_transform)
    {
-      rotate_draw.matrix       = &mymat;
-      rotate_draw.rotation     = 0.0f;
-      rotate_draw.scale_x      = 1.0f;
-      rotate_draw.scale_y      = 1.0f;
-      rotate_draw.scale_z      = 1;
-      rotate_draw.scale_enable = true;
-
-      gfx_display_rotate_z(p_disp, &rotate_draw, userdata);
+      float cosine     = 1.0f; /* cos(rad)  = cos(0)  = 1.0f */
+      float sine       = 0.0f; /* sine(rad) = sine(0) = 0.0f */
+      gfx_display_rotate_z(p_disp, &mymat, cosine, sine, userdata);
    }
 
    /* Initial ticker configuration
@@ -4479,8 +4517,10 @@ static void materialui_render_menu_entry_playlist_list(
       sublabel_y   = entry_y + vertical_margin + mui->font_data.list.line_height + (int)mui->sublabel_gap + mui->font_data.hint.line_ascender;
 
       /* Wrap sublabel string */
-      (mui->word_wrap)(wrapped_sublabel, sizeof(wrapped_sublabel), entry->sublabel,
-            (int)((usable_width - (int)mui->sublabel_padding) / mui->font_data.hint.glyph_width),
+      (mui->word_wrap)(wrapped_sublabel, sizeof(wrapped_sublabel),
+            entry->sublabel, strlen(entry->sublabel),
+            (int)((usable_width - (int)mui->sublabel_padding) 
+               / mui->font_data.hint.glyph_width),
             mui->font_data.hint.wideglyph_width, 0);
 
       /* Draw sublabel string
@@ -4595,7 +4635,6 @@ static void materialui_render_menu_entry_playlist_dual_icon(
       int x_offset)
 {
    math_matrix_4x4 mymat;
-   gfx_display_ctx_rotate_draw_t rotate_draw;
    const char *entry_label = NULL;
    float entry_x           = (float)x_offset + node->x;
    float entry_y           = (float)header_height - mui->scroll_y + node->y;
@@ -4615,15 +4654,11 @@ static void materialui_render_menu_entry_playlist_dual_icon(
    gfx_display_t *p_disp   = disp_get_ptr();
    settings_t *settings    = config_get_ptr();
 
+   if (!p_disp->dispctx->handles_transform)
    {
-      rotate_draw.matrix       = &mymat;
-      rotate_draw.rotation     = 0.0f;
-      rotate_draw.scale_x      = 1.0f;
-      rotate_draw.scale_y      = 1.0f;
-      rotate_draw.scale_z      = 1;
-      rotate_draw.scale_enable = true;
-
-      gfx_display_rotate_z(p_disp, &rotate_draw, userdata);
+      float cosine     = 1.0f; /* cos(rad)  = cos(0)  = 1.0f */
+      float sine       = 0.0f; /* sine(rad) = sine(0) = 0.0f */
+      gfx_display_rotate_z(p_disp, &mymat, cosine, sine, userdata);
    }
 
    /* Initial ticker configuration
@@ -4890,7 +4925,6 @@ static void materialui_render_selected_entry_aux_playlist_desktop(
       file_list_t *list, size_t selection)
 {
    math_matrix_4x4 mymat;
-   gfx_display_ctx_rotate_draw_t rotate_draw;
    materialui_node_t *node    = (materialui_node_t*)list->list[selection].userdata;
    float background_x         = (float)(x_offset + (int)mui->landscape_optimization.border_width);
    float background_y         = (float)header_height;
@@ -4913,15 +4947,11 @@ static void materialui_render_selected_entry_aux_playlist_desktop(
        (background_height <= 0))
       return;
 
+   if (!p_disp->dispctx->handles_transform)
    {
-      rotate_draw.matrix       = &mymat;
-      rotate_draw.rotation     = 0.0f;
-      rotate_draw.scale_x      = 1.0f;
-      rotate_draw.scale_y      = 1.0f;
-      rotate_draw.scale_z      = 1;
-      rotate_draw.scale_enable = true;
-
-      gfx_display_rotate_z(p_disp, &rotate_draw, userdata);
+      float cosine     = 1.0f; /* cos(rad)  = cos(0)  = 1.0f */
+      float sine       = 0.0f; /* sine(rad) = sine(0) = 0.0f */
+      gfx_display_rotate_z(p_disp, &mymat, cosine, sine, userdata);
    }
 
    /* Draw sidebar background
@@ -5511,18 +5541,21 @@ static void materialui_render_entry_touch_feedback(
       }
 
       /* Update highlight opacity */
-      mui->touch_feedback_alpha = (float)mui->pointer.press_duration / (float)MENU_INPUT_PRESS_TIME_SHORT;
-      mui->touch_feedback_alpha = (mui->touch_feedback_alpha > 1.0f) ? 1.0f : mui->touch_feedback_alpha;
+      mui->touch_feedback_alpha    = (float)mui->pointer.press_duration 
+         / (float)MENU_INPUT_PRESS_TIME_SHORT;
+      if (mui->touch_feedback_alpha > 1.0f)
+         mui->touch_feedback_alpha = 1.0f;
    }
    /* If pointer has moved, or has been released, any
     * unfinished feedback highlight animation must
     * fade out */
    else if (mui->touch_feedback_alpha > 0.0f)
    {
-      gfx_animation_t *p_anim    = anim_get_ptr();
-      mui->touch_feedback_alpha -= (p_anim->delta_time * 1000.0f) 
+      gfx_animation_t *p_anim      = anim_get_ptr();
+      mui->touch_feedback_alpha   -= (p_anim->delta_time * 1000.0f) 
          / (float)MENU_INPUT_PRESS_TIME_SHORT;
-      mui->touch_feedback_alpha = (mui->touch_feedback_alpha < 0.0f) ? 0.0f : mui->touch_feedback_alpha;
+      if (mui->touch_feedback_alpha < 0.0f)
+         mui->touch_feedback_alpha = 0.0f;
    }
 
    /* If alpha value is greater than zero, draw
@@ -5678,7 +5711,7 @@ static void materialui_render_header(
                font_driver_get_message_width(
                   mui->font_data.hint.font,
                   mui->sys_bar_cache.battery_percent_str,
-                  (unsigned)strlen(mui->sys_bar_cache.battery_percent_str),
+                  strlen(mui->sys_bar_cache.battery_percent_str),
                   1.0f);
          }
 
@@ -5771,7 +5804,7 @@ static void materialui_render_header(
             = font_driver_get_message_width(
                mui->font_data.hint.font,
                mui->sys_bar_cache.timedate_str,
-               (unsigned)strlen(mui->sys_bar_cache.timedate_str),
+               strlen(mui->sys_bar_cache.timedate_str),
                1.0f);
       }
 
@@ -5798,10 +5831,9 @@ static void materialui_render_header(
       }
    }
 
-   usable_sys_bar_width -= (2 * mui->sys_bar_margin);
-   usable_sys_bar_width  = (usable_sys_bar_width > 0) 
-      ? usable_sys_bar_width 
-      : 0;
+   usable_sys_bar_width    -= (2 * mui->sys_bar_margin);
+   if (usable_sys_bar_width <= 0)
+      usable_sys_bar_width  = 0;
 
    /* > Draw core name, if required */
    if (menu_core_enable)
@@ -5920,7 +5952,8 @@ static void materialui_render_header(
       if (show_back_icon && !show_search_icon)
          usable_title_bar_width -= (mui->icon_size - mui->margin);
 
-   usable_title_bar_width = (usable_title_bar_width > 0) ? usable_title_bar_width : 0;
+   if (usable_title_bar_width <= 0)
+      usable_title_bar_width     = 0;
 
    /* > Draw title string */
 
@@ -6902,7 +6935,8 @@ static void materialui_update_scrollbar(
    mui->scrollbar.y += (int)mui->scrollbar.width;
 
    /* > Ensure we don't fall off the bottom of the screen... */
-   mui->scrollbar.y = (mui->scrollbar.y > y_max) ? y_max : mui->scrollbar.y;
+   if (mui->scrollbar.y > y_max)
+      mui->scrollbar.y = y_max;
 }
 
 /* Main function of the menu driver
@@ -6911,7 +6945,6 @@ static void materialui_frame(void *data, video_frame_info_t *video_info)
 {
    int list_x_offset;
    math_matrix_4x4 mymat;
-   gfx_display_ctx_rotate_draw_t rotate_draw;
    materialui_handle_t *mui       = (materialui_handle_t*)data;
    settings_t *settings           = config_get_ptr();
    gfx_display_t *p_disp          = disp_get_ptr();
@@ -6945,14 +6978,12 @@ static void materialui_frame(void *data, video_frame_info_t *video_info)
       return;
    }
 
-   rotate_draw.matrix       = &mymat;
-   rotate_draw.rotation     = 0.0f;
-   rotate_draw.scale_x      = 1.0f;
-   rotate_draw.scale_y      = 1.0f;
-   rotate_draw.scale_z      = 1;
-   rotate_draw.scale_enable = true;
-
-   gfx_display_rotate_z(p_disp, &rotate_draw, userdata);
+   if (!p_disp->dispctx->handles_transform)
+   {
+      float cosine     = 1.0f; /* cos(rad)  = cos(0)  = 1.0f */
+      float sine       = 0.0f; /* sine(rad) = sine(0) = 0.0f */
+      gfx_display_rotate_z(p_disp, &mymat, cosine, sine, userdata);
+   }
 
    video_driver_set_viewport(video_width, video_height, true, false);
 
@@ -7076,11 +7107,10 @@ static void materialui_frame(void *data, video_frame_info_t *video_info)
    /* Handle onscreen keyboard */
    if (menu_input_dialog_get_display_kb())
    {
+      size_t _len;
       char msg[255];
       const char *str   = menu_input_dialog_get_buffer();
       const char *label = menu_input_dialog_get_label_buffer();
-
-      msg[0] = '\0';
 
       /* Darken screen */
       gfx_display_set_alpha(
@@ -7097,7 +7127,10 @@ static void materialui_frame(void *data, video_frame_info_t *video_info)
             NULL);
 
       /* Draw message box */
-      snprintf(msg, sizeof(msg), "%s\n%s", label, str);
+      _len        = strlcpy(msg, label, sizeof(msg));
+      msg[_len  ] = '\n';
+      msg[_len+1] = '\0';
+      strlcat(msg, str, sizeof(msg));
       materialui_render_messagebox(mui,
             p_disp,
             userdata, video_width, video_height,
@@ -7428,6 +7461,7 @@ static void materialui_status_bar_init(
 
    if (mui->status_bar.enabled)
    {
+      size_t _len;
       /* Determine status bar height */
       mui->status_bar.height = (unsigned)(((float)mui->font_data.hint.line_height * 1.6f) + 0.5f);
 
@@ -7436,15 +7470,25 @@ static void materialui_status_bar_init(
        *  materialui_init()? Because re-caching the
        *  values each time allows us to handle changes
        *  in user interface language settings) */
-      snprintf(mui->status_bar.runtime_fallback_str,
-            sizeof(mui->status_bar.runtime_fallback_str), "%s %s",
+      _len = strlcpy(mui->status_bar.runtime_fallback_str,
             msg_hash_to_str(MENU_ENUM_LABEL_VALUE_PLAYLIST_SUBLABEL_RUNTIME),
-            msg_hash_to_str(MENU_ENUM_LABEL_VALUE_DISABLED));
+	    sizeof(mui->status_bar.runtime_fallback_str));
+      mui->status_bar.runtime_fallback_str[_len  ] = ' ';
+      mui->status_bar.runtime_fallback_str[_len+1] = '\0';
+      strlcat(mui->status_bar.runtime_fallback_str,
+            msg_hash_to_str(MENU_ENUM_LABEL_VALUE_DISABLED),
+	    sizeof(mui->status_bar.runtime_fallback_str));
 
-      snprintf(mui->status_bar.last_played_fallback_str,
-            sizeof(mui->status_bar.last_played_fallback_str), "%s %s",
-            msg_hash_to_str(MENU_ENUM_LABEL_VALUE_PLAYLIST_SUBLABEL_LAST_PLAYED),
-            msg_hash_to_str(MENU_ENUM_LABEL_VALUE_DISABLED));
+      _len = strlcpy(mui->status_bar.last_played_fallback_str,
+            msg_hash_to_str(
+               MENU_ENUM_LABEL_VALUE_PLAYLIST_SUBLABEL_LAST_PLAYED),
+            sizeof(mui->status_bar.last_played_fallback_str));
+      mui->status_bar.last_played_fallback_str[_len  ] = ' ';
+      mui->status_bar.last_played_fallback_str[_len+1] = '\0';
+      strlcat(mui->status_bar.last_played_fallback_str,
+            msg_hash_to_str(MENU_ENUM_LABEL_VALUE_DISABLED),
+            sizeof(mui->status_bar.last_played_fallback_str)
+            );
    }
 }
 
@@ -7763,27 +7807,61 @@ static void materialui_init_font(
    const char *str_latin
    )
 {
+   char fontpath[PATH_MAX_LENGTH];
    const char *wideglyph_str = msg_hash_get_wideglyph_str();
+   settings_t *settings      = config_get_ptr();
+   const char *dir_assets    = settings->paths.directory_assets;
+   fontpath[0]               = '\0';
 
    /* We assume the average glyph aspect ratio is close to 3:4 */
-   font_data->glyph_width = (int)((font_size * (3.0f / 4.0f)) + 0.5f);
+   font_data->glyph_width    = (int)((font_size * (3.0f / 4.0f)) + 0.5f);
 
    if (font_data->font)
    {
       gfx_display_font_free(font_data->font);
       font_data->font = NULL;
    }
+   {
+      char s1[PATH_MAX_LENGTH];
 
-   font_data->font = gfx_display_font(
-         p_disp,
-         APPLICATION_SPECIAL_DIRECTORY_ASSETS_MATERIALUI_FONT,
-         font_size, video_is_threaded);
+      switch (*msg_hash_get_uint(MSG_HASH_USER_LANGUAGE))
+      {
+         case RETRO_LANGUAGE_ARABIC:
+         case RETRO_LANGUAGE_PERSIAN:
+            fill_pathname_join_special(s1,
+                  settings->paths.directory_assets, "pkg", sizeof(s1));
+            fill_pathname_join_special(fontpath, s1, "fallback-font.ttf",
+                  sizeof(fontpath));
+            break;
+         case RETRO_LANGUAGE_CHINESE_SIMPLIFIED:
+         case RETRO_LANGUAGE_CHINESE_TRADITIONAL:
+            fill_pathname_join_special(s1,
+                  settings->paths.directory_assets, "pkg", sizeof(s1));
+            fill_pathname_join_special(fontpath, s1, "chinese-fallback-font.ttf",
+                  sizeof(fontpath));
+            break;
+         case RETRO_LANGUAGE_KOREAN:
+            fill_pathname_join_special(s1,
+                  settings->paths.directory_assets, "pkg", sizeof(s1));
+            fill_pathname_join_special(fontpath, s1, "korean-fallback-font.ttf",
+                  sizeof(fontpath));
+            break;
+         default:
+            fill_pathname_join_special(s1, dir_assets, "glui", sizeof(s1));
+            fill_pathname_join_special(fontpath, s1, FILE_PATH_TTF_FONT,
+                  sizeof(fontpath));
+            break;
+      }
+   }
+
+   font_data->font = gfx_display_font_file(p_disp,
+         fontpath, font_size, video_is_threaded);
 
   if (font_data->font)
    {
       /* Calculate a more realistic ticker_limit */
       int char_width =
-         font_driver_get_message_width(font_data->font, str_latin, 1, 1);
+         font_driver_get_message_width(font_data->font, str_latin, 1, 1.0f);
 
       if (char_width > 0)
          font_data->glyph_width = (unsigned)char_width;
@@ -7793,7 +7871,7 @@ static void materialui_init_font(
       if (wideglyph_str)
       {
          int wideglyph_width =
-            font_driver_get_message_width(font_data->font, wideglyph_str, (unsigned)strlen(wideglyph_str), 1);
+            font_driver_get_message_width(font_data->font, wideglyph_str, strlen(wideglyph_str), 1.0f);
 
          if (wideglyph_width > 0 && char_width > 0) 
             font_data->wideglyph_width = wideglyph_width * 100 / char_width;
@@ -7961,6 +8039,7 @@ static void *materialui_init(void **userdata, bool video_is_threaded)
    gfx_display_t *p_disp                  = disp_get_ptr();
    menu_handle_t *menu                    = (menu_handle_t*)
       calloc(1, sizeof(*menu));
+   const char *dir_assets                 = NULL;
 
    if (!menu)
       return NULL;
@@ -7971,17 +8050,15 @@ static void *materialui_init(void **userdata, bool video_is_threaded)
       return NULL;
    }
 
-   mui                                    = (materialui_handle_t*)
-      calloc(1, sizeof(materialui_handle_t));
+   dir_assets                             = settings->paths.directory_assets;
 
-   if (!mui)
+   if (!(mui = (materialui_handle_t*)calloc(1, sizeof(materialui_handle_t))))
       goto error;
 
    *userdata = mui;
 
    /* Initialise thumbnail path data */
-   mui->thumbnail_path_data               = gfx_thumbnail_path_init();
-   if (!mui->thumbnail_path_data)
+   if (!(mui->thumbnail_path_data = gfx_thumbnail_path_init()))
       goto error;
 
    /* Get DPI/screen-size-aware base unit size for
@@ -8021,8 +8098,7 @@ static void *materialui_init(void **userdata, bool video_is_threaded)
    materialui_prepare_colors(mui, (enum materialui_color_theme)mui->color_theme);
 
    /* Initialise screensaver */
-   mui->screensaver                       = menu_screensaver_init();
-   if (!mui->screensaver)
+   if (!(mui->screensaver = menu_screensaver_init()))
       goto error;
 
    /* Initial ticker configuration */
@@ -8082,10 +8158,18 @@ static void *materialui_init(void **userdata, bool video_is_threaded)
          settings->bools.menu_materialui_icons_enable,
          settings->bools.menu_materialui_playlist_icons_enable);
 
+   /* NOTE: There are no MaterialUI system icons,
+      so we just reuse the Ozone icon directory instead here */
+   fill_pathname_application_special(mui->sysicons_path, 
+         sizeof(mui->sysicons_path),
+         APPLICATION_SPECIAL_DIRECTORY_ASSETS_OZONE_ICONS);
+   fill_pathname_join_special(mui->icons_path, dir_assets, "glui",
+         sizeof(mui->icons_path));
+
    p_anim->updatetime_cb = materialui_menu_animation_update_time;
 
    /* set word_wrap function pointer */
-   mui->word_wrap = msg_hash_get_wideglyph_str() ? word_wrap_wideglyph : word_wrap;
+   mui->word_wrap        = msg_hash_get_wideglyph_str() ? word_wrap_wideglyph : word_wrap;
 
    return menu;
 error:
@@ -9292,33 +9376,33 @@ static int materialui_list_push(void *data, void *userdata,
          {
             menu_entries_ctl(MENU_ENTRIES_CTL_CLEAR, info->list);
 
-            menu_entries_append_enum(info->list,
+            menu_entries_append(info->list,
                   msg_hash_to_str(MENU_ENUM_LABEL_VALUE_FAVORITES),
                   msg_hash_to_str(MENU_ENUM_LABEL_FAVORITES),
                   MENU_ENUM_LABEL_FAVORITES,
-                  MENU_SETTING_ACTION_FAVORITES_DIR, 0, 0);
+                  MENU_SETTING_ACTION_FAVORITES_DIR, 0, 0, NULL);
 
             core_info_get_list(&list);
             if (list->info_count > 0)
             {
-               menu_entries_append_enum(info->list,
+               menu_entries_append(info->list,
                      msg_hash_to_str(MENU_ENUM_LABEL_VALUE_DOWNLOADED_FILE_DETECT_CORE_LIST),
                      msg_hash_to_str(MENU_ENUM_LABEL_DOWNLOADED_FILE_DETECT_CORE_LIST),
                      MENU_ENUM_LABEL_DOWNLOADED_FILE_DETECT_CORE_LIST,
-                     MENU_SETTING_ACTION, 0, 0);
+                     MENU_SETTING_ACTION, 0, 0, NULL);
             }
 
             if (frontend_driver_parse_drive_list(info->list, true) != 0)
-               menu_entries_append_enum(info->list, "/",
+               menu_entries_append(info->list, "/",
                      msg_hash_to_str(MENU_ENUM_LABEL_FILE_DETECT_CORE_LIST_PUSH_DIR),
                      MENU_ENUM_LABEL_FILE_DETECT_CORE_LIST_PUSH_DIR,
-                     MENU_SETTING_ACTION, 0, 0);
+                     MENU_SETTING_ACTION, 0, 0, NULL);
 
-            menu_entries_append_enum(info->list,
+            menu_entries_append(info->list,
                   msg_hash_to_str(MENU_ENUM_LABEL_VALUE_MENU_FILE_BROWSER_SETTINGS),
                   msg_hash_to_str(MENU_ENUM_LABEL_MENU_FILE_BROWSER_SETTINGS),
                   MENU_ENUM_LABEL_MENU_FILE_BROWSER_SETTINGS,
-                  MENU_SETTING_ACTION, 0, 0);
+                  MENU_SETTING_ACTION, 0, 0, NULL);
 
             info->need_push    = true;
             info->need_refresh = true;
@@ -10122,10 +10206,7 @@ static void materialui_list_insert(
    }
 
    if (!node)
-   {
-      RARCH_ERR("GLUI node could not be allocated.\n");
       return;
-   }
 
    node->icon_type          = MUI_ICON_TYPE_NONE;
    node->icon_texture_index = 0;
@@ -10196,7 +10277,10 @@ static void materialui_list_insert(
             node->icon_type          = MUI_ICON_TYPE_INTERNAL;
             break;
          case FILE_TYPE_RDB_ENTRY:
-            node->icon_texture_index = MUI_TEXTURE_SETTINGS;
+            if (string_is_equal(fullpath, msg_hash_to_str(MENU_ENUM_LABEL_INFORMATION)))
+               node->icon_texture_index = MUI_TEXTURE_DATABASE;
+            else
+               node->icon_texture_index = MUI_TEXTURE_FILE;
             node->icon_type          = MUI_ICON_TYPE_INTERNAL;
             break;
          case FILE_TYPE_IN_CARCHIVE:
@@ -10299,6 +10383,15 @@ static void materialui_list_insert(
              * switch */
             break;
          default:
+#ifdef HAVE_CHEEVOS
+            if (type >= MENU_SETTINGS_CHEEVOS_START &&
+               type < MENU_SETTINGS_NETPLAY_ROOMS_START)
+            {
+               node->icon_texture_index = type - MENU_SETTINGS_CHEEVOS_START;
+               node->icon_type          = MUI_ICON_TYPE_ACHIEVEMENT;
+            }
+            else
+#endif
             if (
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_INFORMATION_LIST))              ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_SYSTEM_INFORMATION))            ||
@@ -10321,7 +10414,11 @@ static void materialui_list_insert(
                node->icon_texture_index = MUI_TEXTURE_DATABASE;
                node->icon_type          = MUI_ICON_TYPE_INTERNAL;
             }
-            else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_GOTO_IMAGES)))
+            else if (
+                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_GOTO_IMAGES)) ||
+                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DOWNLOAD_PL_ENTRY_THUMBNAILS)) ||
+                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_PL_THUMBNAILS_UPDATER_LIST))
+                  )
             {
                node->icon_texture_index = MUI_TEXTURE_IMAGE;
                node->icon_type          = MUI_ICON_TYPE_INTERNAL;
@@ -10408,7 +10505,9 @@ static void materialui_list_insert(
             else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_RENAME_ENTRY)) ||
                      string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_RESET_CORE_ASSOCIATION)) ||
                      string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_PLAYLIST_MANAGER_RESET_CORES)) ||
-                     string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_PLAYLIST_MANAGER_CLEAN_PLAYLIST)))
+                     string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_PLAYLIST_MANAGER_CLEAN_PLAYLIST)) ||
+                     string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_SHADER_APPLY_CHANGES))
+                     )
             {
                node->icon_texture_index = MUI_TEXTURE_RENAME;
                node->icon_type          = MUI_ICON_TYPE_INTERNAL;
@@ -10468,8 +10567,9 @@ static void materialui_list_insert(
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_SAVE_STATE)) ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_SAVE_CURRENT_CONFIG_OVERRIDE_CORE)) ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_SAVE_CURRENT_CONFIG_OVERRIDE_CONTENT_DIR)) ||
+                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_SAVE_CURRENT_CONFIG_OVERRIDE_GAME)) ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_QUICK_MENU_OVERRIDE_OPTIONS)) ||
-                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_SAVE_CURRENT_CONFIG_OVERRIDE_GAME))
+                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_NETWORK_ON_DEMAND_THUMBNAILS))
                   )
             {
                node->icon_texture_index = MUI_TEXTURE_SAVE_STATE;
@@ -10507,8 +10607,7 @@ static void materialui_list_insert(
                node->icon_type          = MUI_ICON_TYPE_INTERNAL;
             }
             else if (
-                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_LOAD_CONTENT_LIST))
-                  ||
+                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_LOAD_CONTENT_LIST)) ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_SUBSYSTEM_SETTINGS)) ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_SUBSYSTEM_ADD))
                   )
@@ -10516,15 +10615,19 @@ static void materialui_list_insert(
                node->icon_texture_index = MUI_TEXTURE_LOAD_CONTENT;
                node->icon_type          = MUI_ICON_TYPE_INTERNAL;
             }
-            else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DELETE_ENTRY)) ||
-                     string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DELETE_PLAYLIST)))
+            else if (
+                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DELETE_ENTRY)) ||
+                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_DELETE_PLAYLIST)) ||
+                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_VIDEO_SHADER_PRESET_REMOVE))
+                  )
             {
                node->icon_texture_index = MUI_TEXTURE_REMOVE;
                node->icon_type          = MUI_ICON_TYPE_INTERNAL;
             }
-            else if (string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_NETPLAY)) ||
+            else if (
+                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_NETPLAY)) ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_NETWORK_HOSTING_SETTINGS)) ||
-                     string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_NETWORK_INFORMATION))
+                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_NETWORK_INFORMATION))
                   )
             {
                node->icon_texture_index = MUI_TEXTURE_NETPLAY;
@@ -10654,6 +10757,7 @@ static void materialui_list_insert(
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_NETPLAY_ENABLE_CLIENT)) ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_NETPLAY_ENABLE_HOST)) ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_NETPLAY_KICK)) ||
+                  string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_NETPLAY_BAN)) ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_REMAP_FILE_LOAD)) ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_REMAP_FILE_SAVE_CORE)) ||
                   string_is_equal(label, msg_hash_to_str(MENU_ENUM_LABEL_REMAP_FILE_SAVE_CONTENT_DIR)) ||
@@ -10716,8 +10820,8 @@ static void materialui_list_insert(
                {
                   char val[255];
                   unsigned user_value = i + 1;
-
-                  snprintf(val, sizeof(val), "%d_input_binds_list", user_value);
+                  snprintf(val, sizeof(val), "%d", user_value);
+                  strlcat(val, "_input_binds_list", sizeof(val));
 
                   if (string_is_equal(label, val))
                   {

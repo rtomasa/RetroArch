@@ -65,7 +65,7 @@ typedef struct
    video_font_raster_block_t *block;
 } rsx_font_t;
 
-static void rsx_font_free_font(void *data,
+static void rsx_font_free(void *data,
       bool is_threaded)
 {
    rsx_font_t *font = (rsx_font_t*)data;
@@ -75,7 +75,8 @@ static void rsx_font_free_font(void *data,
    if (font->font_driver && font->font_data)
       font->font_driver->free(font->font_data);
 
-   if (is_threaded) {
+   if (is_threaded)
+   {
       if (
             font->rsx &&
             font->rsx->ctx_driver &&
@@ -131,7 +132,7 @@ static bool rsx_font_upload_atlas(rsx_font_t *font)
    return true;
 }
 
-static void *rsx_font_init_font(void *data,
+static void *rsx_font_init(void *data,
       const char *font_path, float font_size,
       bool is_threaded)
 {
@@ -158,28 +159,28 @@ static void *rsx_font_init_font(void *data,
             font->rsx->ctx_driver->make_current)
          font->rsx->ctx_driver->make_current(false);
 
-   font->atlas      = font->font_driver->get_atlas(font->font_data);
+   font->atlas        = font->font_driver->get_atlas(font->font_data);
 
-   font->vpo = font->rsx->vpo;
-   font->fpo = font->rsx->fpo;
-   font->fp_ucode = font->rsx->fp_ucode;
-   font->vp_ucode = font->rsx->vp_ucode;
-   font->fp_offset = font->rsx->fp_offset;
+   font->vpo          = font->rsx->vpo;
+   font->fpo          = font->rsx->fpo;
+   font->fp_ucode     = font->rsx->fp_ucode;
+   font->vp_ucode     = font->rsx->vp_ucode;
+   font->fp_offset    = font->rsx->fp_offset;
 
-   font->proj_matrix = font->rsx->proj_matrix;
-   font->pos_index = font->rsx->pos_index;
-   font->uv_index = font->rsx->uv_index;
-   font->col_index = font->rsx->col_index;
-   font->tex_unit = font->rsx->tex_unit;
+   font->proj_matrix  = font->rsx->proj_matrix;
+   font->pos_index    = font->rsx->pos_index;
+   font->uv_index     = font->rsx->uv_index;
+   font->col_index    = font->rsx->col_index;
+   font->tex_unit     = font->rsx->tex_unit;
 
-   font->vertices = (rsx_vertex_t *)rsxMemalign(128, MAX_MSG_LEN_CHUNK*sizeof(rsx_vertex_t)*6);
+   font->vertices     = (rsx_vertex_t *)rsxMemalign(128, MAX_MSG_LEN_CHUNK*sizeof(rsx_vertex_t)*6);
 
    rsxAddressToOffset(&font->vertices[0].x, &font->pos_offset);
    rsxAddressToOffset(&font->vertices[0].u, &font->uv_offset);
    rsxAddressToOffset(&font->vertices[0].r, &font->col_offset);
 
-   font->tex_width = font->atlas->width;
-   font->tex_height = font->atlas->height;
+   font->tex_width    = font->atlas->width;
+   font->tex_height   = font->atlas->height;
    font->texture.data = (u8 *)rsxMemalign(128, (font->tex_height * font->tex_width));
    rsxAddressToOffset(font->texture.data, &font->texture.offset);
 
@@ -195,12 +196,12 @@ static void *rsx_font_init_font(void *data,
    return font;
 
 error:
-   rsx_font_free_font(font, is_threaded);
+   rsx_font_free(font, is_threaded);
    return NULL;
 }
 
 static int rsx_font_get_message_width(void *data, const char *msg,
-      unsigned msg_len, float scale)
+      size_t msg_len, float scale)
 {
    const struct font_glyph* glyph_q = NULL;
    rsx_font_t *font   = (rsx_font_t*)data;
@@ -235,7 +236,7 @@ static int rsx_font_get_message_width(void *data, const char *msg,
 static void rsx_font_draw_vertices(rsx_font_t *font,
       const video_coords_t *coords)
 {
-   unsigned i;
+   int i;
    const float *vertex              = coords->vertex;
    const float *tex_coord           = coords->tex_coord;
    const float *color               = coords->color;
@@ -269,17 +270,17 @@ static void rsx_font_draw_vertices(rsx_font_t *font,
 }
 
 static void rsx_font_render_line(
-      rsx_font_t *font, const char *msg, unsigned msg_len,
+      rsx_font_t *font, const char *msg, size_t msg_len,
       float scale, const float color[4], float pos_x,
       float pos_y,unsigned text_align)
 {
-   unsigned i;
+   int i;
    struct video_coords coords;
    const struct font_glyph* glyph_q = NULL;
    float font_tex_coords[2 * 6 * MAX_MSG_LEN_CHUNK];
    float font_vertex[2 * 6 * MAX_MSG_LEN_CHUNK];
    float font_color[4 * 6 * MAX_MSG_LEN_CHUNK];
-   rsx_t      *rsx        = font->rsx;
+   rsx_t      *rsx      = font->rsx;
    const char* msg_end  = msg + msg_len;
    int x                = roundf(pos_x * rsx->vp.width);
    int y                = roundf(pos_y * rsx->vp.height);
@@ -365,7 +366,7 @@ static void rsx_font_render_message(
        !font->font_driver->get_line_metrics(font->font_data, &line_metrics))
    {
       rsx_font_render_line(font,
-            msg, (unsigned)strlen(msg), scale, color, pos_x,
+            msg, strlen(msg), scale, color, pos_x,
             pos_y, text_align);
       return;
    }
@@ -375,8 +376,8 @@ static void rsx_font_render_message(
    for (;;)
    {
       const char *delim = strchr(msg, '\n');
-      unsigned msg_len  = delim
-         ? (unsigned)(delim - msg) : (unsigned)strlen(msg);
+      size_t msg_len    = delim
+         ? (delim - msg) : strlen(msg);
 
       /* Draw the line */
       rsx_font_render_line(font,
@@ -421,7 +422,7 @@ static void rsx_font_render_msg(
    float x, y, scale, drop_mod, drop_alpha;
    enum text_alignment text_align   = TEXT_ALIGN_LEFT;
    bool full_screen                 = false ;
-   rsx_font_t           *font = (rsx_font_t*)data;
+   rsx_font_t *font                 = (rsx_font_t*)data;
    unsigned width                   = font->rsx->width;
    unsigned height                  = font->rsx->height;
    settings_t *settings             = config_get_ptr();
@@ -554,14 +555,14 @@ static bool rsx_font_get_line_metrics(void* data, struct font_line_metrics **met
    rsx_font_t *font = (rsx_font_t*)data;
    if (font && font->font_driver && font->font_data)
       return font->font_driver->get_line_metrics(font->font_data, metrics);
-   return -1;
+   return false;
 }
 
 font_renderer_t rsx_font = {
-   rsx_font_init_font,
-   rsx_font_free_font,
+   rsx_font_init,
+   rsx_font_free,
    rsx_font_render_msg,
-   "rsxfont",
+   "rsx_font",
    rsx_font_get_glyph,
    rsx_font_bind_block,
    rsx_font_flush_block,

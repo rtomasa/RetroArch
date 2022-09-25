@@ -669,9 +669,17 @@ void video_monitor_set_refresh_rate(float hz)
 {
    char msg[128];
    settings_t        *settings = config_get_ptr();
-
-   snprintf(msg, sizeof(msg),
-         "Setting refresh rate to: %.3f Hz.", hz);
+   /* TODO/FIXME - localize */
+   size_t _len = strlcpy(msg, "Setting refresh rate to", sizeof(msg));
+   msg[_len  ] = ':';
+   msg[++_len] = ' ';
+   msg[++_len] = '\0';
+   _len       += snprintf(msg + _len, sizeof(msg) - _len, "%.3f", hz);
+   msg[_len  ] = ' ';
+   msg[_len+1] = 'H';
+   msg[_len+2] = 'z';
+   msg[_len+3] = '.';
+   msg[_len+4] = '\0';
    if (settings->bools.notification_show_refresh_rate)
       runloop_msg_queue_push(msg, 1, 180, false, NULL,
             MESSAGE_QUEUE_ICON_DEFAULT, MESSAGE_QUEUE_CATEGORY_INFO);
@@ -982,11 +990,11 @@ void recording_dump_frame(
       if (  vp.width  != record_st->gpu_width ||
             vp.height != record_st->gpu_height)
       {
-         RARCH_WARN("[Recording]: %s\n",
-               msg_hash_to_str(MSG_RECORDING_TERMINATED_DUE_TO_RESIZE));
+         const char *recording_failed_str =
+            msg_hash_to_str(MSG_RECORDING_TERMINATED_DUE_TO_RESIZE);
+         RARCH_WARN("[Recording]: %s\n", recording_failed_str);
 
-         runloop_msg_queue_push(
-               msg_hash_to_str(MSG_RECORDING_TERMINATED_DUE_TO_RESIZE),
+         runloop_msg_queue_push(recording_failed_str,
                1, 180, true,
                NULL, MESSAGE_QUEUE_ICON_DEFAULT, MESSAGE_QUEUE_CATEGORY_INFO);
          command_event(CMD_EVENT_RECORD_DEINIT, NULL);
@@ -1180,15 +1188,17 @@ void video_switch_refresh_rate_maybe(
    bool all_fullscreen                = settings->bools.video_fullscreen || settings->bools.video_windowed_fullscreen;
 
    /* Roundings to PAL & NTSC standards */
-   refresh_rate = (refresh_rate > 54 && refresh_rate < 60) ? 59.94f : refresh_rate;
-   refresh_rate = (refresh_rate > 49 && refresh_rate < 55) ? 50.00f : refresh_rate;
+   if (refresh_rate > 54 && refresh_rate < 60)
+      refresh_rate = 59.94f;
+   else if (refresh_rate > 49 && refresh_rate < 55)
+      refresh_rate = 50.00f;
 
    /* Black frame insertion + swap interval multiplier */
-   refresh_rate = (refresh_rate * (video_bfi + 1.0f) * video_swap_interval);
+   refresh_rate    = (refresh_rate * (video_bfi + 1.0f) * video_swap_interval);
 
    /* Fallback when target refresh rate is not exposed or when below standards */
    if (!video_display_server_has_refresh_rate(refresh_rate) || refresh_rate < 50)
-      refresh_rate = video_refresh_rate;
+      refresh_rate       = video_refresh_rate;
 
    *refresh_rate_suggest = refresh_rate;
 
@@ -1203,10 +1213,10 @@ void video_switch_refresh_rate_maybe(
     * - 'CRT SwitchRes' OFF & 'Sync to Exact Content Framerate' OFF
     * - Automatic refresh rate switching not OFF
     */
-    if (refresh_rate != video_refresh_rate &&
-        !crt_switch_resolution &&
-        !vrr_runloop_enable &&
-        (autoswitch_refresh_rate != AUTOSWITCH_REFRESH_RATE_OFF))
+    if (    refresh_rate != video_refresh_rate
+        && !crt_switch_resolution
+        && !vrr_runloop_enable
+        && (autoswitch_refresh_rate != AUTOSWITCH_REFRESH_RATE_OFF))
     {
       *video_switch_refresh_rate = (
           ((autoswitch_refresh_rate == AUTOSWITCH_REFRESH_RATE_EXCLUSIVE_FULLSCREEN) && exclusive_fullscreen) ||
@@ -2722,7 +2732,7 @@ bool video_driver_has_focus(void)
    return VIDEO_HAS_FOCUS(video_st);
 }
 
-void video_driver_get_window_title(char *buf, unsigned len)
+size_t video_driver_get_window_title(char *buf, unsigned len)
 {
    video_driver_state_t *video_st = &video_driver_st;
    if (buf && video_st->window_title_update)
@@ -2730,6 +2740,7 @@ void video_driver_get_window_title(char *buf, unsigned len)
       strlcpy(buf, video_st->window_title, len);
       video_st->window_title_update = false;
    }
+   return video_st->window_title_len;
 }
 
 void video_driver_build_info(video_frame_info_t *video_info)
@@ -3400,12 +3411,12 @@ bool video_driver_init_internal(bool *video_is_threaded, bool verbosity_enabled)
             settings->uints.window_position_width &&
             settings->uints.window_position_height)
          {
-            width = settings->uints.window_position_width;
+            width  = settings->uints.window_position_width;
             height = settings->uints.window_position_height;
          }
          else
          {
-            float video_scale = settings->floats.video_scale;
+            unsigned video_scale = settings->uints.video_scale;
             /* Determine maximum allowed window dimensions
              * NOTE: We cannot read the actual display
              * metrics here, because the context driver
@@ -3440,36 +3451,40 @@ bool video_driver_init_internal(bool *video_is_threaded, bool verbosity_enabled)
                 * scale correctness. */
                unsigned base_width = roundf(geom->base_height *
                   video_st->aspect_ratio);
-               width = roundf(base_width * video_scale);
+               width = base_width * video_scale;
             }
             else
-               width = roundf(geom->base_width * video_scale);
+               width = geom->base_width * video_scale;
 
-            height = roundf(geom->base_height * video_scale);
+            height = geom->base_height * video_scale;
 
             /* Cap window size to maximum allowed values */
             if ((width > max_win_width) || (height > max_win_height))
             {
-               unsigned geom_width = (width > 0) ? width : 1;
+               unsigned geom_width  = (width > 0)  ? width  : 1;
                unsigned geom_height = (height > 0) ? height : 1;
-               float geom_aspect = (float)geom_width / (float)geom_height;
+               float geom_aspect    = (float)geom_width    / (float)geom_height;
                float max_win_aspect = (float)max_win_width / (float)max_win_height;
 
                if (geom_aspect > max_win_aspect)
                {
-                  width = max_win_width;
+                  width  = max_win_width;
                   height = geom_height * max_win_width / geom_width;
                   /* Account for any possible rounding errors... */
-                  height = (height < 1) ? 1 : height;
-                  height = (height > max_win_height) ? max_win_height : height;
+                  if (height < 1)
+                     height = 1;
+                  else if (height > max_win_height)
+                     height = max_win_height;
                }
                else
                {
                   height = max_win_height;
-                  width = geom_width * max_win_height / geom_height;
+                  width  = geom_width * max_win_height / geom_height;
                   /* Account for any possible rounding errors... */
-                  width = (width < 1) ? 1 : width;
-                  width = (width > max_win_width) ? max_win_width : width;
+                  if (width < 1)
+                     width = 1;
+                  else if (width > max_win_width)
+                     width = max_win_width;
                }
             }
          }
@@ -3827,6 +3842,7 @@ void video_driver_frame(const void *data, unsigned width,
    bool render_frame             = true;
    retro_time_t new_time;
    video_frame_info_t video_info;
+   size_t buf_pos                = 0;
    video_driver_state_t *video_st= &video_driver_st;
    runloop_state_t *runloop_st   = runloop_state_get_ptr();
    const enum retro_pixel_format
@@ -3946,7 +3962,6 @@ void video_driver_frame(const void *data, unsigned width,
          video_info.fps_update_interval;
       unsigned memory_update_interval              =
          video_info.memory_update_interval;
-      size_t buf_pos                               = 1;
       /* set this to 1 to avoid an offset issue */
       unsigned write_index                         =
          video_st->frame_time_count++ &
@@ -3957,39 +3972,67 @@ void video_driver_frame(const void *data, unsigned width,
       fps_time                                     = new_time;
 
       if (video_info.fps_show)
-         buf_pos = snprintf(
-               status_text, sizeof(status_text),
-               "FPS: %6.2f", last_fps);
+      {
+         status_text[0] = 'F';
+         status_text[1] = 'P';
+         status_text[2] = 'S';
+         status_text[3] = ':';
+         status_text[4] = ' ';
+         status_text[5] = '\0';
+         buf_pos        = snprintf(
+               status_text + 5, sizeof(status_text) - 5,
+               "%6.2f", last_fps) + 5;
+      }
 
       if (video_info.framecount_show)
       {
-         char frames_text[64];
          if (status_text[buf_pos-1] != '\0')
-            strlcat(status_text, " || ", sizeof(status_text));
-         snprintf(frames_text,
-               sizeof(frames_text),
-               "%s: %" PRIu64, msg_hash_to_str(MSG_FRAMES),
-               (uint64_t)video_st->frame_count);
-         buf_pos = strlcat(status_text, frames_text, sizeof(status_text));
+         {
+            status_text[buf_pos  ] = ' ';
+            status_text[buf_pos+1] = '|';
+            status_text[buf_pos+2] = '|';
+            status_text[buf_pos+3] = ' ';
+            status_text[buf_pos+4] = '\0';
+         }
+         buf_pos                   = strlcat(status_text, msg_hash_to_str(MSG_FRAMES),
+			 sizeof(status_text));
+         status_text[buf_pos  ]    = ':';
+         status_text[++buf_pos]    = ' ';
+         status_text[++buf_pos]    = '\0';
+         buf_pos                  += snprintf(
+		status_text         + buf_pos,
+		sizeof(status_text) - buf_pos,
+		"%" PRIu64, (uint64_t)video_st->frame_count);
       }
 
       if (video_info.memory_show)
       {
-         char mem[128];
-
          if ((video_st->frame_count % memory_update_interval) == 0)
          {
             last_total_memory = frontend_driver_get_total_memory();
             last_used_memory  = last_total_memory - frontend_driver_get_free_memory();
          }
 
-         mem[0] = '\0';
-         snprintf(
-               mem, sizeof(mem), "MEM: %.2f/%.2fMB", last_used_memory / (1024.0f * 1024.0f),
-               last_total_memory / (1024.0f * 1024.0f));
          if (status_text[buf_pos-1] != '\0')
-            strlcat(status_text, " || ", sizeof(status_text));
-         strlcat(status_text, mem, sizeof(status_text));
+         {
+            status_text[buf_pos]   = ' ';
+            status_text[++buf_pos] = '|';
+            status_text[++buf_pos] = '|';
+            status_text[++buf_pos] = ' ';
+            status_text[++buf_pos] = '\0';
+         }
+         status_text[buf_pos  ]    = 'M';
+         status_text[++buf_pos]    = 'E';
+         status_text[++buf_pos]    = 'M';
+         status_text[++buf_pos]    = ':';
+         status_text[++buf_pos]    = ' ';
+         status_text[++buf_pos]    = '\0';
+         buf_pos                  += snprintf(
+               status_text + buf_pos, sizeof(status_text) - buf_pos, "%.2f/%.2f", last_used_memory / (1024.0f * 1024.0f),
+               last_total_memory / (1024.0f * 1024.0f));
+         status_text[buf_pos  ]   = 'M';
+         status_text[++buf_pos]   = 'B';
+         status_text[++buf_pos]   = '\0';
       }
 
       if ((video_st->frame_count % fps_update_interval) == 0)
@@ -3997,15 +4040,18 @@ void video_driver_frame(const void *data, unsigned width,
          last_fps = TIME_TO_FPS(curr_time, new_time,
                fps_update_interval);
 
-         strlcpy(video_st->window_title,
+         video_st->window_title_len = strlcpy(video_st->window_title,
                video_st->title_buf,
                sizeof(video_st->window_title));
 
          if (!string_is_empty(status_text))
          {
-            strlcat(video_st->window_title,
-                  " || ", sizeof(video_st->window_title));
-            strlcat(video_st->window_title,
+            video_st->window_title[video_st->window_title_len  ] = ' ';
+            video_st->window_title[video_st->window_title_len+1] = '|';
+            video_st->window_title[video_st->window_title_len+2] = '|';
+            video_st->window_title[video_st->window_title_len+3] = ' ';
+            video_st->window_title[video_st->window_title_len+4] = '\0';
+            video_st->window_title_len = strlcat(video_st->window_title,
                   status_text, sizeof(video_st->window_title));
          }
 
@@ -4017,12 +4063,13 @@ void video_driver_frame(const void *data, unsigned width,
    {
       curr_time = fps_time = new_time;
 
-      strlcpy(video_st->window_title,
+      video_st->window_title_len = strlcpy(
+            video_st->window_title,
             video_st->title_buf,
             sizeof(video_st->window_title));
 
       if (video_info.fps_show)
-         strlcpy(status_text,
+         buf_pos = strlcpy(status_text,
                msg_hash_to_str(MENU_ENUM_LABEL_VALUE_NOT_AVAILABLE),
                sizeof(status_text));
 
@@ -4059,14 +4106,17 @@ void video_driver_frame(const void *data, unsigned width,
           * message at the end */
          if (!string_is_empty(status_text))
          {
-            strlcat(status_text,
-                  " || ", sizeof(status_text));
-            strlcat(status_text,
+            status_text[buf_pos  ] = ' ';
+            status_text[buf_pos+1] = '|';
+            status_text[buf_pos+2] = '|';
+            status_text[buf_pos+3] = ' ';
+            status_text[buf_pos+4] = '\0';
+            buf_pos                = strlcat(status_text,
                   runloop_st->core_status_msg.str,
                   sizeof(status_text));
          }
          else
-            strlcpy(status_text,
+            buf_pos                = strlcpy(status_text,
                   runloop_st->core_status_msg.str,
                   sizeof(status_text));
       }

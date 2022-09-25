@@ -124,6 +124,12 @@ typedef struct settings
       int video_window_offset_y;
 #endif
       int content_favorites_size;
+#ifdef _3DS
+      int bottom_font_color_red;
+      int bottom_font_color_green;
+      int bottom_font_color_blue;
+      int bottom_font_color_opacity;
+#endif
    } ints;
 
    struct
@@ -179,6 +185,8 @@ typedef struct settings
       unsigned netplay_port;
       unsigned netplay_max_connections;
       unsigned netplay_max_ping;
+      unsigned netplay_chat_color_name;
+      unsigned netplay_chat_color_msg;
       unsigned netplay_input_latency_frames_min;
       unsigned netplay_input_latency_frames_range;
       unsigned netplay_share_digital;
@@ -202,6 +210,7 @@ typedef struct settings
       unsigned video_monitor_index;
       unsigned video_fullscreen_x;
       unsigned video_fullscreen_y;
+      unsigned video_scale;
       unsigned video_max_swapchain_images;
       unsigned video_max_frame_latency;
       unsigned video_swap_interval;
@@ -328,7 +337,6 @@ typedef struct settings
    struct
    {
       float placeholder;
-      float video_scale;
       float video_aspect_ratio;
       float video_refresh_rate;
       float crt_video_refresh_rate;
@@ -380,6 +388,9 @@ typedef struct settings
       float input_analog_deadzone;
       float input_axis_threshold;
       float input_analog_sensitivity;
+#ifdef _3DS
+      float bottom_font_scale;
+#endif
    } floats;
 
    struct
@@ -418,9 +429,6 @@ typedef struct settings
 
       char translation_service_url[2048];
 
-      char bundle_assets_src[PATH_MAX_LENGTH];
-      char bundle_assets_dst[PATH_MAX_LENGTH];
-      char bundle_assets_dst_subdir[PATH_MAX_LENGTH];
       char youtube_stream_key[PATH_MAX_LENGTH];
       char twitch_stream_key[PATH_MAX_LENGTH];
       char facebook_stream_key[PATH_MAX_LENGTH];
@@ -453,6 +461,9 @@ typedef struct settings
 
       char path_stream_url[8192];
 
+      char bundle_assets_src[PATH_MAX_LENGTH];
+      char bundle_assets_dst[PATH_MAX_LENGTH];
+      char bundle_assets_dst_subdir[PATH_MAX_LENGTH];
       char path_menu_xmb_font[PATH_MAX_LENGTH];
       char menu_content_show_settings_password[PATH_MAX_LENGTH];
       char kiosk_mode_password[PATH_MAX_LENGTH];
@@ -507,7 +518,9 @@ typedef struct settings
       char directory_menu_config[PATH_MAX_LENGTH];
       char directory_menu_content[PATH_MAX_LENGTH];
       char streaming_title[PATH_MAX_LENGTH];
-
+#ifdef _3DS
+      char directory_bottom_assets[PATH_MAX_LENGTH];
+#endif
       char log_dir[PATH_MAX_LENGTH];
    } paths;
 
@@ -523,6 +536,7 @@ typedef struct settings
       bool video_vsync;
       bool video_adaptive_vsync;
       bool video_hard_sync;
+      bool video_waitable_swapchains;
       bool video_vfilter;
       bool video_smooth;
       bool video_ctx_scaling;
@@ -551,7 +565,9 @@ typedef struct settings
       bool video_framecount_show;
       bool video_memory_show;
       bool video_msg_bgcolor_enable;
+#ifdef _3DS
       bool video_3ds_lcd_bottom;
+#endif
       bool video_wiiu_prefer_drc;
       bool video_notch_write_over_enable;
 #ifdef HAVE_VIDEO_LAYOUT
@@ -708,6 +724,8 @@ typedef struct settings
       bool menu_use_preferred_system_color_theme;
       bool menu_preferred_system_color_theme_set;
       bool menu_unified_controls;
+      bool menu_disable_info_button;
+      bool menu_disable_search_button;
       bool menu_ticker_smooth;
       bool settings_show_drivers;
       bool settings_show_video;
@@ -765,6 +783,7 @@ typedef struct settings
 
       /* Netplay */
       bool netplay_show_only_connectable;
+      bool netplay_show_only_installed_cores;
       bool netplay_show_passworded;
       bool netplay_public_announce;
       bool netplay_start_as_spectator;
@@ -772,7 +791,6 @@ typedef struct settings
       bool netplay_allow_pausing;
       bool netplay_allow_slaves;
       bool netplay_require_slaves;
-      bool netplay_stateless_mode;
       bool netplay_nat_traversal;
       bool netplay_use_mitm_server;
       bool netplay_request_devices[MAX_USERS];
@@ -929,6 +947,7 @@ typedef struct settings
       bool gamemode_enable;
 #ifdef _3DS
       bool new3ds_speedup_enable;
+      bool bottom_font_enable;
 #endif
 
 #ifdef ANDROID

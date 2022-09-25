@@ -197,6 +197,9 @@ GENERIC_DEFERRED_PUSH(deferred_push_menu_views_settings_list,       DISPLAYLIST_
 GENERIC_DEFERRED_PUSH(deferred_push_quick_menu_views_settings_list, DISPLAYLIST_QUICK_MENU_VIEWS_SETTINGS_LIST)
 GENERIC_DEFERRED_PUSH(deferred_push_settings_views_settings_list, DISPLAYLIST_SETTINGS_VIEWS_SETTINGS_LIST)
 GENERIC_DEFERRED_PUSH(deferred_push_menu_settings_list,             DISPLAYLIST_MENU_SETTINGS_LIST)
+#ifdef _3DS
+GENERIC_DEFERRED_PUSH(deferred_push_menu_bottom_settings_list,      DISPLAYLIST_MENU_BOTTOM_SETTINGS_LIST)
+#endif
 GENERIC_DEFERRED_PUSH(deferred_push_user_interface_settings_list,   DISPLAYLIST_USER_INTERFACE_SETTINGS_LIST)
 GENERIC_DEFERRED_PUSH(deferred_push_power_management_settings_list, DISPLAYLIST_POWER_MANAGEMENT_SETTINGS_LIST)
 GENERIC_DEFERRED_PUSH(deferred_push_retro_achievements_settings_list,DISPLAYLIST_RETRO_ACHIEVEMENTS_SETTINGS_LIST)
@@ -208,6 +211,7 @@ GENERIC_DEFERRED_PUSH(deferred_push_network_settings_list,          DISPLAYLIST_
 GENERIC_DEFERRED_PUSH(deferred_push_subsystem_settings_list,        DISPLAYLIST_SUBSYSTEM_SETTINGS_LIST)
 GENERIC_DEFERRED_PUSH(deferred_push_network_hosting_settings_list,  DISPLAYLIST_NETWORK_HOSTING_SETTINGS_LIST)
 GENERIC_DEFERRED_PUSH(deferred_push_netplay_kick_list,              DISPLAYLIST_NETPLAY_KICK_LIST)
+GENERIC_DEFERRED_PUSH(deferred_push_netplay_ban_list,               DISPLAYLIST_NETPLAY_BAN_LIST)
 GENERIC_DEFERRED_PUSH(deferred_push_netplay_lobby_filters_list,     DISPLAYLIST_NETPLAY_LOBBY_FILTERS_LIST)
 GENERIC_DEFERRED_PUSH(deferred_push_lakka_services_list,            DISPLAYLIST_LAKKA_SERVICES_LIST)
 GENERIC_DEFERRED_PUSH(deferred_push_user_settings_list,             DISPLAYLIST_USER_SETTINGS_LIST)
@@ -312,11 +316,9 @@ static int deferred_push_cursor_manager_list_deferred(
       return -1;
    }
 
-   rdb_path[0] = '\0';
-
    settings = config_get_ptr();
    
-   fill_pathname_join(rdb_path,
+   fill_pathname_join_special(rdb_path,
          settings->paths.path_content_database,
          rdb_entry->value, sizeof(rdb_path));
    
@@ -343,7 +345,7 @@ static int deferred_push_cursor_manager_list_deferred(
 static int deferred_push_cursor_manager_list_generic(
       menu_displaylist_info_t *info, enum database_query_type type)
 {
-   char query[PATH_MAX_LENGTH];
+   char query[256];
    int ret                       = -1;
    const char *path              = info->path;
    struct string_list str_list   = {0};
@@ -354,8 +356,6 @@ static int deferred_push_cursor_manager_list_generic(
 
    string_list_initialize(&str_list);
    string_split_noalloc(&str_list, path, "|");
-
-   query[0] = '\0';
 
    database_info_build_query_enum(query, sizeof(query), type,
          str_list.elems[0].data);
@@ -425,13 +425,9 @@ static int general_push(menu_displaylist_info_t *info,
          {
             char tmp_str[PATH_MAX_LENGTH];
             char tmp_str2[PATH_MAX_LENGTH];
-
-            tmp_str[0] = '\0';
-            tmp_str2[0] = '\0';
-
-            fill_pathname_join(tmp_str, menu->scratch2_buf,
+            fill_pathname_join_special(tmp_str, menu->scratch2_buf,
                   menu->scratch_buf, sizeof(tmp_str));
-            fill_pathname_join(tmp_str2, menu->scratch2_buf,
+            fill_pathname_join_special(tmp_str2, menu->scratch2_buf,
                   menu->scratch_buf, sizeof(tmp_str2));
 
             if (!string_is_empty(info->path))
@@ -520,7 +516,6 @@ static int general_push(menu_displaylist_info_t *info,
             struct retro_system_info *system = 
                &runloop_state_get_ptr()->system.info;
 
-            newstring[0]                     = '\0';
             attr.i                           = 0;
 
             string_list_initialize(&str_list2);
@@ -734,6 +729,9 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
       {MENU_ENUM_LABEL_DEFERRED_SETTINGS_VIEWS_SETTINGS_LIST, deferred_push_settings_views_settings_list},
       {MENU_ENUM_LABEL_DEFERRED_QUICK_MENU_VIEWS_SETTINGS_LIST, deferred_push_quick_menu_views_settings_list},
       {MENU_ENUM_LABEL_DEFERRED_MENU_SETTINGS_LIST, deferred_push_menu_settings_list},
+#ifdef _3DS
+      {MENU_ENUM_LABEL_DEFERRED_MENU_BOTTOM_SETTINGS_LIST, deferred_push_menu_bottom_settings_list},
+#endif
       {MENU_ENUM_LABEL_DEFERRED_USER_INTERFACE_SETTINGS_LIST, deferred_push_user_interface_settings_list},
       {MENU_ENUM_LABEL_DEFERRED_POWER_MANAGEMENT_SETTINGS_LIST, deferred_push_power_management_settings_list},
       {MENU_ENUM_LABEL_DEFERRED_MENU_SOUNDS_LIST, deferred_push_menu_sounds_list},
@@ -743,6 +741,7 @@ static int menu_cbs_init_bind_deferred_push_compare_label(
       {MENU_ENUM_LABEL_DEFERRED_SUBSYSTEM_SETTINGS_LIST, deferred_push_subsystem_settings_list},
       {MENU_ENUM_LABEL_DEFERRED_NETWORK_HOSTING_SETTINGS_LIST, deferred_push_network_hosting_settings_list},
       {MENU_ENUM_LABEL_DEFERRED_NETPLAY_KICK_LIST, deferred_push_netplay_kick_list},
+      {MENU_ENUM_LABEL_DEFERRED_NETPLAY_BAN_LIST, deferred_push_netplay_ban_list},
       {MENU_ENUM_LABEL_DEFERRED_NETPLAY_LOBBY_FILTERS_LIST, deferred_push_netplay_lobby_filters_list},
       {MENU_ENUM_LABEL_DEFERRED_BLUETOOTH_SETTINGS_LIST, deferred_push_bluetooth_settings_list},
       {MENU_ENUM_LABEL_DEFERRED_WIFI_SETTINGS_LIST, deferred_push_wifi_settings_list},

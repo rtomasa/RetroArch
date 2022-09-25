@@ -34,8 +34,7 @@ typedef struct
    struct font_atlas*            atlas;
 } d3d12_font_t;
 
-static void*
-d3d12_font_init_font(void* data, const char* font_path,
+static void * d3d12_font_init(void* data, const char* font_path,
       float font_size, bool is_threaded)
 {
    d3d12_video_t* d3d12 = (d3d12_video_t*)data;
@@ -70,7 +69,7 @@ d3d12_font_init_font(void* data, const char* font_path,
    return font;
 }
 
-static void d3d12_font_free_font(void* data, bool is_threaded)
+static void d3d12_font_free(void* data, bool is_threaded)
 {
    d3d12_font_t* font = (d3d12_font_t*)data;
 
@@ -86,10 +85,9 @@ static void d3d12_font_free_font(void* data, bool is_threaded)
 }
 
 static int d3d12_font_get_message_width(void* data,
-      const char* msg, unsigned msg_len, float scale)
+      const char* msg, size_t msg_len, float scale)
 {
-   unsigned i;
-   int delta_x                      = 0;
+   int i, delta_x                   = 0;
    const struct font_glyph* glyph_q = NULL;
    d3d12_font_t* font               = (d3d12_font_t*)data;
 
@@ -123,7 +121,7 @@ static void d3d12_font_render_line(
       d3d12_video_t *d3d12,
       d3d12_font_t*       font,
       const char*         msg,
-      unsigned            msg_len,
+      size_t              msg_len,
       float               scale,
       const unsigned int  color,
       float               pos_x,
@@ -132,24 +130,18 @@ static void d3d12_font_render_line(
       unsigned            height,
       unsigned            text_align)
 {
-   int x, y;
-   unsigned        i, count;
+   int i;
+   D3D12_RANGE     range;
+   unsigned        count;
    const struct font_glyph* glyph_q = NULL;
    void*           mapped_vbo       = NULL;
    d3d12_sprite_t* v                = NULL;
    d3d12_sprite_t* vbo_start        = NULL;
-   D3D12_RANGE     range;
-
-   if (  !d3d12                  ||
-         !d3d12->sprites.enabled ||
-         msg_len > (unsigned)d3d12->sprites.capacity)
-      return;
+   int x                            = roundf(pos_x * width);
+   int y                            = roundf((1.0 - pos_y) * height);
 
    if (d3d12->sprites.offset + msg_len > (unsigned)d3d12->sprites.capacity)
       d3d12->sprites.offset = 0;
-
-   x           = roundf(pos_x * width);
-   y           = roundf((1.0 - pos_y) * height);
 
    switch (text_align)
    {
@@ -257,14 +249,18 @@ static void d3d12_font_render_message(
 
    if (!msg || !*msg)
       return;
+   if (!d3d12 || !d3d12->sprites.enabled)
+      return;
 
    /* If font line metrics are not supported just draw as usual */
    if (!font->font_driver->get_line_metrics ||
        !font->font_driver->get_line_metrics(font->font_data, &line_metrics))
    {
-      d3d12_font_render_line(d3d12,
-            font, msg, strlen(msg),
-            scale, color, pos_x, pos_y, width, height, text_align);
+      size_t msg_len = strlen(msg);
+      if (msg_len <= d3d12->sprites.capacity)
+         d3d12_font_render_line(d3d12,
+               font, msg, msg_len,
+               scale, color, pos_x, pos_y, width, height, text_align);
       return;
    }
 
@@ -273,13 +269,14 @@ static void d3d12_font_render_message(
    for (;;)
    {
       const char* delim = strchr(msg, '\n');
-      unsigned msg_len  = delim ?
-         (unsigned)(delim - msg) : strlen(msg);
+      size_t msg_len    = delim ?
+         (delim - msg) : strlen(msg);
 
       /* Draw the line */
-      d3d12_font_render_line(d3d12,
-            font, msg, msg_len, scale, color, pos_x,
-            pos_y - (float)lines * line_height, width, height, text_align);
+      if (msg_len <= d3d12->sprites.capacity)
+         d3d12_font_render_line(d3d12,
+               font, msg, msg_len, scale, color, pos_x,
+               pos_y - (float)lines * line_height, width, height, text_align);
 
       if (!delim)
          break;
@@ -383,14 +380,14 @@ static bool d3d12_font_get_line_metrics(void* data, struct font_line_metrics **m
    d3d12_font_t* font = (d3d12_font_t*)data;
    if (font && font->font_driver && font->font_data)
       return font->font_driver->get_line_metrics(font->font_data, metrics);
-   return -1;
+   return false;
 }
 
 font_renderer_t d3d12_font = {
-   d3d12_font_init_font,
-   d3d12_font_free_font,
+   d3d12_font_init,
+   d3d12_font_free,
    d3d12_font_render_msg,
-   "d3d12font",
+   "d3d12_font",
    d3d12_font_get_glyph,
    NULL, /* bind_block */
    NULL, /* flush */

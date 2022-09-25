@@ -287,14 +287,26 @@ static void d3d10_set_filtering(void* data, unsigned index, bool smooth, bool ct
 
 static void d3d10_gfx_set_rotation(void* data, unsigned rotation)
 {
-   math_matrix_4x4 rot;
+   static math_matrix_4x4 rot     = {
+      { 0.0f,     0.0f,    0.0f,    0.0f ,
+        0.0f,     0.0f,    0.0f,    0.0f ,
+        0.0f,     0.0f,    0.0f,    0.0f ,
+        0.0f,     0.0f,    0.0f,    1.0f }
+   };
+   float radians, cosine, sine;
    void* mapped_ubo      = NULL;
    d3d10_video_t*  d3d10 = (d3d10_video_t*)data;
 
    if (!d3d10)
       return;
 
-   matrix_4x4_rotate_z(rot, rotation * (M_PI / 2.0f));
+   radians                 = rotation * (M_PI / 2.0f);
+   cosine                  = cosf(radians);
+   sine                    = sinf(radians);
+   MAT_ELEM_4X4(rot, 0, 0) = cosine;
+   MAT_ELEM_4X4(rot, 0, 1) = -sine;
+   MAT_ELEM_4X4(rot, 1, 0) = sine;
+   MAT_ELEM_4X4(rot, 1, 1) = cosine;
    matrix_4x4_multiply(d3d10->mvp, rot, d3d10->ubo_values.mvp);
 
    d3d10->frame.ubo->lpVtbl->Map(d3d10->frame.ubo,
@@ -454,18 +466,16 @@ static bool d3d10_gfx_set_shader(void* data, enum rarch_shader_type type, const 
             { "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT, 0, offsetof(d3d10_vertex_t, texcoord),
                D3D10_INPUT_PER_VERTEX_DATA, 0 },
          };
-         static const char vs_ext[] = ".vs.hlsl";
-         static const char ps_ext[] = ".ps.hlsl";
-         char              vs_path[PATH_MAX_LENGTH] = {0};
-         char              ps_path[PATH_MAX_LENGTH] = {0};
-         const char*       slang_path = d3d10->shader_preset->pass[i].source.path;
-         const char*       vs_src     = d3d10->shader_preset->pass[i].source.string.vertex;
-         const char*       ps_src     = d3d10->shader_preset->pass[i].source.string.fragment;
+         char vs_path[PATH_MAX_LENGTH];
+         char ps_path[PATH_MAX_LENGTH];
+         const char *slang_path = d3d10->shader_preset->pass[i].source.path;
+         const char *vs_src     = d3d10->shader_preset->pass[i].source.string.vertex;
+         const char *ps_src     = d3d10->shader_preset->pass[i].source.string.fragment;
 
          strlcpy(vs_path, slang_path, sizeof(vs_path));
          strlcpy(ps_path, slang_path, sizeof(ps_path));
-         strlcat(vs_path, vs_ext, sizeof(vs_path));
-         strlcat(ps_path, ps_ext, sizeof(ps_path));
+         strlcat(vs_path, ".vs.hlsl", sizeof(vs_path));
+         strlcat(ps_path, ".ps.hlsl", sizeof(ps_path));
 
          if (!d3d10_init_shader(
                   d3d10->device, vs_src, 0, vs_path, "main", NULL, NULL, desc, countof(desc),
@@ -1053,7 +1063,7 @@ static void *d3d10_gfx_init(const video_info_t* video,
 #ifdef __WINRT__
    DXGICreateFactory2(&d3d10->factory);
 #else
-   DXGICreateFactory(&d3d10->factory);
+   DXGICreateFactory1(&d3d10->factory);
 #endif
    
    {
@@ -1077,7 +1087,7 @@ static void *d3d10_gfx_init(const video_info_t* video,
          if (FAILED(DXGIEnumAdapters2(d3d10->factory, i, &d3d10->adapter)))
             break;
 #else
-         if (FAILED(DXGIEnumAdapters(d3d10->factory, i, &d3d10->adapter)))
+         if (FAILED(DXGIEnumAdapters1(d3d10->factory, i, &d3d10->adapter)))
             break;
 #endif
 

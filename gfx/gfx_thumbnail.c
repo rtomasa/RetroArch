@@ -364,16 +364,12 @@ void gfx_thumbnail_request_file(
    thumbnail->status = GFX_THUMBNAIL_STATUS_MISSING;
 
    /* Check if file path is valid */
-   if (string_is_empty(file_path))
-      return;
-
-   if (!path_is_valid(file_path))
+   if (   string_is_empty(file_path)
+       || !path_is_valid(file_path))
       return;
 
    /* Load thumbnail */
-   thumbnail_tag = (gfx_thumbnail_tag_t*)malloc(sizeof(gfx_thumbnail_tag_t));
-
-   if (!thumbnail_tag)
+   if (!(thumbnail_tag = (gfx_thumbnail_tag_t*)malloc(sizeof(gfx_thumbnail_tag_t))))
       return;
 
    /* Configure user data */
@@ -415,6 +411,7 @@ void gfx_thumbnail_reset(gfx_thumbnail_t *thumbnail)
    thumbnail->alpha       = 0.0f;
    thumbnail->delay_timer = 0.0f;
    thumbnail->fade_active = false;
+   thumbnail->core_aspect = false;
 }
 
 /* Stream processing */
@@ -787,30 +784,54 @@ void gfx_thumbnail_get_draw_dimensions(
       unsigned width, unsigned height, float scale_factor,
       float *draw_width, float *draw_height)
 {
+   float core_aspect;
    float display_aspect;
    float thumbnail_aspect;
+   video_driver_state_t *video_st = video_state_get_ptr();
 
    /* Sanity check */
-   if (!thumbnail || (width < 1) || (height < 1))
-      goto error;
+   if (   !thumbnail 
+       || (width             < 1) 
+       || (height            < 1)
+       || (thumbnail->width  < 1) 
+       || (thumbnail->height < 1))
+   {
+      *draw_width  = 0.0f;
+      *draw_height = 0.0f;
+      return;
+   }
 
-   if ((thumbnail->width < 1) || (thumbnail->height < 1))
-      goto error;
-
-   /* Account for display/thumbnail aspect ratio
+   /* Account for display/thumbnail/core aspect ratio
     * differences */
    display_aspect   = (float)width            / (float)height;
    thumbnail_aspect = (float)thumbnail->width / (float)thumbnail->height;
+   core_aspect      = (thumbnail->core_aspect && video_st)
+         ? video_st->av_info.geometry.aspect_ratio : thumbnail_aspect;
 
    if (thumbnail_aspect > display_aspect)
    {
       *draw_width  = (float)width;
       *draw_height = (float)thumbnail->height * (*draw_width / (float)thumbnail->width);
+
+      if (thumbnail->core_aspect)
+      {
+         *draw_height = *draw_height * (thumbnail_aspect / core_aspect);
+
+         if (*draw_height > height)
+         {
+            *draw_height = (float)height;
+            *draw_width  = (float)thumbnail->width * (*draw_height / (float)thumbnail->height);
+            *draw_width  = *draw_width / (thumbnail_aspect / core_aspect);
+         }
+      }
    }
    else
    {
       *draw_height = (float)height;
       *draw_width  = (float)thumbnail->width * (*draw_height / (float)thumbnail->height);
+
+      if (thumbnail->core_aspect)
+         *draw_width  = *draw_width / (thumbnail_aspect / core_aspect);
    }
 
    /* Account for scale factor
@@ -822,11 +843,6 @@ void gfx_thumbnail_get_draw_dimensions(
     *   without scaling manually... */
    *draw_width  *= scale_factor;
    *draw_height *= scale_factor;
-   return;
-
-error:
-   *draw_width  = 0.0f;
-   *draw_height = 0.0f;
 }
 
 /* Draws specified thumbnail with specified alignment
@@ -852,16 +868,19 @@ void gfx_thumbnail_draw(
    gfx_display_t            *p_disp  = disp_get_ptr();
    gfx_display_ctx_driver_t *dispctx = p_disp->dispctx;
    /* Sanity check */
-   if (!thumbnail ||
-       (width < 1) || (height < 1) || (alpha <= 0.0f) || (scale_factor <= 0.0f))
-      return;
-   if (!dispctx)
+   if (
+            !thumbnail
+         || !dispctx
+         || (width         < 1)
+         || (height        < 1)
+         || (alpha        <= 0.0f)
+         || (scale_factor <= 0.0f)
+      )
       return;
 
    /* Only draw thumbnail if it is available... */
    if (thumbnail->status == GFX_THUMBNAIL_STATUS_AVAILABLE)
    {
-      gfx_display_ctx_rotate_draw_t rotate_draw;
       gfx_display_ctx_draw_t draw;
       struct video_coords coords;
       math_matrix_4x4 mymat;
@@ -891,25 +910,22 @@ void gfx_thumbnail_draw(
       if (dispctx->blend_begin)
          dispctx->blend_begin(userdata);
 
-      /* Perform 'rotation' step
-       * > Note that rotation does not actually work...
-       * > It rotates the image all right, but distorts it
-       *   to fit the aspect of the bounding box while clipping
-       *   off any 'corners' that extend beyond the bounding box
-       * > Since the result is visual garbage, we disable
-       *   rotation entirely
-       * > But we still have to call gfx_display_rotate_z(),
-       *   or nothing will be drawn...
-       * Note that we also disable scaling here (scale_enable),
-       * since we handle scaling internally... */
-      rotate_draw.matrix       = &mymat;
-      rotate_draw.rotation     = 0.0f;
-      rotate_draw.scale_x      = 1.0f;
-      rotate_draw.scale_y      = 1.0f;
-      rotate_draw.scale_z      = 1.0f;
-      rotate_draw.scale_enable = false;
-
-      gfx_display_rotate_z(p_disp, &rotate_draw, userdata);
+      if (!p_disp->dispctx->handles_transform)
+      {
+         /* Perform 'rotation' step
+          * > Note that rotation does not actually work...
+          * > It rotates the image all right, but distorts it
+          *   to fit the aspect of the bounding box while clipping
+          *   off any 'corners' that extend beyond the bounding box
+          * > Since the result is visual garbage, we disable
+          *   rotation entirely
+          * > But we still have to call gfx_display_rotate_z(),
+          *   or nothing will be drawn...
+          */
+         float cosine             = 1.0f; /* cos(rad)  = cos(0)  = 1.0f */
+         float sine               = 0.0f; /* sine(rad) = sine(0) = 0.0f */
+         gfx_display_rotate_z(p_disp, &mymat, cosine, sine, userdata);
+      }
 
       /* Configure draw object
        * > Note: Colour, width/height and position must

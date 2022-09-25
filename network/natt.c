@@ -22,48 +22,13 @@
 
 #include <retro_miscellaneous.h>
 
-#ifndef HAVE_SOCKET_LEGACY
+#ifdef HAVE_IFINFO
 #include <net/net_ifinfo.h>
 #endif
 
 #include "../tasks/tasks_internal.h"
 
 #include "natt.h"
-
-static bool translate_addr(struct sockaddr_in *addr,
-   char *host, size_t hostlen, char *port, size_t portlen)
-{
-#ifndef HAVE_SOCKET_LEGACY
-   if (getnameinfo((struct sockaddr *) addr, sizeof(*addr),
-         host, hostlen, port, portlen,
-         NI_NUMERICHOST | NI_NUMERICSERV))
-      return false;
-#else
-   /* We need to do the conversion/translation manually. */
-   {
-      int res;
-      uint8_t  *addr8 = (uint8_t *) &addr->sin_addr;
-      uint16_t port16 = ntohs(addr->sin_port);
-
-      if (host)
-      {
-         res = snprintf(host, hostlen, "%d.%d.%d.%d",
-            (int) addr8[0], (int) addr8[1],
-            (int) addr8[2], (int) addr8[3]);
-         if (res < 0 || res >= hostlen)
-            return false;
-      }
-      if (port)
-      {
-         res = snprintf(port, portlen, "%hu", port16);
-         if (res < 0 || res >= portlen)
-            return false;
-      }
-   }
-#endif
-
-   return true;
-}
 
 bool natt_init(struct natt_discovery *discovery)
 {
@@ -85,18 +50,20 @@ bool natt_init(struct natt_discovery *discovery)
 
    hints.ai_family   = AF_INET;
    hints.ai_socktype = SOCK_DGRAM;
+   hints.ai_flags    = AI_NUMERICHOST | AI_NUMERICSERV;
    if (getaddrinfo_retro("239.255.255.250", "1900", &hints, &msearch_addr))
       goto failure;
    if (!msearch_addr)
       goto failure;
 
-   fd = socket_init((void **) &bind_addr, 0, NULL, SOCKET_TYPE_DATAGRAM);
+   fd = socket_init((void**)&bind_addr, 0, NULL,
+      SOCKET_TYPE_DATAGRAM, AF_INET);
    if (fd < 0)
       goto failure;
    if (!bind_addr)
       goto failure;
 
-#ifndef HAVE_SOCKET_LEGACY
+#ifdef HAVE_IFINFO
    {
       struct sockaddr_in *addr = (struct sockaddr_in *) bind_addr->ai_addr;
 
@@ -165,7 +132,8 @@ bool natt_device_next(struct natt_discovery *discovery,
    ssize_t recvd;
    char    *data;
    size_t  remaining;
-   socklen_t addr_size = sizeof(device->addr);
+   struct sockaddr_storage addr = {0};
+   socklen_t addr_size          = sizeof(addr);
 
    if (!discovery || !device)
       return false;
@@ -182,7 +150,7 @@ bool natt_device_next(struct natt_discovery *discovery,
    device->busy          = false;
 
    recvd = recvfrom(discovery->fd, buf, sizeof(buf), 0,
-      (struct sockaddr*)&device->addr, &addr_size);
+      (struct sockaddr*)&addr, &addr_size);
    if (recvd < 0)
    {
       /* If there was no data, check for timeout. */
@@ -195,6 +163,12 @@ bool natt_device_next(struct natt_discovery *discovery,
       Don't treat them as an error. */
    if (!recvd)
       return true;
+
+   /* Make sure we've an IPv4. */
+   if (!addr_6to4(&addr))
+      return true;
+
+   memcpy(&device->addr, &addr, sizeof(device->addr));
 
    /* Parse the data we received.
       We are only looking for the 'Location' HTTP header. */
@@ -421,6 +395,7 @@ static bool parse_external_address_node(rxml_node_t *node,
          return false;
 
       hints.ai_family = AF_INET;
+      hints.ai_flags  = AI_NUMERICHOST | AI_NUMERICSERV;
       if (getaddrinfo_retro(node->data, "0", &hints, &addr))
          return false;
       if (!addr)
@@ -694,8 +669,9 @@ bool natt_open_port(struct natt_device *device,
    if (!request->addr.sin_port)
       return false;
 
-   if (!translate_addr(&request->addr,
-         host, sizeof(host), port, sizeof(port)))
+   if (getnameinfo_retro((struct sockaddr*)&request->addr,
+         sizeof(request->addr), host, sizeof(host), port, sizeof(port),
+         NI_NUMERICHOST | NI_NUMERICSERV))
       return false;
 
    action   = (forward_type == NATT_FORWARD_TYPE_ANY) ?
@@ -751,8 +727,8 @@ bool natt_close_port(struct natt_device *device,
    if (!request->addr.sin_port)
       return false;
 
-   if (!translate_addr(&request->addr,
-         NULL, 0, port, sizeof(port)))
+   if (getnameinfo_retro((struct sockaddr*)&request->addr,
+         sizeof(request->addr), NULL, 0, port, sizeof(port), NI_NUMERICSERV))
       return false;
 
    protocol = (request->proto == SOCKET_PROTOCOL_UDP) ?

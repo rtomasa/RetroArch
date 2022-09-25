@@ -98,6 +98,8 @@ void libdecor_frame_handle_configure_common(struct libdecor_frame *frame,
 {
    int width, height;
    struct libdecor_state *state = NULL;
+   enum libdecor_window_state window_state;
+#if 0
    static const enum
       libdecor_window_state tiled_states = (
          LIBDECOR_WINDOW_STATE_TILED_LEFT
@@ -105,9 +107,9 @@ void libdecor_frame_handle_configure_common(struct libdecor_frame *frame,
        | LIBDECOR_WINDOW_STATE_TILED_TOP
        | LIBDECOR_WINDOW_STATE_TILED_BOTTOM
    );
-   enum libdecor_window_state window_state;
    bool focused   = false;
    bool tiled     = false;
+#endif
 
    wl->fullscreen = false;
    wl->maximized  = false;
@@ -117,8 +119,10 @@ void libdecor_frame_handle_configure_common(struct libdecor_frame *frame,
    {
       wl->fullscreen = (window_state & LIBDECOR_WINDOW_STATE_FULLSCREEN) != 0;
       wl->maximized  = (window_state & LIBDECOR_WINDOW_STATE_MAXIMIZED) != 0;
+#if 0
       focused        = (window_state & LIBDECOR_WINDOW_STATE_ACTIVE) != 0;
       tiled          = (window_state & tiled_states) != 0;
+#endif
    }
 
    if (!wl->libdecor_configuration_get_content_size(configuration, frame,
@@ -364,18 +368,17 @@ static shm_buffer_t *create_shm_buffer(gfx_ctx_wayland_data_t *wl, int width,
    if (size <= 0)
       return NULL;
 
-   fd = create_shm_file(size);
-   if (fd < 0)
+   if ((fd = create_shm_file(size)) < 0)
    {
-      RARCH_ERR("[Wayland] [SHM]: Creating a buffer file for %d B failed: %s\n",
-         size, strerror(errno));
+      RARCH_ERR("[Wayland] [SHM]: Creating a buffer file for %d B failed\n",
+         size);
       return NULL;
    }
 
    data = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
    if (data == MAP_FAILED)
    {
-      RARCH_ERR("[Wayland] [SHM]: mmap failed: %s\n", strerror(errno));
+      RARCH_ERR("[Wayland] [SHM]: mmap failed\n");
       close(fd);
       return NULL;
    }

@@ -191,9 +191,9 @@ static void command_network_poll(command_t *handle)
    {
       netcmd->cmd_source_len = sizeof(netcmd->cmd_source);
 
-      ret = recvfrom(netcmd->net_fd, buf, sizeof(buf) - 1, 0,
-         (struct sockaddr*)&netcmd->cmd_source, &netcmd->cmd_source_len);
-      if (ret <= 0)
+      if ((ret = recvfrom(netcmd->net_fd, buf, sizeof(buf) - 1, 0,
+                  (struct sockaddr*)&netcmd->cmd_source,
+                  &netcmd->cmd_source_len)) <= 0)
          return;
 
       buf[ret] = '\0';
@@ -209,7 +209,7 @@ command_t* command_network_new(uint16_t port)
    command_network_t *netcmd = (command_network_t*)calloc(
                                    1, sizeof(command_network_t));
    int fd                    = socket_init(
-         (void**)&res, port, NULL, SOCKET_TYPE_DATAGRAM);
+         (void**)&res, port, NULL, SOCKET_TYPE_DATAGRAM, AF_INET);
 
    RARCH_LOG("[NetCMD]: %s %hu.\n",
          msg_hash_to_str(MSG_BRINGING_UP_COMMAND_INTERFACE_ON_PORT),
@@ -341,7 +341,8 @@ command_t* command_stdin_new(void)
 
 bool command_get_config_param(command_t *cmd, const char* arg)
 {
-   char reply[8192]             = {0};
+   size_t _len;
+   char reply[8192];
    const char      *value       = "unsupported";
    settings_t       *settings   = config_get_ptr();
    bool       video_fullscreen  = settings->bools.video_fullscreen;
@@ -374,7 +375,11 @@ bool command_get_config_param(command_t *cmd, const char* arg)
       value = path_username;
    /* TODO: query any string */
 
-   snprintf(reply, sizeof(reply), "GET_CONFIG_PARAM %s %s\n", arg, value);
+   strlcpy(reply, "GET_CONFIG_PARAM ", sizeof(reply));
+   _len          = strlcat(reply, arg, sizeof(reply));
+   reply[_len  ] = ' ';
+   reply[_len+1] = '\0';
+   strlcat(reply, value, sizeof(reply));
    cmd->replier(cmd, reply, strlen(reply));
    return true;
 }
@@ -540,6 +545,48 @@ static bool command_verify(const char *cmd)
    return false;
 }
 
+static bool udp_send_packet(const char *host, uint16_t port, const char *msg)
+{
+   char port_buf[6];
+   const struct addrinfo *tmp_info;
+   struct addrinfo *addr = NULL;
+   struct addrinfo hints = {0};
+   size_t          len   = strlen(msg);
+   bool            ret   = false;
+
+   snprintf(port_buf, sizeof(port_buf), "%hu", (unsigned short)port);
+
+   hints.ai_socktype = SOCK_DGRAM;
+   hints.ai_flags    = AI_NUMERICSERV;
+
+   if (getaddrinfo_retro(host, port_buf, &hints, &addr))
+      return false;
+   if (!addr)
+      return false;
+
+   /* Send to all possible targets. */
+   tmp_info = addr;
+
+   do
+   {
+      int fd = socket(tmp_info->ai_family,
+         tmp_info->ai_socktype, tmp_info->ai_protocol);
+
+      if (fd < 0)
+         continue;
+
+      if (sendto(fd, msg, len, 0, tmp_info->ai_addr, tmp_info->ai_addrlen) ==
+            (ssize_t)len)
+         ret = true;
+
+      socket_close(fd);
+   } while ((tmp_info = tmp_info->ai_next));
+
+   freeaddrinfo_retro(addr);
+
+   return ret;
+}
+
 bool command_network_send(const char *cmd_)
 {
    char *command        = NULL;
@@ -658,9 +705,10 @@ bool command_write_ram(command_t *cmd, const char *arg)
 
 bool command_version(command_t *cmd, const char* arg)
 {
-   char reply[256]             = {0};
-
-   snprintf(reply, sizeof(reply), "%s\n", PACKAGE_VERSION);
+   char reply[256];
+   size_t _len   = strlcpy(reply, PACKAGE_VERSION, sizeof(reply));
+   reply[_len  ] = '\n';
+   reply[_len+1] = '\0';
    cmd->replier(cmd, reply, strlen(reply));
 
    return true;
@@ -757,7 +805,7 @@ bool command_get_status(command_t *cmd, const char* arg)
    content_get_status(&contentless, &is_inited);
 
    if (!is_inited)
-       strcpy_literal(reply, "GET_STATUS CONTENTLESS");
+       strlcpy(reply, "GET_STATUS CONTENTLESS", sizeof(reply));
    else
    {
        /* add some content info */
@@ -871,17 +919,23 @@ void command_event_set_volume(
       bool widgets_active,
       bool audio_driver_mute_enable)
 {
+   size_t _len;
    char msg[128];
-   float new_volume            = settings->floats.audio_volume + gain;
-
-   new_volume                  = MAX(new_volume, -80.0f);
-   new_volume                  = MIN(new_volume, 12.0f);
-
+   float new_volume = settings->floats.audio_volume + gain;
+   new_volume       = MAX(new_volume, -80.0f);
+   new_volume       = MIN(new_volume, 12.0f);
    configuration_set_float(settings, settings->floats.audio_volume, new_volume);
-
-   snprintf(msg, sizeof(msg), "%s: %.1f dB",
-         msg_hash_to_str(MSG_AUDIO_VOLUME),
+   _len             = strlcpy(msg, msg_hash_to_str(MSG_AUDIO_VOLUME),
+         sizeof(msg));
+   msg[_len  ]      = ':';
+   msg[++_len]      = ' ';
+   msg[++_len]      = '\0';
+   _len            += snprintf(msg + _len, sizeof(msg) - _len, "%.1f",
          new_volume);
+   msg[_len  ]      = ' ';
+   msg[++_len]      = 'd';
+   msg[++_len]      = 'B';
+   msg[++_len]      = '\0';
 
 #if defined(HAVE_GFX_WIDGETS)
    if (widgets_active)
@@ -908,17 +962,23 @@ void command_event_set_mixer_volume(
       settings_t *settings,
       float gain)
 {
+   size_t _len;
    char msg[128];
-   float new_volume            = settings->floats.audio_mixer_volume + gain;
-
-   new_volume                  = MAX(new_volume, -80.0f);
-   new_volume                  = MIN(new_volume, 12.0f);
-
+   float new_volume = settings->floats.audio_mixer_volume + gain;
+   new_volume       = MAX(new_volume, -80.0f);
+   new_volume       = MIN(new_volume, 12.0f);
    configuration_set_float(settings, settings->floats.audio_mixer_volume, new_volume);
-
-   snprintf(msg, sizeof(msg), "%s: %.1f dB",
-         msg_hash_to_str(MSG_AUDIO_VOLUME),
+   _len             = strlcpy(msg, msg_hash_to_str(MSG_AUDIO_VOLUME),
+         sizeof(msg));
+   msg[_len  ]      = ':';
+   msg[++_len]      = ' ';
+   msg[++_len]      = '\0';
+   _len            += snprintf(msg + _len, sizeof(msg) - _len, "%.1f",
          new_volume);
+   msg[_len  ]      = ' ';
+   msg[++_len]      = 'd';
+   msg[++_len]      = 'B';
+   msg[++_len]      = '\0';
    runloop_msg_queue_push(msg, 1, 180, true, NULL, MESSAGE_QUEUE_ICON_DEFAULT, MESSAGE_QUEUE_CATEGORY_INFO);
 
    RARCH_LOG("[Audio]: %s\n", msg);
@@ -1069,7 +1129,7 @@ bool command_event_resize_windowed_scale(settings_t *settings,
    if (window_scale == 0)
       return false;
 
-   configuration_set_float(settings, settings->floats.video_scale, (float)window_scale);
+   configuration_set_uint(settings, settings->uints.video_scale, window_scale);
 
    if (!video_fullscreen)
       command_event(CMD_EVENT_REINIT, NULL);
@@ -1084,7 +1144,6 @@ bool command_event_save_auto_state(
       const enum rarch_core_type current_core_type)
 {
    runloop_state_t *runloop_st = runloop_state_get_ptr();
-   bool ret                    = false;
    char savestate_name_auto[PATH_MAX_LENGTH];
 
    if (runloop_st->entry_state_slot)
@@ -1095,26 +1154,24 @@ bool command_event_save_auto_state(
       return false;
    if (!core_info_current_supports_savestate())
       return false;
-
    if (string_is_empty(path_basename(path_get(RARCH_PATH_BASENAME))))
       return false;
 
-#ifdef HAVE_CHEEVOS
-   if (rcheevos_hardcore_active())
-      return false;
-#endif
-
-   savestate_name_auto[0]      = '\0';
-
-   fill_pathname_noext(savestate_name_auto,
+   strlcpy(savestate_name_auto,
          runloop_st->name.savestate,
-         ".auto", sizeof(savestate_name_auto));
+         sizeof(savestate_name_auto));
+   strlcat(savestate_name_auto,
+         ".auto",
+         sizeof(savestate_name_auto));
 
-   ret = content_save_state((const char*)savestate_name_auto, true, true);
-   RARCH_LOG("%s \"%s\" %s.\n",
-         msg_hash_to_str(MSG_AUTO_SAVE_STATE_TO),
-         savestate_name_auto, ret ?
-         "succeeded" : "failed");
+   if (content_save_state((const char*)savestate_name_auto, true, true))
+	   RARCH_LOG("%s \"%s\" %s.\n",
+			   msg_hash_to_str(MSG_AUTO_SAVE_STATE_TO),
+			   savestate_name_auto, "succeeded");
+   else
+	   RARCH_LOG("%s \"%s\" %s.\n",
+			   msg_hash_to_str(MSG_AUTO_SAVE_STATE_TO),
+			   savestate_name_auto, "failed");
 
    return true;
 }
@@ -1169,8 +1226,9 @@ bool command_event_load_entry_state(void)
 
    entry_state_path[0] = '\0';
 
-   if (!retroarch_get_entry_state_path(entry_state_path, sizeof(entry_state_path),
-         runloop_st->entry_state_slot))
+   if (!retroarch_get_entry_state_path(
+            entry_state_path, sizeof(entry_state_path),
+            runloop_st->entry_state_slot))
       return false;
 
    entry_path_stats = path_stat(entry_state_path);
@@ -1196,7 +1254,6 @@ void command_event_load_auto_state(void)
 {
    char savestate_name_auto[PATH_MAX_LENGTH];
    runloop_state_t *runloop_st     = runloop_state_get_ptr();
-   bool ret                        = false;
 
    if (!core_info_current_supports_savestate())
       return;
@@ -1210,30 +1267,35 @@ void command_event_load_auto_state(void)
       return;
 #endif
 
-   savestate_name_auto[0] = '\0';
-
-   fill_pathname_noext(savestate_name_auto, runloop_st->name.savestate,
-         ".auto", sizeof(savestate_name_auto));
+   strlcpy(savestate_name_auto,
+         runloop_st->name.savestate,
+         sizeof(savestate_name_auto));
+   strlcat(savestate_name_auto,
+         ".auto",
+         sizeof(savestate_name_auto));
 
    if (!path_is_valid(savestate_name_auto))
       return;
 
-   ret = content_load_state(savestate_name_auto, false, true);
-
    RARCH_LOG("[State]: %s \"%s\".\n",
          msg_hash_to_str(MSG_FOUND_AUTO_SAVESTATE_IN),
          savestate_name_auto);
-   RARCH_LOG("[State]: %s \"%s\" %s.\n",
-         msg_hash_to_str(MSG_AUTOLOADING_SAVESTATE_FROM),
-         savestate_name_auto, ret ? "succeeded" : "failed"
-         );
+
+   if ((content_load_state(savestate_name_auto, false, true)))
+      RARCH_LOG("[State]: %s \"%s\" %s.\n",
+            msg_hash_to_str(MSG_AUTOLOADING_SAVESTATE_FROM),
+            savestate_name_auto, "succeeded");
+   else
+      RARCH_LOG("[State]: %s \"%s\" %s.\n",
+            msg_hash_to_str(MSG_AUTOLOADING_SAVESTATE_FROM),
+            savestate_name_auto, "failed");
 }
 
 void command_event_set_savestate_auto_index(settings_t *settings)
 {
    size_t i;
+   char state_base[128];
    char state_dir[PATH_MAX_LENGTH];
-   char state_base[PATH_MAX_LENGTH];
 
    struct string_list *dir_list      = NULL;
    unsigned max_idx                  = 0;
@@ -1243,8 +1305,6 @@ void command_event_set_savestate_auto_index(settings_t *settings)
 
    if (!savestate_auto_index)
       return;
-
-   state_dir[0] = state_base[0]      = '\0';
 
    /* Find the file in the same directory as runloop_st->savestate_name
     * with the largest numeral suffix.
@@ -1301,15 +1361,12 @@ void command_event_set_savestate_garbage_collect(
 {
    size_t i, cnt = 0;
    char state_dir[PATH_MAX_LENGTH];
-   char state_base[PATH_MAX_LENGTH];
+   char state_base[128];
    runloop_state_t *runloop_st       = runloop_state_get_ptr();
 
    struct string_list *dir_list      = NULL;
    unsigned min_idx                  = UINT_MAX;
    const char *oldest_save           = NULL;
-
-   state_dir[0]                      = '\0';
-   state_base[0]                     = '\0';
 
    /* Similar to command_event_set_savestate_auto_index(),
     * this will find the lowest numbered save-state */
@@ -1332,8 +1389,6 @@ void command_event_set_savestate_garbage_collect(
       const char *ext                 = NULL;
       const char *end                 = NULL;
       const char *dir_elem            = dir_list->elems[i].data;
-
-      elem_base[0]                    = '\0';
 
       if (string_is_empty(dir_elem))
          continue;
@@ -1394,14 +1449,10 @@ bool command_set_shader(command_t *cmd, const char *arg)
       /* rebase on shader directory */
       if (!path_is_absolute(arg))
       {
-         static char abs_arg[PATH_MAX_LENGTH];
+         char abs_arg[PATH_MAX_LENGTH];
          const char *ref_path = settings->paths.directory_video_shader;
-         fill_pathname_join(abs_arg,
-               ref_path, arg, sizeof(abs_arg));
-         /* TODO/FIXME - pointer to local variable -
-          * making abs_arg static for now to workaround this
-          */
-         arg = abs_arg;
+         fill_pathname_join_special(abs_arg, ref_path, arg, sizeof(abs_arg));
+         return apply_shader(settings, type, abs_arg, true);
       }
    }
 
@@ -1415,16 +1466,15 @@ bool command_event_save_core_config(
       const char *rarch_path_config)
 {
    char msg[128];
-   char config_name[PATH_MAX_LENGTH];
+   char config_name[255];
    char config_path[PATH_MAX_LENGTH];
    char config_dir[PATH_MAX_LENGTH];
-   bool found_path                 = false;
+   bool new_path_available         = false;
    bool overrides_active           = false;
    const char *core_path           = NULL;
    runloop_state_t *runloop_st     = runloop_state_get_ptr();
 
    msg[0]                          = '\0';
-   config_dir[0]                   = '\0';
 
    if (!string_is_empty(dir_menu_config))
       strlcpy(config_dir, dir_menu_config, sizeof(config_dir));
@@ -1440,53 +1490,42 @@ bool command_event_save_core_config(
    }
 
    core_path                       = path_get(RARCH_PATH_CORE);
-   config_name[0]                  = '\0';
-   config_path[0]                  = '\0';
 
    /* Infer file name based on libretro core. */
    if (path_is_valid(core_path))
    {
       unsigned i;
+      char tmp[PATH_MAX_LENGTH + 8];
       RARCH_LOG("[Config]: %s\n", msg_hash_to_str(MSG_USING_CORE_NAME_FOR_NEW_CONFIG));
+
+      fill_pathname_base(config_name, core_path, sizeof(config_name));
+      path_remove_extension(config_name);
+      fill_pathname_join_special(config_path, config_dir, config_name,
+            sizeof(config_path));
 
       /* In case of collision, find an alternative name. */
       for (i = 0; i < 16; i++)
       {
-         char tmp[64];
-
-         fill_pathname_base_noext(
-               config_name,
-               core_path,
-               sizeof(config_name));
-
-         fill_pathname_join(config_path, config_dir, config_name,
-               sizeof(config_path));
-
+         size_t _len = strlcpy(tmp, config_path, sizeof(tmp));
          if (i)
-            snprintf(tmp, sizeof(tmp), "-%u.cfg", i);
-         else
-         {
-            tmp[0] = '\0';
-            strlcpy(tmp, ".cfg", sizeof(tmp));
-         }
+            snprintf(tmp + _len, sizeof(tmp) - _len, "-%u", i);
+         strlcat(tmp, ".cfg", sizeof(tmp));
 
-         strlcat(config_path, tmp, sizeof(config_path));
-
-         if (!path_is_valid(config_path))
+         if (!path_is_valid(tmp))
          {
-            found_path = true;
+            new_path_available = true;
             break;
          }
       }
    }
 
-   if (!found_path)
+   if (!new_path_available)
    {
       /* Fallback to system time... */
       RARCH_WARN("[Config]: %s\n",
             msg_hash_to_str(MSG_CANNOT_INFER_NEW_CONFIG_PATH));
       fill_dated_filename(config_name, ".cfg", sizeof(config_name));
-      fill_pathname_join(config_path, config_dir, config_name,
+      fill_pathname_join_special(config_path, config_dir, config_name,
             sizeof(config_path));
    }
 
@@ -1523,8 +1562,7 @@ void command_event_save_current_config(enum override_type type)
             if (path_is_empty(RARCH_PATH_CONFIG))
             {
                char msg[128];
-               msg[0] = '\0';
-               strcpy_literal(msg, "[Config]: Config directory not set, cannot save configuration.");
+               strlcpy(msg, "[Config]: Config directory not set, cannot save configuration.", sizeof(msg));
                runloop_msg_queue_push(msg, 1, 180, true, NULL, MESSAGE_QUEUE_ICON_DEFAULT, MESSAGE_QUEUE_CATEGORY_INFO);
             }
             else
@@ -1541,7 +1579,6 @@ void command_event_save_current_config(enum override_type type)
       case OVERRIDE_CONTENT_DIR:
          {
             char msg[128];
-            msg[0] = '\0';
             if (config_save_overrides(type, &runloop_st->system))
             {
                strlcpy(msg, msg_hash_to_str(MSG_OVERRIDES_SAVED_SUCCESSFULLY), sizeof(msg));

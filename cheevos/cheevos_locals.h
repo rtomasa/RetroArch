@@ -147,8 +147,6 @@ typedef struct rcheevos_menuitem_t
    enum msg_hash_enums state_label_idx;
 } rcheevos_menuitem_t;
 
-void rcheevos_menu_reset_badges(void);
-
 #endif
 
 typedef struct rcheevos_locals_t
@@ -189,14 +187,6 @@ int rcheevos_end_load_state(void);
 bool rcheevos_load_aborted(void);
 
 void rcheevos_show_mastery_placard(void);
-
-#ifdef HAVE_THREADS
- #define CHEEVOS_LOCK(l)   do { slock_lock(l); } while (0)
- #define CHEEVOS_UNLOCK(l) do { slock_unlock(l); } while (0)
-#else
- #define CHEEVOS_LOCK(l)
- #define CHEEVOS_UNLOCK(l)
-#endif
 
 RETRO_END_DECLS
 

@@ -141,7 +141,7 @@ typedef struct
 #ifdef __WINRT__
    DXGIFactory2 factory;
 #else
-   DXGIFactory factory;
+   DXGIFactory1 factory;
 #endif
    DXGIAdapter adapter;
    D3D12Device device;
@@ -183,6 +183,8 @@ typedef struct
       float                       clearcolor[4];
       int                         frame_index;
       bool                        vsync;
+      bool                        waitable_swapchains;
+      bool                        wait_for_vblank;
       unsigned                    swap_interval;
 #ifdef HAVE_DXGI_HDR
       enum dxgi_swapchain_bit_depth bit_depth;
