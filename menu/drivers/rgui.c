@@ -5521,40 +5521,49 @@ static void rgui_render(void *data,
       /* Print menu sublabel/core name (if required) */
       if (menu_show_sublabels && !string_is_empty(rgui->menu_sublabel))
       {
-         char sublabel_buf[MENU_SUBLABEL_MAX_LENGTH];
-         sublabel_buf[0] = '\0';
-
-         if (use_smooth_ticker)
+         /* RGB-Pi Restrict menu sublabels */
+         const char* cheevos_list_menu;
+         cheevos_list_menu = msg_hash_to_str(MENU_ENUM_LABEL_VALUE_ACHIEVEMENT_LIST);
+         bool is_cheevos_list_menu = string_is_equal(rgui->menu_title, cheevos_list_menu);
+         if (is_cheevos_list_menu)
          {
-            ticker_smooth.selected    = true;
-            ticker_smooth.field_width = core_name_len * rgui->font_width_stride;
-            ticker_smooth.src_str     = rgui->menu_sublabel;
-            ticker_smooth.dst_str     = sublabel_buf;
-            ticker_smooth.dst_str_len = sizeof(sublabel_buf);
-            ticker_smooth.x_offset    = &ticker_x_offset;
+            //fprintf(stdout,"[DEBUG]: Menu title: %s, Sublabel: %s\n",rgui->menu_title,rgui->menu_sublabel);
+            char sublabel_buf[MENU_SUBLABEL_MAX_LENGTH];
+            sublabel_buf[0] = '\0';
 
-            gfx_animation_ticker_smooth(&ticker_smooth);
+            if (use_smooth_ticker)
+            {
+               ticker_smooth.selected    = true;
+               ticker_smooth.field_width = core_name_len * rgui->font_width_stride;
+               ticker_smooth.src_str     = rgui->menu_sublabel;
+               ticker_smooth.dst_str     = sublabel_buf;
+               ticker_smooth.dst_str_len = sizeof(sublabel_buf);
+               ticker_smooth.x_offset    = &ticker_x_offset;
+
+               gfx_animation_ticker_smooth(&ticker_smooth);
+            }
+            else
+            {
+               ticker.s        = sublabel_buf;
+               ticker.len      = core_name_len;
+               ticker.str      = rgui->menu_sublabel;
+               ticker.selected = true;
+
+               gfx_animation_ticker(&ticker);
+            }
+
+            blit_line(rgui,
+                  fb_width,
+                  ticker_x_offset + rgui->term_layout.start_x + rgui->font_width_stride,
+                  (rgui->term_layout.height * rgui->font_height_stride) +
+                  rgui->term_layout.start_y + 2, sublabel_buf,
+                  rgui->colors.hover_color, rgui->colors.shadow_color);
          }
-         else
-         {
-            ticker.s        = sublabel_buf;
-            ticker.len      = core_name_len;
-            ticker.str      = rgui->menu_sublabel;
-            ticker.selected = true;
-
-            gfx_animation_ticker(&ticker);
-         }
-
-         blit_line(rgui,
-               fb_width,
-               ticker_x_offset + rgui->term_layout.start_x + rgui->font_width_stride,
-               (rgui->term_layout.height * rgui->font_height_stride) +
-               rgui->term_layout.start_y + 2, sublabel_buf,
-               rgui->colors.hover_color, rgui->colors.shadow_color);
       }
       else if (menu_core_enable)
       {
-         char core_title[64];
+         /* RGB-Pi Remove Core name in some menu sublabels */
+         /*char core_title[64];
          char core_title_buf[64];
          core_title[0] = core_title_buf[0] = '\0';
 
@@ -5586,7 +5595,7 @@ static void rgui_render(void *data,
                ticker_x_offset + rgui->term_layout.start_x + rgui->font_width_stride,
                (rgui->term_layout.height * rgui->font_height_stride) +
                rgui->term_layout.start_y + 2, core_title_buf,
-               rgui->colors.hover_color, rgui->colors.shadow_color);
+               rgui->colors.hover_color, rgui->colors.shadow_color);*/
       }
 
       /* Print clock (if required) */

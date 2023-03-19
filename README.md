@@ -350,9 +350,6 @@ The links below belong to our official channels. Links other than this may have 
 This feature will enable dynamic native resolution detection and switch in real time.
 This feature has been tested only with Raspberry Pi4 using KMS/DRM and DPI interface.
 
-Please do note that you need to load every single kms video mode before using this feature.
-As of now, only RGB-Pi OS includes such DB out of the box.
-
 ## Build on Pi4
 
 Install dependencies:
@@ -361,15 +358,19 @@ Install dependencies:
 
 Configure and build (32-bit):
 
-`CFLAGS='-march=armv8-a+crc+simd -mcpu=cortex-a72 -mtune=cortex-a72 -mfloat-abi=hard -mfpu=neon-fp-armv8' CXXFLAGS="${CFLAGS}" ./configure --disable-caca --disable-jack --disable-opengl1 --disable-oss --disable-sdl --disable-sdl2 --disable-videocore --disable-vulkan --disable-wayland --disable-x11 --enable-alsa --enable-egl --enable-floathard --enable-kms --enable-neon --enable-opengles --enable-opengles3_1 --disable-pulse --enable-udev --enable-ffmpeg`
+`CFLAGS='-march=armv8-a+crc+simd -mcpu=cortex-a72 -mtune=cortex-a72 -mfloat-abi=hard -mfpu=neon-fp-armv8' CXXFLAGS="${CFLAGS}" ./configure --disable-caca --disable-jack --disable-opengl1 --disable-oss --disable-sdl --disable-sdl2 --disable-videocore --disable-vulkan --disable-wayland --disable-x11 --enable-alsa --enable-egl --enable-floathard --enable-kms --enable-neon --enable-opengles --enable-opengles3_1 --disable-pulse --enable-udev --enable-ffmpeg --disable-v4l2 --enable-dynares`
 
 Configure and build (64-bit):
 
-`CFLAGS='-march=armv8-a+crc+simd -mcpu=cortex-a72 -mtune=cortex-a72' CXXFLAGS="${CFLAGS}" ./configure --disable-caca --disable-sixel --disable-jack --disable-oss --disable-sdl --disable-sdl2 --disable-videocore --disable-wayland --disable-x11 --enable-alsa --enable-egl --enable-kms --disable-opengl1 --disable-opengl --enable-opengl_core --enable-opengles --enable-vulkan --disable-pulse --enable-udev --disable-ffmpeg --disable-xmb --disable-ozone --disable-materialui --disable-discord --disable-bluetooth --disable-gfx_widgets --disable-xrandr --disable-online_updater --disable-translate --disable-cdrom --enable-dynares`
+`CFLAGS='-march=armv8-a+crc+simd -mcpu=cortex-a72 -mtune=cortex-a72' CXXFLAGS="${CFLAGS}" ./configure --disable-caca --disable-sixel --disable-jack --disable-oss --disable-sdl --disable-sdl2 --disable-videocore --disable-wayland --disable-x11 --enable-alsa --enable-egl --enable-kms --disable-opengl1 --disable-opengl --disable-opengl_core --enable-opengles --enable-opengles3 --enable-opengles3_1 --disable-vulkan --disable-pulse --enable-udev --enable-ffmpeg --disable-v4l2 --disable-xmb --disable-ozone --disable-materialui --disable-discord --disable-bluetooth --disable-gfx_widgets --disable-xrandr --disable-online_updater --disable-translate --disable-cdrom --disable-libretrodb --disable-freetype --enable-dynares`
 
 Then make and install:
 
 `make -j4`
+
+Check compiled features:
+
+`retroarch --features`
 
 At this point I prefer to use checkinstall instead of simply make install. You'll have a deb package that you can save somewhere for when you reinstall Raspberry OS (change to the correct version in the instructions below):
 

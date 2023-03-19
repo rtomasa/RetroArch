@@ -78,7 +78,6 @@ int dynares_is_mame_rotated()
    return string_is_equal(sys_name, "MAME") && (rotation == 1 || rotation == 3);
 }
 
-
 void dynares_check_rotation(unsigned *width, unsigned *height)
 {
    RARCH_LOG("[DynaRes]: Check rotation: System: %s, resolution: %dx%d, rotation: %d\n", sys_name, *width, *height, rotation);
@@ -97,9 +96,9 @@ void dynares_video_show_info(int width, int height, int interlaced, float hz)
    char msg[128];
    settings_t *settings = config_get_ptr();
 
-   char* mode = "x";
+   char *mode = "x";
 
-   if(interlaced)
+   if (interlaced)
    {
       mode = "i";
       if (settings->bools.dynares_flicker_reduction)
@@ -325,9 +324,18 @@ void dynares_init(unsigned *width, unsigned *height, unsigned base_width, unsign
    sr_set_monitor(crt_type);
    sr_set_interlace_force_even(1);
    sr_set_v_shift_correct(0);
-   sr_set_user_mode(320, 240, 60.0);
-   sr_init_disp("auto");
-   sr_get_timing(320, 240, 60.0, crt_type, 0, &srtiming);
+   if (string_is_equal(crt_type, "arcade_31"))
+   {
+      sr_set_user_mode(640, 480, 60.0);
+      sr_init_disp("auto");
+      sr_get_timing(640, 480, 60.0, crt_type, 0, &srtiming);
+   }
+   else
+   {
+      sr_set_user_mode(320, 240, 60.0);
+      sr_init_disp("auto");
+      sr_get_timing(320, 240, 60.0, crt_type, 0, &srtiming);
+   }
    snprintf(sys_timing, sizeof(sys_timing), "%d %d %d %d %d %d %d %d %d %d %d %d %d %f %d %ld %d",
             srtiming.hhh, srtiming.hsync, srtiming.h_f_porch, srtiming.h_b_porch, srtiming.h_total,
             srtiming.vvv, srtiming.vsync, srtiming.v_f_porch, srtiming.v_b_porch, srtiming.v_total,
@@ -376,7 +384,7 @@ void dynares_init(unsigned *width, unsigned *height, unsigned base_width, unsign
       RARCH_LOG("[DynaRes]: Init: %s(%s): Game timing requested: %s\n", dynares, crt_type, gam_timing);
       RARCH_LOG("[DynaRes]: Init: Game timing transformation (15K/25/31Khz): %u %u %f\n", srtiming.hhh, srtiming.vvv, fps);
       sr_deinit();
-      if(srtiming.vvv != *height)
+      if (srtiming.vvv != *height)
       {
          *width = srtiming.hhh;
          *height = srtiming.vvv;

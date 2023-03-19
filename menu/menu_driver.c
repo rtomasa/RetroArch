@@ -6015,7 +6015,7 @@ unsigned menu_event(
       else if (ok_trigger)
          ret = MENU_ACTION_OK;
       else if (BIT256_GET_PTR(p_trigger_input, menu_cancel_btn)) {
-          /* Get Current Menu Entry */
+         /* RGB-Pi Get Current Menu Entry */
          //char current_label[128];
          //get_current_menu_label(menu_st, current_label, sizeof(current_label));
          if (settings->bools.rgbpi_restrict_ui)
